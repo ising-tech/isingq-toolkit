@@ -1,0 +1,8 @@
+* text=auto
+*.sh text eol=lf
+*.ps1 text eol=lf
+dist/ export-ignore
+coverage/ export-ignore
+.playwright-cli/ export-ignore
+output/ export-ignore
+video/ export-ignore

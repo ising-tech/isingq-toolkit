@@ -1,0 +1,49 @@
+{
+  "name": "@ising-tech/isingq-dsh-plugin",
+  "version": "0.4.1",
+  "description": "Native DeepSeek Harness plugin for IsingQ guided QUBO modeling and solving",
+  "type": "module",
+  "main": "./index.mjs",
+  "files": [
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "cordis.patch.yml",
+    "index.mjs"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "check": "node --check index.mjs",
+    "prepublishOnly": "npm run check"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ising-tech/isingq-toolkit.git",
+    "directory": "packages/dsh-plugin"
+  },
+  "homepage": "https://github.com/ising-tech/isingq-toolkit/tree/main/packages/dsh-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/ising-tech/isingq-toolkit/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@ising-tech/isingq-core": "0.4.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.7"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.7"
+  }
+}

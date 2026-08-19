@@ -1,0 +1,11 @@
+# IsingQ 的 DSH 组合层：挂载原生 DSH 插件（复用 @ising-tech/isingq-core，进程内注册）。
+#
+# 相比 MCP 桥接，原生插件：
+#   - 不额外起子进程，类型化输出，支持 Code Mode（await tools.isingq_*）
+#   - 额外暴露 MCP 桥接所不具备的 Resources（isingq_resource_list / isingq_resource_read）
+#   - 标准 MCP 由同仓库的 @ising-tech/isingq-mcp 独立发布，供 Codex/Claude/其他 Host 使用
+#
+# 不要在同一 Profile 同时加载原生 Plugin 与 MCP Bridge，否则会出现重复功能工具。
+- insert:
+    - id: isingq-dsh-plugin
+      name: '@ising-tech/isingq-dsh-plugin'

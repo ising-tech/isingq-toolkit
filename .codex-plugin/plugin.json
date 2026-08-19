@@ -1,0 +1,30 @@
+{
+  "name": "isingq-mcp",
+  "version": "0.4.1",
+  "description": "Use IsingQ from Codex for public product knowledge, guided QUBO modeling, validation, and user-confirmed solving.",
+  "author": {
+    "name": "北京伊辛智能科技有限公司",
+    "url": "https://www.isingq.com/"
+  },
+  "homepage": "https://www.isingq.com/",
+  "repository": "https://github.com/ising-tech/isingq-toolkit",
+  "license": "Apache-2.0",
+  "keywords": ["IsingQ", "QUBO", "optimization", "Ising machine"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "IsingQ MCP",
+    "shortDescription": "本地 QUBO 建模与 IsingQ 求解",
+    "longDescription": "查询伊辛智能公开产品知识，引导 Agent 在本机建立和校验 QUBO，并在用户确认后使用个人 IsingQ API Key 提交求解。",
+    "developerName": "北京伊辛智能科技有限公司",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://www.isingq.com/",
+    "defaultPrompt": [
+      "配置我的 IsingQ API Key",
+      "把这个业务问题建成 QUBO，确认后调用 IsingQ 求解",
+      "玉盘·伊辛云当前支持多少自旋？"
+    ],
+    "brandColor": "#F97316"
+  }
+}

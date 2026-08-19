@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "isingq": {
+      "command": "node",
+      "args": ["./bin/isingq-mcp.js", "serve"],
+      "cwd": "."
+    }
+  }
+}

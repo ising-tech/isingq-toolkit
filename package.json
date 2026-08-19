@@ -1,0 +1,56 @@
+{
+  "name": "@ising-tech/isingq-mcp",
+  "version": "0.4.1",
+  "description": "IsingQ local MCP for guided QUBO modeling and personal API-key solving",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "exports": {
+    ".": "./src/server.js",
+    "./core": "./packages/core/src/index.js"
+  },
+  "bin": {
+    "isingq-mcp": "bin/isingq-mcp.js"
+  },
+  "files": [
+    ".codex-plugin/",
+    ".mcp.json",
+    "LICENSE",
+    "NOTICE",
+    "SECURITY.md",
+    "bin/",
+    "install/",
+    "packages/core/",
+    "skills/",
+    "src/"
+  ],
+  "workspaces": [
+    "packages/core",
+    "packages/dsh-plugin"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check bin/isingq-mcp.js && node --check src/server.js && npm run check --workspace @ising-tech/isingq-core && npm run check --workspace @ising-tech/isingq-dsh-plugin",
+    "build:binaries": "node scripts/build-binaries.js",
+    "prepublishOnly": "npm test && npm run check"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ising-tech/isingq-toolkit.git"
+  },
+  "homepage": "https://github.com/ising-tech/isingq-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/ising-tech/isingq-toolkit/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@yao-pkg/pkg": "6.22.0",
+    "esbuild": "0.25.12"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "knowledge_version": "2026-08-18",
+  "sources": [
+    {
+      "id": "official.home",
+      "title": "北京伊辛智能科技官网",
+      "type": "official-web",
+      "url": "https://www.isingq.com/",
+      "last_verified": "2026-08-17"
+    },
+    {
+      "id": "official.about",
+      "title": "关于伊辛智能",
+      "type": "official-web",
+      "url": "https://www.isingq.com/about",
+      "last_verified": "2026-08-17"
+    },
+    {
+      "id": "official.ising_machine",
+      "title": "光电伊辛机",
+      "type": "official-web",
+      "url": "https://www.isingq.com/product/ising-machine",
+      "last_verified": "2026-08-17"
+    },
+    {
+      "id": "official.ising_cloud",
+      "title": "玉盘·伊辛云",
+      "type": "official-web",
+      "url": "https://www.isingq.com/product/cloud",
+      "last_verified": "2026-08-17"
+    },
+    {
+      "id": "official.oepo",
+      "title": "超低相噪微波源",
+      "type": "official-web",
+      "url": "https://www.isingq.com/product/oepo",
+      "last_verified": "2026-08-18"
+    },
+    {
+      "id": "official.news.cloud_upgrade_20260710",
+      "title": "玉盘·伊辛云算力升级",
+      "type": "official-web",
+      "url": "https://www.isingq.com/news/30",
+      "last_verified": "2026-08-18"
+    },
+    {
+      "id": "official.news.first_generation_machine",
+      "title": "第一代光电伊辛机公开介绍",
+      "type": "official-web",
+      "url": "https://www.isingq.com/news/6",
+      "last_verified": "2026-08-18"
+    },
+    {
+      "id": "official.finance",
+      "title": "金融行业解决方案",
+      "type": "official-web",
+      "url": "https://www.isingq.com/solution/finance",
+      "last_verified": "2026-08-17"
+    },
+    {
+      "id": "official.traffic",
+      "title": "智慧交通解决方案",
+      "type": "official-web",
+      "url": "https://www.isingq.com/solution/traffic",
+      "last_verified": "2026-08-17"
+    },
+    {
+      "id": "official.poc",
+      "title": "POC 接入流程",
+      "type": "official-web",
+      "url": "https://www.isingq.com/support/poc",
+      "last_verified": "2026-08-17"
+    },
+    {
+      "id": "official.console",
+      "title": "玉盘·伊辛云平台",
+      "type": "official-product-entry",
+      "url": "https://console.isingq.com/",
+      "last_verified": "2026-08-17"
+    },
+    {
+      "id": "local.mcp_contract",
+      "title": "isingq-mcp 本地数据流与求解契约",
+      "type": "local-contract",
+      "uri": "isingq://security/data-flow",
+      "last_verified": "2026-08-17"
+    }
+  ]
+}

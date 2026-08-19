@@ -1,0 +1,46 @@
+{
+  "name": "@ising-tech/isingq-core",
+  "version": "0.4.1",
+  "description": "Shared local runtime for IsingQ QUBO modeling, validation and solving adapters",
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./isingq": "./src/isingq.js",
+    "./knowledge": "./src/knowledge.js",
+    "./modeling": "./src/modeling.js",
+    "./qubo": "./src/qubo.js",
+    "./resources": "./src/resources.js",
+    "./setup": "./src/setup.js",
+    "./store": "./src/store.js",
+    "./tools": "./src/tools.js"
+  },
+  "files": [
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "knowledge/",
+    "src/"
+  ],
+  "scripts": {
+    "check": "node --check src/index.js && node --check src/tools.js && node --check src/setup.js",
+    "prepublishOnly": "npm run check"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ising-tech/isingq-toolkit.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/ising-tech/isingq-toolkit/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/ising-tech/isingq-toolkit/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "Apache-2.0"
+}
