@@ -314,4 +314,10 @@ npm run check
 npm run build:binaries
 ```
 
-`build:binaries` 会在 `dist/` 生成五个平台的独立可执行文件和带 SHA-256 的 `manifest.json`。部署镜像从 `install/` 和 `dist/` 发布这些文件；重新构建二进制后需要重新部署镜像。
+`build:binaries` 会在 `dist/` 生成五个平台的独立可执行文件和带 SHA-256 的 `manifest.json`。也可以只构建一个 CI 矩阵目标，例如：
+
+```bash
+npm run build:binaries -- --target node22-win-x64
+```
+
+GitHub Actions 会在 macOS arm64/x64、Linux arm64/x64 和 Windows x64 原生 Runner 上分别构建，并用打包后的程序验证 MCP 的 7 个工具和 13 个 Resources。普通提交只保留 Workflow Artifacts；推送与 `package.json` 版本一致的 `v*` 标签时，才会汇总 SHA-256 并创建 GitHub Release。
