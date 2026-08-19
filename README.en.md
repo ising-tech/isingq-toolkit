@@ -151,10 +151,19 @@ Source execution, architecture, package boundaries, and the Release process are 
 - API traffic uses HTTPS; matrix upload uses short-lived credentials and does not carry the personal API Key.
 - Local records contain models, task IDs, and results, but never the API Key.
 
-Solve results retain two values:
+Solve results retain two values.
 
-- IsingQ provider energy: `E(s) = -1/2 · Σ_i Σ_j J_ij s_i s_j - Σ_i h_i s_i`.
-- The objective recomputed by the MCP: `f(x) = offset + Σ_i Q_ii x_i + Σ_{i<j} Q_ij x_i x_j`.
+**IsingQ provider energy**
+
+```math
+E(s) = -\frac{1}{2}\sum_i\sum_j J_{ij}s_i s_j - \sum_i h_i s_i
+```
+
+**Objective recomputed by the MCP**
+
+```math
+f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i<j} Q_{ij}x_i x_j
+```
 
 They can differ because of variable conversion, constant offsets, or coefficient conventions. The lowest energy does not automatically establish business feasibility, a global optimum, or specific hardware performance.
 

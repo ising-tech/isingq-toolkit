@@ -150,10 +150,19 @@ dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 - API 请求使用 HTTPS；矩阵上传使用短期签名，不携带个人 API Key。
 - 本地记录包含模型、任务 ID 和结果，不包含 API Key。
 
-求解结果同时保留两种数值：
+求解结果同时保留两种数值。
 
-- IsingQ provider energy：`E(s) = -1/2 · Σ_i Σ_j J_ij s_i s_j - Σ_i h_i s_i`。
-- MCP 按 QUBO 重新计算的 objective：`f(x) = offset + Σ_i Q_ii x_i + Σ_{i<j} Q_ij x_i x_j`。
+**IsingQ provider energy**
+
+```math
+E(s) = -\frac{1}{2}\sum_i\sum_j J_{ij}s_i s_j - \sum_i h_i s_i
+```
+
+**MCP 按 QUBO 重新计算的 objective**
+
+```math
+f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i<j} Q_{ij}x_i x_j
+```
 
 两者可能因变量转换、常数项或系数口径不同而不相等。最低 energy 也不自动代表业务可行、全局最优或特定硬件性能。
 
