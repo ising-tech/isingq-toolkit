@@ -1,7 +1,19 @@
 {
   "name": "@ising-tech/isingq-mcp",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "IsingQ local MCP for guided QUBO modeling and personal API-key solving",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "isingq",
+    "ising-machine",
+    "qubo",
+    "combinatorial-optimization",
+    "binary-optimization",
+    "agent-tools",
+    "local-first",
+    "photonic-computing"
+  ],
   "type": "commonjs",
   "main": "src/server.js",
   "exports": {

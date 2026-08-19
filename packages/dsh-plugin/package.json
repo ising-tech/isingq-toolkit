@@ -1,7 +1,16 @@
 {
   "name": "@ising-tech/isingq-dsh-plugin",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Native DeepSeek Harness plugin for IsingQ guided QUBO modeling and solving",
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "isingq",
+    "ising-machine",
+    "qubo",
+    "combinatorial-optimization",
+    "agent-tools"
+  ],
   "type": "module",
   "main": "./index.mjs",
   "files": [
@@ -38,7 +47,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@ising-tech/isingq-core": "0.4.1"
+    "@ising-tech/isingq-core": "0.4.2"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tools": "0.1.0-rc.7"

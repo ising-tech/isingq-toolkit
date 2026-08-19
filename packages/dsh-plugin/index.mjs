@@ -5,8 +5,8 @@
 // defineTool，共享 CJS core 则经 createRequire 加载。
 //
 // 相比 MCP 桥接，原生插件额外暴露 MCP Resources、拥有类型化输出与 Code Mode
-// 支持，且不额外起子进程。API Key 输入与求解确认均走 setup.js 的异步版本
-// （spawn 而非 spawnSync），不阻塞 DSH Host 事件循环。
+// 支持，且不额外起子进程。只有 API Key 输入走 setup.js 的异步安全输入；
+// 求解授权交由 DSH Host 的工具权限与用户确认流程处理。
 
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { createRequire } from 'node:module';
@@ -17,7 +17,6 @@ const {
   SolverService,
   TOOL_DEFINITIONS,
   configureApiKeyAsync,
-  confirmSolveAsync,
   getKnowledge,
   modelingGuide,
   readResource,
@@ -50,7 +49,7 @@ function dshParameters(inputSchema) {
 }
 
 export function apply(ctx) {
-  const service = new SolverService({ confirmSolve: confirmSolveAsync });
+  const service = new SolverService();
   const execute = {
     isingq_api_key_setup: (args) => configureApiKeyAsync({ force: args.force === true }),
     isingq_knowledge_get: (args) => getKnowledge(args.topic, args.locale),

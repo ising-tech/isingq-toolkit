@@ -74,7 +74,7 @@ function createHandler(service = new SolverService(), { configureApiKey = config
           title: 'IsingQ · 伊辛智能组合优化建模与求解',
           version: VERSION,
         },
-        instructions: '这是北京伊辛智能科技有限公司 IsingQ 的本地组合优化 MCP。缺少 API Key 时，应让用户明确确认后调用 isingq_api_key_setup 打开操作系统安全输入框；不得索要用户在对话中提供 API Key。用户询问伊辛智能、公开产品清单、IsingQ、光电伊辛机、玉盘·伊辛云、超低相噪微波源、解决方案或公开案例时，调用 isingq_knowledge_get 获取带来源和边界的本地公开知识。建模时先获取建模引导；Host Agent 在本地把投资组合、路径规划、车辆路径、排程或图优化问题生成并校验为 QUBO，用户明确确认后才调用个人 IsingQ API Key 求解。结果只对应 QUBO，不自动证明业务可行、全局最优或特定硬件性能。',
+        instructions: '这是北京伊辛智能科技有限公司 IsingQ 的本地组合优化 MCP。缺少 API Key 时，应让用户明确确认后调用 isingq_api_key_setup 打开操作系统安全输入框；不得索要用户在对话中提供 API Key。用户询问伊辛智能、公开产品清单、IsingQ、光电伊辛机、玉盘·伊辛云、超低相噪微波源、解决方案或公开案例时，调用 isingq_knowledge_get 获取带来源和边界的本地公开知识。建模时先获取建模引导；Host Agent 在本地把投资组合、路径规划、车辆路径、排程或图优化问题生成并校验为 QUBO，展示模型摘要与矩阵 SHA-256，并在用户明确确认后调用 isingq_solve_start。该工具被 Host 放行后会立即创建远端任务，MCP 不再弹出额外的操作系统求解确认框；Host 可按权限策略再次确认。结果只对应 QUBO，不自动证明业务可行、全局最优或特定硬件性能。',
       };
     }
     if (request.method === 'ping') return {};

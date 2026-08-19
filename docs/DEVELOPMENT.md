@@ -8,7 +8,7 @@
 
 npm workspaces 包含三个发布单元：
 
-- `@ising-tech/isingq-core`：QUBO、知识、IsingQ HTTPS、用户确认和本地记录逻辑。
+- `@ising-tech/isingq-core`：QUBO、知识、IsingQ HTTPS、API Key 安全输入和本地记录逻辑；求解授权由 Agent 与 Host 负责。
 - `@ising-tech/isingq-mcp`：标准 stdio MCP、CLI 和 Codex Plugin 入口。
 - `@ising-tech/isingq-dsh-plugin`：复用 core 的 DSH 进程内原生适配器。
 

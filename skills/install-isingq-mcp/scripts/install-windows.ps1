@@ -7,7 +7,7 @@ $Target = Join-Path $InstallPrefix 'isingq-mcp.cmd'
 $TargetHost = $env:ISINGQ_MCP_TARGET_HOST
 $AutomaticHosts = @('workbuddy', 'codex', 'claude-code', 'cursor', 'vscode')
 if ([string]::IsNullOrWhiteSpace($TargetHost)) {
-    @{ binary_installed = $false; api_key_configured = $false; host_registered = $false; native_tools_loaded = $false; blocked_by = 'target_host_required'; next_action = '设置 ISINGQ_MCP_TARGET_HOST' } | ConvertTo-Json -Compress
+    @{ distribution_mode = 'source'; runtime_available = $false; api_key_configured = $false; host_registered = $false; tools_loaded = $false; loaded_version = $null; blocked_by = 'target_host_required'; next_action = '设置 ISINGQ_MCP_TARGET_HOST' } | ConvertTo-Json -Compress
     exit 2
 }
 if (($AutomaticHosts -notcontains $TargetHost) -and ($TargetHost -notin @('trae', 'generic'))) {
@@ -22,7 +22,7 @@ try {
         $env:ISINGQ_MCP_NPM_PREFIX = $InstallPrefix
         & (Join-Path $RepoRoot 'install\install.ps1')
     } catch {
-        @{ binary_installed = $false; api_key_configured = $false; host_registered = $false; native_tools_loaded = $false; blocked_by = 'local_source_install_failed'; next_action = '确认本机存在 Node.js 18+、npm，并批准写入用户安装目录' } | ConvertTo-Json -Compress
+        @{ distribution_mode = 'source'; runtime_available = $false; api_key_configured = $false; host_registered = $false; tools_loaded = $false; loaded_version = $null; blocked_by = 'local_source_install_failed'; next_action = '确认本机存在 Node.js 18+、npm，并批准写入用户安装目录' } | ConvertTo-Json -Compress
         throw
     }
 } finally {
@@ -30,10 +30,13 @@ try {
     $env:ISINGQ_MCP_NPM_PREFIX = $PreviousPrefix
 }
 
+$LoadedVersion = ((& $Target --version).Trim() -replace '^isingq-mcp\s+', '')
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($LoadedVersion)) {
+    throw "无法读取 isingq-mcp 版本（path=$Target, exit=$LASTEXITCODE）"
+}
+
 & $Target self-check --json *> $null
-if ($LASTEXITCODE -eq 0) {
-    $KeyState = 'reused'
-} else {
+if ($LASTEXITCODE -ne 0) {
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
     $Form = New-Object System.Windows.Forms.Form
@@ -74,12 +77,11 @@ if ($LASTEXITCODE -eq 0) {
     $Key | & $Target setup --stdin
     if ($LASTEXITCODE -ne 0) {
         $Key = $null
-        @{ binary_installed = $true; api_key_configured = $false; host_registered = $false; native_tools_loaded = $false; blocked_by = 'key_config_write_denied'; next_action = '批准 Agent 写入本机私有配置目录后重试' } | ConvertTo-Json -Compress
+        @{ distribution_mode = 'source'; runtime_available = $true; api_key_configured = $false; host_registered = $false; tools_loaded = $false; loaded_version = $LoadedVersion; blocked_by = 'key_config_write_denied'; next_action = '批准 Agent 写入本机私有配置目录后重试' } | ConvertTo-Json -Compress
         exit 1
     }
     $Key = $null
     $PasswordBox.Clear()
-    $KeyState = 'created'
 }
 
 & $Target self-check --json
@@ -88,11 +90,11 @@ if ($AutomaticHosts -contains $TargetHost) {
     & $Target configure-host --name $TargetHost
     if ($LASTEXITCODE -ne 0) {
         & $Target config --json
-        @{ binary_installed = $true; api_key_configured = $true; host_registered = $false; native_tools_loaded = $false; blocked_by = 'host_config_write_denied'; next_action = '批准 Host 配置写入或通过 MCP 设置导入上方 stdio 配置' } | ConvertTo-Json -Compress
+        @{ distribution_mode = 'source'; runtime_available = $true; api_key_configured = $true; host_registered = $false; tools_loaded = $false; loaded_version = $LoadedVersion; blocked_by = 'host_config_write_denied'; next_action = '批准 Host 配置写入或通过 MCP 设置导入上方 stdio 配置' } | ConvertTo-Json -Compress
         exit 2
     }
-    @{ binary_installed = $true; api_key_configured = $true; key_state = $KeyState; host_registered = $true; native_tools_loaded = $false; blocked_by = $null; next_action = "完全重启 $TargetHost 并批准 isingq 连接器" } | ConvertTo-Json -Compress
+    @{ distribution_mode = 'source'; runtime_available = $true; api_key_configured = $true; host_registered = $true; tools_loaded = $false; loaded_version = $LoadedVersion; blocked_by = $null; next_action = "先重连 $TargetHost 的 isingq 连接器；不支持动态重载或工具未更新时再重启" } | ConvertTo-Json -Compress
 } else {
     & $Target config --json
-    @{ binary_installed = $true; api_key_configured = $true; key_state = $KeyState; host_registered = $false; native_tools_loaded = $false; blocked_by = $null; next_action = "通过 $TargetHost 的 MCP 设置导入上方 stdio 配置" } | ConvertTo-Json -Compress
+    @{ distribution_mode = 'source'; runtime_available = $true; api_key_configured = $true; host_registered = $false; tools_loaded = $false; loaded_version = $LoadedVersion; blocked_by = $null; next_action = "通过 $TargetHost 的 MCP 设置导入上方 stdio 配置" } | ConvertTo-Json -Compress
 }

@@ -32,3 +32,34 @@ test('installation skills direct users without receiving their API key', () => {
     assert.match(content, /Create API|创建API/);
   }
 });
+
+test('installation skills select one distribution and use path-neutral acceptance state', () => {
+  for (const file of ['skills/install-isingq-mcp/SKILL.md', 'skills/install-isingq-mcp/SKILL.zh-CN.md']) {
+    const content = read(file);
+    const paths = ['codex-plugin', 'dsh-plugin', 'npx', 'release', 'source'];
+    for (const pathName of paths) assert.match(content, new RegExp(pathName), `${file}: ${pathName}`);
+    for (const field of [
+      'distribution_mode', 'runtime_available', 'api_key_configured', 'host_registered',
+      'tools_loaded', 'loaded_version', 'blocked_by', 'next_action',
+    ]) {
+      assert.match(content, new RegExp(field), `${file}: ${field}`);
+    }
+    assert.doesNotMatch(content, /binary_installed|native_tools_loaded/);
+    assert.match(content, /exactly one|唯一/);
+  }
+});
+
+test('source installer reports the shared acceptance schema without claiming release verification', () => {
+  for (const file of [
+    'skills/install-isingq-mcp/scripts/install-macos.sh',
+    'skills/install-isingq-mcp/scripts/install-linux.sh',
+    'skills/install-isingq-mcp/scripts/install-windows.ps1',
+  ]) {
+    const content = read(file);
+    assert.match(content, /distribution_mode/);
+    assert.match(content, /runtime_available/);
+    assert.match(content, /tools_loaded/);
+    assert.match(content, /loaded_version/);
+    assert.doesNotMatch(content, /binary_installed|native_tools_loaded|hash-verified|哈希校验通过/);
+  }
+});

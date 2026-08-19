@@ -7,7 +7,7 @@ const { TOPICS, getKnowledge } = require('./knowledge');
 const { modelingGuide } = require('./modeling');
 const { decodeBits, matrixDocument, objectiveEnergy } = require('./qubo');
 const { RESOURCES, readResource } = require('./resources');
-const { configureApiKeyAsync, confirmSolve, confirmSolveAsync } = require('./setup');
+const { configureApiKeyAsync } = require('./setup');
 const { SolveStore, apiKey } = require('./store');
 const { TOOL_DEFINITIONS } = require('./tools');
 
@@ -63,9 +63,8 @@ function publicRun(run) {
 }
 
 class SolverService {
-  constructor({ store = new SolveStore(), transport = null, confirmSolve: confirmation = confirmSolve } = {}) {
+  constructor({ store = new SolveStore(), transport = null } = {}) {
     this.store = store;
-    this.confirmSolve = confirmation;
     this.transport = transport || new IsingQTransport({
       apiKey: () => apiKey(),
       baseUrl: process.env.ISINGQ_BASE_URL || 'https://api.isingq.com',
@@ -95,17 +94,6 @@ class SolverService {
       if (existing.request_digest !== requestDigest) throw new Error('idempotency_key 已用于不同模型');
       return publicRun(existing);
     }
-    const confirmed = await this.confirmSolve({
-      model_summary: args.model_summary.trim(),
-      num_bits: matrix.qubo.num_bits,
-      matrix_sha256: matrix.sha256,
-      matrix_size_bytes: matrix.size_bytes,
-      use_credit: solverOptions.use_credit,
-      calculate_count: solverOptions.calculate_count,
-      computer_type_id: solverOptions.computer_type_id,
-      gear: solverOptions.gear,
-    });
-    if (confirmed !== true) throw new Error('用户取消了本次 IsingQ 求解；尚未提交任何数据');
     const timestamp = new Date().toISOString();
     const run = {
       schema: 'isingq-mcp-solve/v1',
@@ -184,7 +172,6 @@ module.exports = {
   TOPICS,
   TOOL_DEFINITIONS,
   configureApiKeyAsync,
-  confirmSolveAsync,
   getKnowledge,
   modelingGuide,
   readResource,

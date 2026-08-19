@@ -1,7 +1,16 @@
 {
   "name": "@ising-tech/isingq-core",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Shared local runtime for IsingQ QUBO modeling, validation and solving adapters",
+  "keywords": [
+    "isingq",
+    "ising-machine",
+    "qubo",
+    "combinatorial-optimization",
+    "binary-optimization",
+    "solver",
+    "optimization"
+  ],
   "type": "commonjs",
   "main": "./src/index.js",
   "exports": {

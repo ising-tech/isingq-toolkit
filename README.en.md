@@ -1,123 +1,135 @@
-# IsingQ Toolkit
+<p align="center">
+  <img src="docs/assets/isingq-logo.png" width="500" alt="Beijing Ising Intelligent Technology">
+</p>
 
-English | [简体中文](README.md)
+<h1 align="center">IsingQ Toolkit</h1>
 
-IsingQ Toolkit is a public, local-first Agent toolkit maintained by Beijing Ising Intelligence Technology Co., Ltd. It helps an Agent formulate scheduling, routing, portfolio, graph, and other optimization problems as QUBO models and, after user confirmation, solve them with the user's own IsingQ API Key.
+<p align="center">
+  QUBO modeling, validation, and IsingQ solving for AI Agents
+</p>
 
-- Modeling guidance, QUBO generation, validation, and result storage run on the user's computer.
-- Only a user-confirmed solve matrix is sent to IsingQ over HTTPS.
-- Supports WorkBuddy, Codex, Claude Code, Cursor, VS Code, Trae, and DeepSeek Harness.
-- The standard MCP exposes seven tools and 13 local Resources; the native DSH Plugin exposes nine tools.
-- The cloud API currently supports up to 2,048 QUBO binary variables.
+<p align="center">
+  <a href="README.md">简体中文</a> · English ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="https://console.isingq.com/">Get an API Key</a>
+</p>
 
-## Before installation: get an IsingQ API Key
+<p align="center">
+  <img src="docs/assets/isingq-toolkit-capabilities-demo.gif" width="800" alt="An Agent modeling and solving a QUBO with IsingQ Toolkit">
+</p>
 
-A personal IsingQ API Key is required for real solving. Knowledge lookup, modeling guidance, and QUBO validation do not require a Key.
+IsingQ Toolkit is a local Agent toolkit maintained publicly by Beijing Ising Intelligent Technology Co., Ltd.
 
-1. Open the [IsingQ Cloud Console](https://console.isingq.com/) and register or sign in.
-2. Go to **Settings → API**.
-3. Select **Create API**, enter a recognizable API name, and complete creation.
-4. During installation, store the API Key through the operating system's secure input prompt.
+Describe a scheduling, routing, portfolio, or graph optimization problem in natural language. Your Agent can help formulate a QUBO and solve it with your own IsingQ API Key.
 
-The same creation path is documented in the “Settings” section of the [IsingQ Cloud privacy policy](https://docs.isingq.com/privacy_policy.html).
+- Modeling guidance, QUBO validation, and result records stay on your computer.
+- A matrix is sent to IsingQ over HTTPS only when the solve tool is called.
+- The API Key is stored in a private local file, never in Agent chat or MCP configuration.
+- Standard MCP, Codex Plugin, and native DeepSeek Harness Plugin integrations are supported.
 
-Never paste an API Key into an Agent chat, command argument, MCP JSON, issue, or log. If a Key is exposed, delete it under **Settings → API** in the cloud console and create a replacement.
+## Quick start
 
-## Recommended: ask your Agent to read the Skill
-
-Send this prompt to the Agent you want to configure:
+If you do not want to manage terminals or MCP configuration, send this prompt to your current Agent:
 
 ```text
-Read skills/install-isingq-mcp/SKILL.md from https://github.com/ising-tech/isingq-toolkit and follow it exactly. Install IsingQ MCP and connect only the current Agent. Never ask for or display my API Key in chat; use the operating system's secure input prompt when a Key is required. After installation, wait for me to restart the Agent, then verify that seven MCP tools are loaded.
+Read skills/install-isingq-mcp/SKILL.md from
+https://github.com/ising-tech/isingq-toolkit and follow it exactly.
+Install IsingQ MCP and connect only the current Agent.
+Never ask for or display my API Key in chat; use the operating system's secure input prompt.
+After installation, reconnect the isingq MCP first.
+If the current Agent cannot reload MCP dynamically, wait for me to restart it,
+then verify that seven MCP tools are loaded.
 ```
 
-The Skill selects the current operating system and current Agent. It does not configure every Agent merely because multiple applications are installed. Trae requires importing the generated stdio JSON through its MCP settings UI.
+The installation Skill selects one integration for the current Agent and operating system. It does not modify every Agent installed on the computer. If a Host cannot register automatically, the Skill outputs stdio JSON for manual import.
 
-A successful installation means:
+A standard MCP Host should expose seven `isingq_*` tools after setup. The native DSH Plugin exposes nine tools.
 
-- The executable is installed and hash-verified.
-- A valid API Key exists locally.
-- The current Agent has registered the MCP.
-- After restart, the standard MCP exposes seven tools, or the native DSH Plugin exposes nine.
+### Installation demo
 
-## Install from GitHub source
+<p align="center">
+  <img src="docs/assets/isingq-toolkit-install-demo.gif" width="800" alt="An Agent installing IsingQ Toolkit from the installation Skill">
+</p>
 
-The public repository can be tested directly. Node.js 18 or newer is required:
+## First solve
 
-```bash
-git clone https://github.com/ising-tech/isingq-toolkit.git
-cd isingq-toolkit
-npm ci
-npm install -g .
-isingq-mcp setup
-isingq-mcp self-check --json
+Public knowledge lookup, modeling guidance, and QUBO validation do not require an API Key. A personal IsingQ API Key is required only when submitting a real solve task.
+
+1. Sign in or create an account at [IsingQ Cloud](https://console.isingq.com/).
+2. Open **Settings → API → Create API** and create a personal API Key with a recognizable name.
+3. Ask the Agent to call `isingq_api_key_setup`, then enter the Key in the operating system's secure input prompt.
+4. Describe the optimization problem to the Agent.
+
+Never paste an API Key into Agent chat, command arguments, MCP JSON, issues, or logs. If a Key is exposed, delete it in IsingQ Cloud and create a replacement.
+
+Start with this example:
+
+```text
+Formulate the following problem as a QUBO. Explain the variables, objective, constraints, and penalties, and show the matrix summary. Wait for my confirmation before submitting it to IsingQ:
+
+Exactly one of tasks A and B may be selected. A has value 8 and B has value 5.
 ```
 
-`isingq-mcp setup` reads the API Key without echoing it. Configure only the Agent you use:
+The Agent should show the variable mapping, objective, constraints, penalties, matrix summary, and SHA-256 first. It should call `isingq_solve_start` only after you confirm.
 
-```bash
-isingq-mcp configure-host --name workbuddy
+Once the Host permits that tool call, it creates the remote task immediately. The MCP does not open an additional operating-system solve prompt; another confirmation appears only if the Host's tool-permission policy requires it.
+
+## More capabilities
+
+The Toolkit also includes local public knowledge and QUBO modeling guidance. For example:
+
+```text
+What capabilities does IsingQ Cloud currently provide? Include the knowledge version, official sources, and statement boundaries.
 ```
 
-Supported names are `workbuddy`, `codex`, `claude-code`, `cursor`, `vscode`, and `generic`. For Trae or another Host, print standard MCP configuration and import it manually:
-
-```bash
-isingq-mcp config --json
+```text
+Check this QUBO's dimensions, symmetry, coefficient range, and matrix summary. Do not submit it for solving.
 ```
 
-Generic stdio configuration:
+The current cloud API supports up to 2,048 QUBO binary variables. Whether a problem fits depends on its formulation and the variables introduced by its constraints.
 
-```json
-{
-  "mcpServers": {
-    "isingq": {
-      "command": "isingq-mcp",
-      "args": ["serve"]
-    }
-  }
-}
-```
+## Compatibility
 
-Fully quit and restart the Agent after configuration.
+| Integration | Intended Hosts | Node.js required |
+| --- | --- | --- |
+| Standard MCP | WorkBuddy, Claude Code, Cursor, VS Code, and other MCP Hosts | Node.js 18+ for npx; not required for Releases |
+| Codex Plugin | Built-in Codex Plugin integration | No |
+| Native DSH Plugin | DeepSeek Harness | Managed by DSH |
 
-## npm, Releases, and DSH
+Standard MCP Release binaries support macOS arm64/x64, Linux arm64/x64, and Windows x64. One runtime per computer is sufficient; multiple Agents can register it independently.
 
-With Node.js 18 or newer, install and configure directly through npm/npx:
+## Other installation methods
+
+The Agent Skill in Quick start is the recommended path for most users. The commands below are for users who want to manage installation or configuration manually.
+
+### npm / npx
+
+Requires Node.js 18 or later:
 
 ```bash
 npx @ising-tech/isingq-mcp setup
 npx @ising-tech/isingq-mcp configure-host --name generic --npx
 ```
 
-Replace `generic` with the Agent you actually use: `workbuddy`, `codex`, `claude-code`, `cursor`, or `vscode`. Keep `generic` for Trae and import the generated stdio JSON.
+Replace `generic` with a supported Host name when appropriate. Keep `generic` for Hosts that require manual registration, then import the generated stdio JSON through their MCP settings.
 
-Users who do not want Node.js can download a fixed-version executable from [GitHub Releases](https://github.com/ising-tech/isingq-toolkit/releases) and verify it with `SHA256SUMS`. Builds are provided for macOS arm64/x64, Linux arm64/x64, and Windows x64.
+### GitHub Release
 
-DeepSeek Harness uses the native Plugin without an MCP bridge:
+To run without Node.js, download the fixed-version binary for your system from [GitHub Releases](https://github.com/ising-tech/isingq-toolkit/releases) and verify it with the accompanying `SHA256SUMS` file.
+
+### DeepSeek Harness
+
+DSH uses its native Plugin and does not need an MCP bridge:
 
 ```bash
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-Do not enable both the native IsingQ Plugin and the legacy MCP bridge in the same DSH Profile.
+Do not enable both the native IsingQ Plugin and the legacy MCP bridge in the same DSH Profile. See the [DSH Plugin README](packages/dsh-plugin/README.md) for details.
 
-## Use it
+### Source development
 
-After installation and restart, describe the problem in natural language; tool names do not need to be memorized:
-
-```text
-Formulate this scheduling problem as a QUBO. Explain the variables, objective, constraints, and penalties first. Wait for my confirmation before submitting it to IsingQ:
-
-Exactly one of tasks A and B may be selected. A has value 8 and B has value 5.
-```
-
-The Agent should model and validate first, then show the variable mapping, objective, constraints, penalties, matrix summary, and SHA-256. A solve is submitted only after explicit confirmation and an operating-system confirmation prompt.
-
-The local public knowledge package can also answer questions:
-
-```text
-What capabilities does IsingQ Cloud currently provide? Include the knowledge version, sources, and answer boundaries.
-```
+Source execution, architecture, package boundaries, and the Release process are documented in the [developer guide](docs/DEVELOPMENT.md). Source installation is not recommended for regular users.
 
 ## Tools
 
@@ -125,46 +137,42 @@ What capabilities does IsingQ Cloud currently provide? Include the knowledge ver
 | --- | --- | --- |
 | `isingq_api_key_setup` | Open a secure OS prompt to configure or replace a personal API Key | No |
 | `isingq_knowledge_get` | Query public company, product, technology, case, FAQ, and source knowledge | No |
-| `isingq_modeling_guide_get` | Return QUBO modeling steps and constraints | No |
+| `isingq_modeling_guide_get` | Return QUBO modeling steps and constraint guidance | No |
 | `isingq_qubo_validate` | Validate a QUBO and produce a matrix summary | No |
-| `isingq_solve_start` | Submit to IsingQ after user confirmation | Yes |
-| `isingq_solve_poll` | Poll task state once and store the result locally | Yes |
+| `isingq_solve_start` | Submit to IsingQ immediately after the Host permits the call | Yes |
+| `isingq_solve_poll` | Query task status once and save the result | Yes |
 | `isingq_solve_result_get` | Read a locally stored solve result | No |
 
-Solve results retain both:
-
-- IsingQ provider energy: `E(s) = -1/2 · Σ_i Σ_j J_ij s_i s_j - Σ_i h_i s_i`.
-- The objective recomputed from the QUBO: `f(x) = offset + Σ_i Q_ii x_i + Σ_{i<j} Q_ij x_i x_j`.
-
-They can differ because of variable conversion, constant offsets, or coefficient conventions. A minimum energy does not by itself establish business feasibility, global optimality, or specific hardware performance.
-
-## Data and security
+## Data and result conventions
 
 - The API Key is stored only in a private local file and is never a tool parameter or chat value.
 - Modeling guidance, QUBO validation, and public knowledge lookup run locally.
-- Only `isingq_solve_start` sends a matrix, after user confirmation.
+- `isingq_solve_start` sends the solve matrix after the Host permits the call.
 - API traffic uses HTTPS; matrix upload uses short-lived credentials and does not carry the personal API Key.
 - Local records contain models, task IDs, and results, but never the API Key.
 
+Solve results retain two values:
+
+- IsingQ provider energy: `E(s) = -1/2 · Σ_i Σ_j J_ij s_i s_j - Σ_i h_i s_i`.
+- The objective recomputed by the MCP: `f(x) = offset + Σ_i Q_ii x_i + Σ_{i<j} Q_ij x_i x_j`.
+
+They can differ because of variable conversion, constant offsets, or coefficient conventions. The lowest energy does not automatically establish business feasibility, a global optimum, or specific hardware performance.
+
 See the [Security Policy](SECURITY.md) for additional boundaries.
 
-## Upgrade and multiple Agents
+## Updates and troubleshooting
 
-- Rerun the installation Skill or reinstall the npm/Release package to upgrade.
-- Existing API Keys and local solve records are preserved.
-- One executable per computer is enough; register the same executable separately with each Agent.
-- Fully restart an Agent after changing its MCP configuration.
+- **Update**: rerun the installation Skill, or update the npm package, Release binary, Codex Plugin, or DSH Plugin currently in use.
+- **Existing data**: updates preserve the local API Key and solve records.
+- **Tools are missing**: reconnect `isingq` and approve the Host's trust prompt; fully restart the Agent only if tools still do not load.
+- **The Host cannot register automatically**: run `isingq-mcp config --json` and import the result through the Host's MCP settings.
+- **Sandbox blocks writes**: approve only the exact installation and user configuration directories; never move the API Key into the project.
+- **Only an NDJSON response was tested**: that proves process reachability only. Standard MCP integration is complete when the Agent exposes seven native tools.
 
-## Troubleshooting
+## Project and development
 
-- **No API Key**: open [IsingQ Cloud](https://console.isingq.com/) and use **Settings → API → Create API**.
-- **No tools in the Agent**: verify the configuration, fully restart the Agent, and approve its MCP trust prompt.
-- **Sandbox blocks writes**: approve only the exact install and user configuration directories; never move the API Key into the project.
-- **Trae cannot register automatically**: run `isingq-mcp config --json` and import it through Trae's MCP settings.
-- **Only an NDJSON response was tested**: that proves process reachability only; integration is complete only when the Agent exposes seven native tools.
+Architecture, package boundaries, QUBO data contracts, builds, and the Release process are covered in the [developer guide](docs/DEVELOPMENT.md).
 
-## Developer documentation
+Report issues or suggestions through [GitHub Issues](https://github.com/ising-tech/isingq-toolkit/issues).
 
-Architecture, package boundaries, the QUBO data contract, builds, and releases are documented in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
-
-This project is licensed under the [Apache License 2.0](LICENSE). The license does not grant rights to IsingQ or Ising Intelligence trademarks.
+This project is licensed under the [Apache License 2.0](LICENSE). The license does not grant rights to IsingQ or Ising Intelligent trademarks.

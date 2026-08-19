@@ -62,7 +62,7 @@ const TOOL_DEFINITIONS = [
   {
     name: 'isingq_solve_start',
     title: '提交 IsingQ 组合优化求解',
-    description: '用户明确确认模型后，将 QUBO 转成矩阵并使用本机个人 IsingQ API Key 创建远端求解任务。',
+    description: '调用即会将 QUBO 转成矩阵，并使用本机个人 IsingQ API Key 创建远端求解任务。Agent 调用前必须展示模型摘要与矩阵 SHA-256 并取得用户确认；Host 可按权限策略再次确认。',
     inputSchema: {
       type: 'object',
       properties: {

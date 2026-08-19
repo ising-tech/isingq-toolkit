@@ -100,3 +100,18 @@ test('installers execute only the checked-out local source tree', () => {
     assert.match(content, /npm/, relative);
   }
 });
+
+test('publishes focused discovery keywords for each package boundary', () => {
+  const mcp = JSON.parse(read('package.json'));
+  const core = JSON.parse(read('packages/core/package.json'));
+  const dsh = JSON.parse(read('packages/dsh-plugin/package.json'));
+  assert.deepEqual(new Set(mcp.keywords), new Set([
+    'mcp', 'model-context-protocol', 'isingq', 'ising-machine', 'qubo',
+    'combinatorial-optimization', 'binary-optimization', 'agent-tools',
+    'local-first', 'photonic-computing',
+  ]));
+  assert.ok(core.keywords.includes('solver'));
+  assert.ok(core.keywords.includes('binary-optimization'));
+  assert.ok(dsh.keywords.includes('deepseek-harness'));
+  assert.ok(dsh.keywords.includes('dsh-plugin'));
+});

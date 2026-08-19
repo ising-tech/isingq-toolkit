@@ -5,7 +5,7 @@ const { spawnSync, spawn } = require('node:child_process');
 const { apiKey, saveApiKey } = require('./store');
 
 // ---------------------------------------------------------------------------
-// 平台命令构建器（纯函数，无 I/O）：同步版与异步版共用同一套命令与文案。
+// 平台命令构建器（纯函数，无 I/O）：同步版与异步版共用同一套 API Key 输入文案。
 // ---------------------------------------------------------------------------
 
 function apiKeyPromptCommands(platform) {
@@ -63,36 +63,7 @@ function apiKeyPromptCommands(platform) {
   return null;
 }
 
-function confirmationCommands(platform, message) {
-  if (platform === 'darwin') {
-    return [{
-      command: 'osascript',
-      args: ['-e', 'on run argv', '-e', 'display dialog (item 1 of argv) with title "IsingQ 求解确认" buttons {"取消", "确认提交"} default button "确认提交" cancel button "取消"', '-e', 'end run', message],
-      allowMissing: false,
-    }];
-  }
-  if (platform === 'win32') {
-    const encoded = Buffer.from(message, 'utf8').toString('base64');
-    const script = [
-      'Add-Type -AssemblyName System.Windows.Forms',
-      '$m=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($args[0]))',
-      '$r=[System.Windows.Forms.MessageBox]::Show($m,"IsingQ 求解确认",[System.Windows.Forms.MessageBoxButtons]::OKCancel,[System.Windows.Forms.MessageBoxIcon]::Question)',
-      'if($r -ne [System.Windows.Forms.DialogResult]::OK){exit 2}',
-    ].join(';');
-    return [{ command: 'powershell', args: ['-NoProfile', '-STA', '-Command', script, encoded], allowMissing: false }];
-  }
-  if (platform === 'linux') {
-    return [
-      { command: 'zenity', args: ['--question', '--title=IsingQ 求解确认', `--text=${message}`, '--ok-label=确认提交', '--cancel-label=取消'], allowMissing: true },
-      { command: 'kdialog', args: ['--title', 'IsingQ 求解确认', '--yesno', message, '--yes-label', '确认提交', '--no-label', '取消'], allowMissing: true },
-    ];
-  }
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// 同步执行（spawnSync）：供 MCP server（子进程）与既有测试使用。
-// ---------------------------------------------------------------------------
+// 同步执行供标准 MCP 使用。
 
 function runPrompt(command, args, { environment, spawn = spawnSync, allowMissing = false }) {
   const result = spawn(command, args, {
@@ -110,21 +81,7 @@ function runPrompt(command, args, { environment, spawn = spawnSync, allowMissing
   return value;
 }
 
-function runConfirmation(command, args, { environment, spawn = spawnSync, allowMissing = false }) {
-  const result = spawn(command, args, {
-    encoding: 'utf8',
-    env: environment,
-    maxBuffer: 64 * 1024,
-    windowsHide: true,
-  });
-  if (result.error?.code === 'ENOENT' && allowMissing) return null;
-  if (result.error) throw new Error(`无法打开 IsingQ 求解确认框（command=${command}, error=${result.error.message}）`);
-  return result.status === 0;
-}
-
-// ---------------------------------------------------------------------------
-// 异步执行（spawn）：供原生 DSH 插件进程内调用，不阻塞 Host 事件循环。
-// ---------------------------------------------------------------------------
+// 异步执行供原生 DSH Plugin 使用，避免阻塞 Host 事件循环。
 
 function runPromptAsync(command, args, { environment, allowMissing = false }) {
   return new Promise((resolve, reject) => {
@@ -149,25 +106,6 @@ function runPromptAsync(command, args, { environment, allowMissing = false }) {
     });
   });
 }
-
-function runConfirmationAsync(command, args, { environment, allowMissing = false }) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { env: environment, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-    let settled = false;
-    child.stdout.resume();
-    child.stderr.resume();
-    const fail = (message) => { if (!settled) { settled = true; reject(new Error(message)); } };
-    child.on('error', (error) => {
-      if (error.code === 'ENOENT' && allowMissing) { if (!settled) { settled = true; resolve(null); } }
-      else fail(`无法打开 IsingQ 求解确认框（command=${command}, error=${error.message}）`);
-    });
-    child.on('close', (status) => { if (!settled) { settled = true; resolve(status === 0); } });
-  });
-}
-
-// ---------------------------------------------------------------------------
-// 对外函数：同步版（保持原签名/行为）与异步版。
-// ---------------------------------------------------------------------------
 
 function promptApiKey({
   platform = process.platform,
@@ -229,56 +167,9 @@ async function configureApiKeyAsync({
   return { configured: true, status: 'configured' };
 }
 
-function confirmationMessage(request) {
-  const summary = String(request.model_summary || '').replace(/\s+/g, ' ').trim().slice(0, 1000);
-  return [
-    '即将使用你本机保存的 IsingQ API Key 提交远端求解。',
-    '',
-    `模型：${summary}`,
-    `变量数：${request.num_bits}`,
-    `矩阵 SHA-256：${request.matrix_sha256}`,
-    `计算次数：${request.calculate_count}`,
-    `使用积分：${request.use_credit ? '是' : '否'}`,
-    '',
-    '确认提交吗？',
-  ].join('\n');
-}
-
-function confirmSolve(request, {
-  platform = process.platform,
-  environment = process.env,
-  spawn = spawnSync,
-} = {}) {
-  const message = confirmationMessage(request);
-  const commands = confirmationCommands(platform, message);
-  if (!commands) throw new Error(`不支持的求解确认平台（platform=${platform}）；尚未提交求解`);
-  for (const { command, args, allowMissing } of commands) {
-    const confirmed = runConfirmation(command, args, { environment, spawn, allowMissing });
-    if (confirmed !== null) return confirmed;
-  }
-  throw new Error('未找到 Linux 图形确认组件（需要 zenity 或 kdialog）；尚未提交求解');
-}
-
-async function confirmSolveAsync(request, {
-  platform = process.platform,
-  environment = process.env,
-} = {}) {
-  const message = confirmationMessage(request);
-  const commands = confirmationCommands(platform, message);
-  if (!commands) throw new Error(`不支持的求解确认平台（platform=${platform}）；尚未提交求解`);
-  for (const { command, args, allowMissing } of commands) {
-    const confirmed = await runConfirmationAsync(command, args, { environment, allowMissing });
-    if (confirmed !== null) return confirmed;
-  }
-  throw new Error('未找到 Linux 图形确认组件（需要 zenity 或 kdialog）；尚未提交求解');
-}
-
 module.exports = {
   configureApiKey,
   configureApiKeyAsync,
-  confirmSolve,
-  confirmSolveAsync,
-  confirmationMessage,
   promptApiKey,
   promptApiKeyAsync,
 };

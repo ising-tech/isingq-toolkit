@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const { configureApiKey, confirmSolve, promptApiKey } = require('../src/setup');
+const { configureApiKey, promptApiKey } = require('../src/setup');
 const { apiKey } = require('../src/store');
 
 test('configures API key through a private prompt without returning the secret', () => {
@@ -30,53 +30,4 @@ test('reuses an existing API key without reopening the prompt', () => {
 
 test('rejects unsupported secure prompt platforms with an actionable error', () => {
   assert.throws(() => promptApiKey({ platform: 'aix' }), /不支持.*aix/);
-});
-
-test('binds macOS solve confirmation to the current request without shell interpolation', () => {
-  let invocation;
-  const confirmed = confirmSolve({
-    model_summary: '最大割；$(touch /tmp/never-run)',
-    num_bits: 4,
-    matrix_sha256: 'a'.repeat(64),
-    calculate_count: 2,
-    use_credit: false,
-  }, {
-    platform: 'darwin',
-    environment: {},
-    spawn: (command, args, options) => {
-      invocation = { command, args, options };
-      return { status: 0 };
-    },
-  });
-  assert.equal(confirmed, true);
-  assert.equal(invocation.command, 'osascript');
-  assert.match(invocation.args.at(-1), /最大割.*4.*a{64}.*2/s);
-  assert.equal(invocation.options.shell, undefined);
-});
-
-test('treats an OS confirmation cancel as a cancelled solve', () => {
-  const confirmed = confirmSolve({
-    model_summary: '测试模型',
-    num_bits: 1,
-    matrix_sha256: 'b'.repeat(64),
-    calculate_count: 1,
-    use_credit: true,
-  }, {
-    platform: 'darwin',
-    spawn: () => ({ status: 1 }),
-  });
-  assert.equal(confirmed, false);
-});
-
-test('fails closed when Linux has no graphical confirmation component', () => {
-  assert.throws(() => confirmSolve({
-    model_summary: '测试模型',
-    num_bits: 1,
-    matrix_sha256: 'c'.repeat(64),
-    calculate_count: 1,
-    use_credit: false,
-  }, {
-    platform: 'linux',
-    spawn: () => ({ error: { code: 'ENOENT' } }),
-  }), /zenity.*kdialog.*尚未提交/);
 });

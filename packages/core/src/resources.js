@@ -13,12 +13,15 @@ Agent 必须先确认业务目标、变量、硬约束、软约束和输入数�
 
 调用顺序：获取建模引导 → 生成 QUBO → 确定性校验 → 向用户展示模型摘要 → 用户明确确认 → 提交求解 → 轮询结果 → 按变量映射解释结果。
 
+isingq_solve_start 被 Host 放行后会立即创建远端任务。MCP 不弹出额外的操作系统求解确认框；Host 可以根据自身工具权限策略再次要求确认。
+
 最低 energy 不自动证明业务约束满足，也不自动证明全局最优。`,
   'isingq://security/data-flow': `# 数据流与安全边界
 
 - IsingQ API Key 只从用户电脑的私有文件或 ISINGQ_API_KEY 环境变量读取，不通过 MCP 工具参数或对话接收。
 - 企业知识、建模引导和 QUBO 校验完全在用户电脑执行。
-- 只有 isingq_solve_start 会将生成的 QUBO 矩阵经 HTTPS 和 IsingQ 提供的上传链路发送到 IsingQ。
+- 只有 isingq_solve_start 会将生成的 QUBO 矩阵经 HTTPS 和 IsingQ 提供的上传链路发送到 IsingQ；该工具被 Host 放行后会立即创建远端任务。
+- MCP 不为求解另开操作系统确认框。Agent 必须在调用前取得用户确认，Host 可以根据自身权限策略再次确认。
 - 当前 MCP 使用的云平台 API 求解只支持 2048 自旋能力，不向用户提供其他机型选择。
 - 本地记录保存模型、任务标识、矩阵摘要和结果，不保存 API Key。
 - 除 IsingQ 求解链路外，不会把模型数据发送到其他业务服务。
@@ -49,7 +52,7 @@ const RESOURCES = [
     uri: 'isingq://modeling/qubo',
     name: 'isingq-qubo-modeling',
     title: 'QUBO 建模与解释规则',
-    description: '变量、约束、Penalty、确认门禁和结果解释契约。',
+    description: '变量、约束、Penalty、Agent/Host 确认责任和结果解释契约。',
     mimeType: 'text/markdown',
     annotations: { audience: ['assistant'], priority: 1, lastModified: LAST_MODIFIED },
   },

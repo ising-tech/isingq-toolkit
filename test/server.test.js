@@ -143,25 +143,25 @@ test('configures API key through a parameter-free private setup tool', async () 
   assert.doesNotMatch(JSON.stringify(response), /api[_ -]?key.*[=:].*[A-Za-z0-9_-]{8}/i);
 });
 
-test('requires an OS-trusted confirmation bound to the current request before submit', async () => {
+test('submits without opening an MCP-owned OS confirmation', async () => {
   let submissions = 0;
-  let confirmation;
+  let confirmations = 0;
   const service = new SolverService({
     store: new MemoryStore(),
-    transport: { submit: async () => { submissions += 1; }, poll: async () => ({ status: 'running' }) },
-    confirmSolve: async (request) => { confirmation = request; return false; },
+    transport: {
+      submit: async () => { submissions += 1; return { task_id: 'task-1' }; },
+      poll: async () => ({ status: 'running' }),
+    },
+    confirmSolve: async () => { confirmations += 1; return false; },
   });
-  await assert.rejects(() => service.start({
+  const started = await service.start({
     qubo: QUBO,
     model_summary: '二变量测试',
     idempotency_key: 'confirm-gate',
-  }), /用户取消/);
-  assert.equal(submissions, 0);
-  assert.equal(confirmation.model_summary, '二变量测试');
-  assert.equal(confirmation.num_bits, 2);
-  assert.equal(confirmation.use_credit, false);
-  assert.equal(confirmation.calculate_count, 1);
-  assert.match(confirmation.matrix_sha256, /^[a-f0-9]{64}$/);
+  });
+  assert.equal(started.status, 'submitted');
+  assert.equal(submissions, 1);
+  assert.equal(confirmations, 0);
 });
 
 test('submits once, polls, persists and decodes local result', async () => {
@@ -169,13 +169,11 @@ test('submits once, polls, persists and decodes local result', async () => {
   const store = new MemoryStore();
   const service = new SolverService({
     store,
-    confirmSolve: async () => { confirmations += 1; return true; },
     transport: {
       submit: async () => { submissions += 1; return { task_id: 'task-1' }; },
       poll: async () => ({ status: 'succeeded', bits: [1, 0], energy: -1 }),
     },
   });
-  let confirmations = 0;
   const started = await service.start({
     qubo: QUBO,
     model_summary: '二变量测试',
@@ -188,7 +186,6 @@ test('submits once, polls, persists and decodes local result', async () => {
   });
   const result = await service.poll(started.solve_id);
   assert.equal(submissions, 1);
-  assert.equal(confirmations, 1);
   assert.equal(repeated.solve_id, started.solve_id);
   assert.equal(result.status, 'succeeded');
   assert.equal(result.result.variables[0].name, 'x_a');
