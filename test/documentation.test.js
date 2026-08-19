@@ -63,3 +63,11 @@ test('source installer reports the shared acceptance schema without claiming rel
     assert.doesNotMatch(content, /binary_installed|native_tools_loaded|hash-verified|哈希校验通过/);
   }
 });
+
+test('README math blocks avoid raw HTML delimiters that break GitHub rendering', () => {
+  for (const file of ['README.md', 'README.en.md']) {
+    const blocks = [...read(file).matchAll(/```math\n([\s\S]*?)\n```/g)].map((match) => match[1]);
+    assert.ok(blocks.length >= 2, `${file}: expected documented energy and objective formulas`);
+    for (const block of blocks) assert.doesNotMatch(block, /[<>]/, file);
+  }
+});

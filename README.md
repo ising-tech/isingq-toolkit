@@ -161,7 +161,7 @@ E(s) = -\frac{1}{2}\sum_i\sum_j J_{ij}s_i s_j - \sum_i h_i s_i
 **MCP 按 QUBO 重新计算的 objective**
 
 ```math
-f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i<j} Q_{ij}x_i x_j
+f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i \lt j} Q_{ij}x_i x_j
 ```
 
 两者可能因变量转换、常数项或系数口径不同而不相等。最低 energy 也不自动代表业务可行、全局最优或特定硬件性能。

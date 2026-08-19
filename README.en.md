@@ -162,7 +162,7 @@ E(s) = -\frac{1}{2}\sum_i\sum_j J_{ij}s_i s_j - \sum_i h_i s_i
 **Objective recomputed by the MCP**
 
 ```math
-f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i<j} Q_{ij}x_i x_j
+f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i \lt j} Q_{ij}x_i x_j
 ```
 
 They can differ because of variable conversion, constant offsets, or coefficient conventions. The lowest energy does not automatically establish business feasibility, a global optimum, or specific hardware performance.
