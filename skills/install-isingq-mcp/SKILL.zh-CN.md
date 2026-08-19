@@ -5,6 +5,7 @@
 ## 安全与判断规则
 
 - 不得通过聊天、命令参数、环境变量、日志、Host 配置或 Agent 可见输出接收 IsingQ API Key。本机没有有效 Key 时，脚本会弹出操作系统原生隐藏输入框。
+- 用户没有 API Key 时，应引导其登录 `https://console.isingq.com/`，依次进入“设置 → API → 创建API”创建个人 Key；不得代替用户注册账号、读取或复制 Key。
 - 不得绕过 Host 沙箱。运行前应请求用户批准脚本写入用户安装目录、私有配置目录和目标 Host 配置目录；用户拒绝时停止，并报告被阻塞阶段。
 - 根据当前用户请求或会话确定目标 Host，不能根据电脑安装了哪些应用来猜。一次只配置一个 Host。
 - 必须区分每个 Host 的用户源配置、自动生成的运行状态以及代理/缓存层。禁止用另一个产品的路径推断当前 Host，也禁止通过修改生成状态来注册 MCP。
@@ -35,13 +36,15 @@ Plugin 路径成功后不得继续执行独立安装脚本。
 
 ## 独立安装或升级
 
+如果当前只读取了 GitHub 上的远程 Skill，先从 `https://github.com/ising-tech/isingq-toolkit.git` 克隆官方仓库，再重新读取仓库内的本文件；不得凭远程文档重写或拼接安装脚本。
+
 脚本路径相对于本文件解析。先把下方 `<target-host>` 替换成本次请求所在的 Host，只能是 `workbuddy`、`codex`、`claude-code`、`cursor`、`vscode`、`trae` 或 `generic` 中的一个，再由 Agent 自行运行对应脚本：
 
 - macOS：`ISINGQ_MCP_TARGET_HOST='<target-host>' sh scripts/install-macos.sh`
 - Linux 桌面：`ISINGQ_MCP_TARGET_HOST='<target-host>' sh scripts/install-linux.sh`
 - Windows PowerShell：`$env:ISINGQ_MCP_TARGET_HOST='<target-host>'; powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows.ps1`
 
-这些仓库内置脚本只会使用 Node.js 18+ 和 npm 安装当前检出的源码，不下载或执行远程脚本。不得要求用户操作终端。脚本应在用户桌面会话运行；它会复用已有有效 Key、仅在缺少 Key 时安全弹窗，并保留本地求解记录。npm 包可用后，等价的通用配置命令是 `npx -y @ising-tech/isingq-mcp config --json --npx`。
+这些仓库内置脚本只会使用 Node.js 18+ 和 npm 安装当前检出的源码，不下载或执行远程脚本。不得要求用户操作终端。脚本应在用户桌面会话运行；它会复用已有有效 Key、仅在缺少 Key 时安全弹窗，并保留本地求解记录。等价的通用配置命令是 `npx -y @ising-tech/isingq-mcp config --json --npx`。
 
 对于 WorkBuddy、Codex、Claude Code、Cursor 和 VS Code，脚本只写入指定 Host。对于 Trae 或 `generic`，脚本只输出直接 stdio JSON，不猜测或写入私有 Host 路径；应通过对应 Host 的 MCP 设置页面导入。
 

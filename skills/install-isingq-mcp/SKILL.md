@@ -10,6 +10,7 @@ description: Installs, upgrades, configures, verifies, and connects IsingQ throu
 ## Safety and interpretation rules
 
 - Never receive an IsingQ API Key in chat, arguments, environment variables, logs, Host config, or Agent-visible output. If no valid local Key exists, the bundled script opens an OS-native hidden-input dialog.
+- If the user has no API Key, direct them to sign in at `https://console.isingq.com/` and use **Settings → API → Create API**. Never register on the user's behalf or read, copy, or expose the Key.
 - Never bypass a Host sandbox. Before running, request user approval for the script to write the user installation, private config, and selected Host config directories. If denied, stop and report the blocked stage.
 - Identify the target Host from the current user request/session, not from which apps happen to be installed. Configure only that Host.
 - Treat every Host's user source config, generated runtime state, and proxy/cache as different layers. Never infer one product's config path from another product, and never edit generated state to register MCP.
@@ -40,13 +41,15 @@ Do not load the native Plugin and the old MCP bridge in the same Profile. If bot
 
 ## Standalone install or upgrade
 
+If only the remote Skill page was loaded, clone the official `https://github.com/ising-tech/isingq-toolkit.git` repository first and reopen this local file. Never reconstruct or concatenate install scripts from the remote document.
+
 Resolve scripts relative to this file. Replace `<target-host>` below with the Host for the current request: exactly one of `workbuddy`, `codex`, `claude-code`, `cursor`, `vscode`, `trae`, or `generic`. Then run the matching script yourself:
 
 - macOS: `ISINGQ_MCP_TARGET_HOST='<target-host>' sh scripts/install-macos.sh`
 - Linux desktop: `ISINGQ_MCP_TARGET_HOST='<target-host>' sh scripts/install-linux.sh`
 - Windows PowerShell: `$env:ISINGQ_MCP_TARGET_HOST='<target-host>'; powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows.ps1`
 
-These repository-bundled scripts install the checked-out package with Node.js 18+ and npm; they do not download or execute a remote script. Do not ask the user to operate a terminal. Run in the user's desktop session. The scripts reuse an existing valid Key, prompt securely only when missing, and preserve local solve records. When the npm package is available, the equivalent portable command is `npx -y @ising-tech/isingq-mcp config --json --npx`.
+These repository-bundled scripts install the checked-out package with Node.js 18+ and npm; they do not download or execute a remote script. Do not ask the user to operate a terminal. Run in the user's desktop session. The scripts reuse an existing valid Key, prompt securely only when missing, and preserve local solve records. The equivalent portable command is `npx -y @ising-tech/isingq-mcp config --json --npx`.
 
 For WorkBuddy, Codex, Claude Code, Cursor, and VS Code, the script writes only the selected Host config. For Trae or `generic`, it prints the direct stdio JSON but does not guess or write a private Host path; import it through that Host's MCP settings.
 
