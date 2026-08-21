@@ -50,9 +50,9 @@
     "@ising-tech/isingq-core": "0.4.2"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-tools": "0.1.0-rc.7"
+    "@deepseek-ai/dsh-tools": ">=0.1.0-rc.7 <0.2.0-0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-tools": "0.1.0-rc.7"
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.8"
   }
 }

@@ -25,7 +25,8 @@ test('keeps MCP, shared core and native DSH adapter as separate packages', () =>
   assert.equal(corePackage.name, '@ising-tech/isingq-core');
   assert.equal(dshPackage.name, '@ising-tech/isingq-dsh-plugin');
   assert.equal(dshPackage.dependencies['@ising-tech/isingq-core'], corePackage.version);
-  assert.equal(dshPackage.peerDependencies['@deepseek-ai/dsh-tools'], '0.1.0-rc.7');
+  assert.equal(dshPackage.peerDependencies['@deepseek-ai/dsh-tools'], '>=0.1.0-rc.7 <0.2.0-0');
+  assert.equal(dshPackage.devDependencies['@deepseek-ai/dsh-tools'], '0.1.0-rc.8');
   assert.equal(mcpPackage.version, corePackage.version);
   assert.equal(corePackage.version, dshPackage.version);
 });
