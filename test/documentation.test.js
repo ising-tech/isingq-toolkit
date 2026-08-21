@@ -19,6 +19,16 @@ test('user READMEs explain where to create and how to protect an API key', () =>
   }
 });
 
+test('DSH package README is bilingual and documents its install and data boundaries', () => {
+  const content = read('packages/dsh-plugin/README.md');
+  assert.match(content, /^## Install$/m);
+  assert.match(content, /^## 中文说明$/m);
+  assert.match(content, /dsh plugin --profile <profile> add @ising-tech\/isingq-dsh-plugin/);
+  assert.match(content, />=0\.1\.0-rc\.7 <0\.2\.0-0/);
+  assert.match(content, /HTTPS authentication|HTTPS 鉴权/);
+  assert.match(content, /nine `isingq_\*` tools|9 个 `isingq_\*` 工具/);
+});
+
 test('developer material is separated from the user README', () => {
   assert.doesNotMatch(read('README.md'), /^## 开发验证$/m);
   assert.match(read('README.md'), /docs\/DEVELOPMENT\.md/);
