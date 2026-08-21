@@ -15,6 +15,10 @@
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/@ising-tech/isingq-dsh-plugin"><img src="https://img.shields.io/npm/v/@ising-tech/isingq-dsh-plugin?label=DSH%20Plugin" alt="IsingQ DSH Plugin npm version"></a>
+</p>
+
+<p align="center">
   <img src="docs/assets/isingq-toolkit-capabilities-demo.gif" width="800" alt="An Agent modeling and solving a QUBO with IsingQ Toolkit">
 </p>
 
@@ -119,11 +123,13 @@ To run without Node.js, download the fixed-version binary for your system from [
 
 ### DeepSeek Harness
 
-DSH uses its native Plugin and does not need an MCP bridge:
+DSH uses its native Plugin and does not need an MCP bridge. Review the [npm package](https://www.npmjs.com/package/@ising-tech/isingq-dsh-plugin) and [complete usage guide](packages/dsh-plugin/README.md) before installation:
 
 ```bash
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
+
+The minimum supported DeepSeek Harness baseline is `0.1.0-rc.7`, and the current development validation version is `0.1.0-rc.8`. The supported `@deepseek-ai/dsh-tools` range is `>=0.1.0-rc.7 <0.2.0-0`.
 
 Do not enable both the native IsingQ Plugin and the legacy MCP bridge in the same DSH Profile. See the [DSH Plugin README](packages/dsh-plugin/README.md) for details.
 
@@ -142,6 +148,8 @@ Source execution, architecture, package boundaries, and the Release process are 
 | `isingq_solve_start` | Submit to IsingQ immediately after the Host permits the call | Yes |
 | `isingq_solve_poll` | Query task status once and save the result | Yes |
 | `isingq_solve_result_get` | Read a locally stored solve result | No |
+
+The native DSH Plugin also provides `isingq_resource_list` and `isingq_resource_read` to list and read local, versioned public knowledge resources.
 
 ## Data and result conventions
 

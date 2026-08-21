@@ -15,6 +15,10 @@
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/@ising-tech/isingq-dsh-plugin"><img src="https://img.shields.io/npm/v/@ising-tech/isingq-dsh-plugin?label=DSH%20Plugin" alt="IsingQ DSH Plugin npm version"></a>
+</p>
+
+<p align="center">
   <img src="docs/assets/isingq-toolkit-capabilities-demo.gif" width="800" alt="Agent 使用 IsingQ Toolkit 完成 QUBO 建模与求解">
 </p>
 
@@ -118,11 +122,13 @@ npx @ising-tech/isingq-mcp configure-host --name generic --npx
 
 ### DeepSeek Harness
 
-DSH 使用原生 Plugin，不需要 MCP Bridge：
+DSH 使用原生 Plugin，不需要 MCP Bridge。安装前可以查看 [npm 包](https://www.npmjs.com/package/@ising-tech/isingq-dsh-plugin)与[完整使用说明](packages/dsh-plugin/README.md)：
 
 ```bash
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
+
+最低兼容基线为 DeepSeek Harness `0.1.0-rc.7`，当前开发验证版本为 `0.1.0-rc.8`。`@deepseek-ai/dsh-tools` 支持范围为 `>=0.1.0-rc.7 <0.2.0-0`。
 
 不要在同一个 DSH Profile 中同时启用 IsingQ 原生 Plugin 和旧 MCP Bridge。详细说明见 [DSH Plugin README](packages/dsh-plugin/README.md)。
 
@@ -141,6 +147,8 @@ dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 | `isingq_solve_start` | 被 Host 放行后立即提交 IsingQ 求解 | 是 |
 | `isingq_solve_poll` | 查询一次任务状态并保存结果 | 是 |
 | `isingq_solve_result_get` | 读取本机保存的求解结果 | 否 |
+
+DSH 原生 Plugin 还提供 `isingq_resource_list` 和 `isingq_resource_read`，用于列出和读取本机版本化公开知识资源。
 
 ## 数据与结果口径
 
