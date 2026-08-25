@@ -3,6 +3,7 @@
 const { TOPICS, getKnowledge } = require('./knowledge');
 
 const LAST_MODIFIED = '2026-08-17T00:00:00Z';
+const SECURITY_LAST_MODIFIED = '2026-08-25T00:00:00Z';
 
 const LOCAL_RESOURCE_CONTENT = {
   'isingq://modeling/qubo': `# QUBO 建模契约
@@ -18,7 +19,8 @@ isingq_solve_start 被 Host 放行后会立即创建远端任务。MCP 不弹出
 最低 energy 不自动证明业务约束满足，也不自动证明全局最优。`,
   'isingq://security/data-flow': `# 数据流与安全边界
 
-- IsingQ API Key 只从用户电脑的私有文件或 ISINGQ_API_KEY 环境变量读取，不通过 MCP 工具参数或对话接收。
+- 交互环境默认从用户电脑的私有文件读取 IsingQ API Key；Headless 管理员可在 Agent 启动前注入 ISINGQ_API_KEY，运行时不持久化该变量。Agent 不得接收、设置或显示 Key。
+- 生产 API 固定为 https://api.isingq.com，不支持通过运行时环境变量替换目标域名。
 - 企业知识、建模引导和 QUBO 校验完全在用户电脑执行。
 - 只有 isingq_solve_start 会将生成的 QUBO 矩阵经 HTTPS 和 IsingQ 提供的上传链路发送到 IsingQ；该工具被 Host 放行后会立即创建远端任务。
 - MCP 不为求解另开操作系统确认框。Agent 必须在调用前取得用户确认，Host 可以根据自身权限策略再次确认。
@@ -62,7 +64,7 @@ const RESOURCES = [
     title: 'IsingQ MCP 数据流与安全边界',
     description: 'API Key、知识查询、QUBO 矩阵和求解结果的本地与远端边界。',
     mimeType: 'text/markdown',
-    annotations: { audience: ['user', 'assistant'], priority: 0.9, lastModified: LAST_MODIFIED },
+    annotations: { audience: ['user', 'assistant'], priority: 0.9, lastModified: SECURITY_LAST_MODIFIED },
   },
 ];
 

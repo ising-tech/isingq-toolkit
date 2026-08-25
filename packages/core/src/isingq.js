@@ -115,7 +115,7 @@ class IsingQTransport {
     if (typeof apiKey !== 'function') throw new Error('apiKey provider 必须可调用');
     const url = new URL(baseUrl);
     if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) {
-      throw new Error('ISINGQ_BASE_URL 必须是不含凭据的 HTTPS URL');
+      throw new Error('baseUrl 必须是不含凭据的 HTTPS URL');
     }
     this.apiKey = apiKey;
     this.baseUrl = url.toString().replace(/\/$/, '');

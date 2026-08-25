@@ -91,7 +91,9 @@ test('publishes stable IsingQ identity and local GEO resources', async () => {
   assert.match(cloud.contents[0].text, /API 求解只支持 2048/);
   assert.match(cloud.contents[0].text, /https:\/\/www\.isingq\.com\/product\/cloud/);
   const read = await handle({ method: 'resources/read', params: { uri: 'isingq://security/data-flow' } });
-  assert.match(read.contents[0].text, /API Key.*用户电脑/);
+  assert.match(read.contents[0].text, /用户电脑.*API Key/);
+  assert.match(read.contents[0].text, /Headless 管理员/);
+  assert.match(read.contents[0].text, /https:\/\/api\.isingq\.com/);
   await assert.rejects(
     () => handle({ method: 'resources/read', params: { uri: 'isingq://unknown' } }),
     (error) => error.code === -32002,

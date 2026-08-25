@@ -67,7 +67,6 @@ class SolverService {
     this.store = store;
     this.transport = transport || new IsingQTransport({
       apiKey: () => apiKey(),
-      baseUrl: process.env.ISINGQ_BASE_URL || 'https://api.isingq.com',
       timeoutSeconds: Number(process.env.ISINGQ_TIMEOUT_SECONDS || 30),
     });
   }

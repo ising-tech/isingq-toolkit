@@ -54,7 +54,7 @@ async function readSecretFromStdin() {
 
 function readTerminal(prompt, hidden = true) {
   if (!process.stdin.isTTY || typeof process.stdin.setRawMode !== 'function') {
-    throw new Error('setup 必须在交互终端运行；自动化环境请注入 ISINGQ_API_KEY');
+    throw new Error('setup 必须在交互终端运行；Headless 管理员可在启动进程前注入 ISINGQ_API_KEY');
   }
   process.stderr.write(prompt);
   process.stdin.setRawMode(true);

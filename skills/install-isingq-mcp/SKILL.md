@@ -16,6 +16,7 @@ Host-specific config boundaries and fallbacks are in [HOSTS.md](HOSTS.md). Read 
 ## Non-negotiable boundaries
 
 - Never receive an IsingQ API Key in chat, command arguments, environment variables, logs, Host config, or Agent-visible output.
+- A Headless deployment administrator may preconfigure `ISINGQ_API_KEY` before the Agent starts. Treat it only as an already-configured runtime source; never inspect, set, copy, or echo it.
 - If the user has no Key, direct them to `https://console.isingq.com/` and **Settings → API → Create API**. Never register, read, copy, or expose it for them.
 - Ask before opening the operating system's private API Key prompt. Use `force=true` only when the user explicitly asks to replace an existing Key.
 - Configure only the Host from the current request. Do not detect installed apps and configure all of them.

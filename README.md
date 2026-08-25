@@ -28,7 +28,7 @@ IsingQ Toolkit 是北京伊辛智能科技有限公司公开维护的本地 Agen
 
 - 建模引导、QUBO 校验和结果记录在用户电脑上完成。
 - 只有调用求解工具时，矩阵才会通过 HTTPS 提交给 IsingQ。
-- API Key 保存在本机私有文件中，不进入 Agent 对话或 MCP 配置。
+- API Key 默认保存在本机私有文件中；Headless 管理员也可在 Agent 进程启动前注入环境变量。Agent 不得索要、设置或显示 Key。
 - 支持标准 MCP、Codex Plugin 和 DeepSeek Harness 原生 Plugin。
 
 ## 快速开始
@@ -64,6 +64,8 @@ skills/install-isingq-mcp/SKILL.zh-CN.md，严格遵循该 Skill，
 4. 直接向 Agent 描述需要建模的问题。
 
 不要把 API Key 发到 Agent 对话、命令参数、MCP JSON、Issue 或日志中。如果 Key 意外泄露，请在云平台删除对应记录并重新创建。
+
+Headless 部署无法使用系统输入框时，部署管理员可以在 Agent 进程启动前设置 `ISINGQ_API_KEY`。这不是 Agent 安装步骤；Agent 不得读取、设置或回显该变量。
 
 可以从这个示例开始：
 
@@ -128,6 +130,12 @@ DSH 使用原生 Plugin，不需要 MCP Bridge。安装前可以查看 [npm 包]
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
+卸载：
+
+```bash
+dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
+```
+
 最低兼容基线为 DeepSeek Harness `0.1.0-rc.7`，当前开发验证版本为 `0.1.0-rc.8`。`@deepseek-ai/dsh-tools` 支持范围为 `>=0.1.0-rc.7 <0.2.0-0`。
 
 不要在同一个 DSH Profile 中同时启用 IsingQ 原生 Plugin 和旧 MCP Bridge。详细说明见 [DSH Plugin README](packages/dsh-plugin/README.md)。
@@ -152,7 +160,9 @@ DSH 原生 Plugin 还提供 `isingq_resource_list` 和 `isingq_resource_read`，
 
 ## 数据与结果口径
 
-- API Key 只保存在本机私有文件中，不进入工具参数或对话。
+- API Key 默认从本机私有文件读取；Headless 管理员可在进程启动前注入 `ISINGQ_API_KEY`，运行时不会持久化该变量。
+- Agent 不得接收、设置或打印 API Key；Key 不进入工具参数、对话、Host 配置或日志。
+- 生产 API 固定为 `https://api.isingq.com`。
 - 建模引导、QUBO 校验和公开知识查询在本机完成。
 - `isingq_solve_start` 被 Host 放行后会发送求解矩阵。
 - API 请求使用 HTTPS；矩阵上传使用短期签名，不携带个人 API Key。

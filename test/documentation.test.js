@@ -27,6 +27,11 @@ test('DSH package README is bilingual and documents its install and data boundar
   assert.match(content, />=0\.1\.0-rc\.7 <0\.2\.0-0/);
   assert.match(content, /HTTPS authentication|HTTPS 鉴权/);
   assert.match(content, /nine `isingq_\*` tools|9 个 `isingq_\*` 工具/);
+  assert.match(content, /dsh plugin --profile <profile> remove @ising-tech\/isingq-dsh-plugin/);
+  assert.match(content, /administrator|管理员/);
+  assert.match(content, /osascript/);
+  assert.match(content, /systemd-ask-password/);
+  assert.match(content, /does not download or execute remote scripts|不下载或执行远程脚本/);
 });
 
 test('root READMEs expose the native DSH package and compatibility range', () => {
@@ -43,6 +48,15 @@ test('developer material is separated from the user README', () => {
   assert.doesNotMatch(read('README.md'), /^## 开发验证$/m);
   assert.match(read('README.md'), /docs\/DEVELOPMENT\.md/);
   assert.match(read('docs/DEVELOPMENT.md'), /^## GitHub Actions 与 Release$/m);
+});
+
+test('security docs pin the production API and separate Agent input from headless administration', () => {
+  const security = read('SECURITY.md');
+  assert.match(security, /https:\/\/api\.isingq\.com/);
+  assert.match(security, /ISINGQ_API_KEY/);
+  assert.match(security, /Headless/);
+  assert.match(security, /Agent.*must not|Agent.*不得/);
+  assert.doesNotMatch(read('packages/core/src/index.js'), /ISINGQ_BASE_URL/);
 });
 
 test('installation skills direct users without receiving their API key', () => {

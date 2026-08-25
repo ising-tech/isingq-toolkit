@@ -65,7 +65,9 @@ MCP 生成 upper-triangular CSV。`offset` 不写入矩阵，但用于重新计�
 
 ## 数据流与失败语义
 
-- API Key 从本机私有文件或 `ISINGQ_API_KEY` 读取，不作为工具参数。
+- 交互环境默认从本机私有文件读取 API Key；Headless 管理员可在 Agent 进程启动前注入 `ISINGQ_API_KEY`，运行时不持久化该变量。Agent 不得接收、设置或显示 Key。
+- Toolkit 默认 Adapter 固定访问 `https://api.isingq.com`，不支持运行时 `ISINGQ_BASE_URL`。测试或嵌入式调用方可以显式构造 Transport，并自行提供 endpoint 与 API Key provider。
+- `ISINGQ_TIMEOUT_SECONDS` 只调整请求超时，不改变目标域名或凭据边界。
 - 获取临时签名、创建任务和查询任务时，个人 API Key 发送给 IsingQ HTTPS API。
 - OSS 上传只使用短期 `policy`、`signature` 和 `security_token`，不携带个人 API Key。
 - 创建任务出现不确定结果时标记为 `submission_unknown`，不得自动重复提交。

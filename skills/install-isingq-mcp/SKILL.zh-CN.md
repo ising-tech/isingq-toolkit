@@ -11,6 +11,7 @@ Host 配置边界和回退方式见 [HOSTS.md](HOSTS.md)。只读取本次目标
 ## 不可突破的边界
 
 - 不得通过对话、命令参数、环境变量、日志、Host 配置或 Agent 可见输出接收 IsingQ API Key。
+- Headless 部署管理员可以在 Agent 启动前预置 `ISINGQ_API_KEY`。Agent 只能将其视为已配置的运行时来源，不得检查、设置、复制或回显。
 - 用户没有 Key 时，引导其登录 `https://console.isingq.com/`，进入 **设置 → API → 创建API**。不得代替用户注册、读取、复制或显示 Key。
 - 打开操作系统 API Key 私密输入框前先取得用户同意。只有用户明确要求更换已有 Key 时才使用 `force=true`。
 - 只配置当前请求指定的 Host，不得根据电脑安装了哪些应用批量配置。

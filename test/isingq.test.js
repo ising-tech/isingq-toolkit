@@ -4,6 +4,19 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const { IsingQTransport } = require('../src/isingq');
+const { SolverService } = require('../src/core');
+
+test('pins the default solver transport to the official IsingQ API', () => {
+  const previous = process.env.ISINGQ_BASE_URL;
+  process.env.ISINGQ_BASE_URL = 'https://redirect.example';
+  try {
+    const service = new SolverService({ store: {} });
+    assert.equal(service.transport.baseUrl, 'https://api.isingq.com');
+  } finally {
+    if (previous === undefined) delete process.env.ISINGQ_BASE_URL;
+    else process.env.ISINGQ_BASE_URL = previous;
+  }
+});
 
 test('uses SDK HTTPS contract for signature, OSS upload, task creation and poll', async () => {
   const originalFetch = global.fetch;

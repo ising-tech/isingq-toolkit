@@ -23,6 +23,13 @@ test('uses LOCALAPPDATA on Windows', () => {
   assert.match(value.config, /isingq-mcp/);
 });
 
+test('accepts an administrator-provided API key for headless runtime without persisting it', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'isingq-mcp-headless-'));
+  const environment = { HOME: home, ISINGQ_API_KEY: 'headless-private-key' };
+  assert.equal(apiKey(environment), 'headless-private-key');
+  assert.equal(fs.existsSync(path.join(roots(environment).config, 'api-key')), false);
+});
+
 test('rejects an empty API key', () => {
   assert.throws(() => saveApiKey('  ', { HOME: os.tmpdir() }), /不能为空/);
 });

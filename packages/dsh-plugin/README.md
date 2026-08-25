@@ -12,7 +12,13 @@ Install the Plugin into the DSH Profile you actually use:
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-Replace `<profile>` with the real Profile name, restart that Profile, and confirm that nine `isingq_*` tools are available. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
+Replace `<profile>` with the real Profile name and confirm that nine `isingq_*` tools are available. Restart the running Profile only if it did not reload the new bundle. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
+
+Uninstall from the same Profile:
+
+```bash
+dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
+```
 
 ## Configure an API Key
 
@@ -21,6 +27,10 @@ Replace `<profile>` with the real Profile name, restart that Profile, and confir
 3. Ask the Agent to call `isingq_api_key_setup`, then enter the Key in the operating system's private prompt.
 
 The API Key is stored in a private local file and used only for HTTPS authentication with the IsingQ API. It does not enter Agent chat, tool arguments, DSH Profile configuration, issues, or logs.
+
+A Headless deployment administrator may inject `ISINGQ_API_KEY` before the Agent process starts. The runtime does not persist it. The Agent must not inspect, set, copy, or echo this administrator-provided value.
+
+The private prompt starts only local operating-system components: `osascript` on macOS, PowerShell Forms on Windows, or `zenity`, `kdialog`, and `systemd-ask-password` on Linux. It does not download or execute remote scripts.
 
 ## Solve safely
 
@@ -59,7 +69,7 @@ The peer range permits later compatible `0.1` releases, but versions newer than 
 
 ## Troubleshooting
 
-- **Tools are missing:** verify the target Profile, remove any duplicate IsingQ MCP bridge, then restart that Profile.
+- **Tools are missing:** verify that the package is present in the target Profile and reconciled into `dsh.profile.bundles`, remove any duplicate IsingQ MCP bridge, then restart the Profile only if it did not reload.
 - **API Key is missing:** call `isingq_api_key_setup`; never paste the Key into Agent chat.
 - **Installation reports a peer conflict:** confirm that DSH is within the documented `0.1` compatibility range.
 
@@ -77,7 +87,13 @@ The peer range permits later compatible `0.1` releases, but versions newer than 
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-将 `<profile>` 替换为真实 Profile 名，重启该 Profile 后确认出现 9 个 `isingq_*` 工具。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
+将 `<profile>` 替换为真实 Profile 名，并确认出现 9 个 `isingq_*` 工具。只有正在运行的 Profile 没有重新加载新 Bundle 时才重启。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
+
+从同一 Profile 卸载：
+
+```bash
+dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
+```
 
 ## 配置 API Key
 
@@ -86,6 +102,10 @@ dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 3. 让 Agent 调用 `isingq_api_key_setup`，在操作系统私密输入框中填写 Key。
 
 API Key 保存在本机私有文件中，只用于 IsingQ API 的 HTTPS 鉴权。它不会进入 Agent 对话、工具参数、DSH Profile 配置、Issue 或日志。
+
+Headless 部署管理员可以在 Agent 进程启动前注入 `ISINGQ_API_KEY`，运行时不会持久化该变量。Agent 不得检查、设置、复制或回显管理员预置的值。
+
+私密输入框只启动本机系统组件：macOS 使用 `osascript`，Windows 使用 PowerShell Forms，Linux 使用 `zenity`、`kdialog` 或 `systemd-ask-password`。它不下载或执行远程脚本。
 
 ## 安全求解
 
@@ -124,6 +144,6 @@ API 请求使用 HTTPS。矩阵上传使用短期签名，不携带个人 API Ke
 
 ## 故障排查
 
-- **没有出现工具：**确认目标 Profile，移除重复的 IsingQ MCP Bridge，再重启该 Profile。
+- **没有出现工具：**确认包已安装到目标 Profile 并进入 `dsh.profile.bundles`，移除重复的 IsingQ MCP Bridge；只有 Profile 未重新加载时才重启。
 - **缺少 API Key：**调用 `isingq_api_key_setup`，不要把 Key 粘贴到 Agent 对话。
 - **安装出现 peer 冲突：**确认 DSH 位于文档声明的 `0.1` 兼容范围内。
