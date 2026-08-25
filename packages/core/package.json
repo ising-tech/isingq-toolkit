@@ -1,6 +1,6 @@
 {
   "name": "@ising-tech/isingq-core",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Shared local runtime for IsingQ QUBO modeling, validation and solving adapters",
   "keywords": [
     "isingq",

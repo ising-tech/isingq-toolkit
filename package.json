@@ -1,6 +1,6 @@
 {
   "name": "@ising-tech/isingq-mcp",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "mcpName": "io.github.ising-tech/isingq-mcp",
   "description": "IsingQ local MCP for guided QUBO modeling and personal API-key solving",
   "keywords": [
