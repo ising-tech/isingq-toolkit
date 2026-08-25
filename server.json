@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ising-tech/isingq-mcp",
+  "title": "IsingQ MCP",
+  "description": "Model optimization problems as QUBO, validate them locally, and submit user-confirmed solve jobs to IsingQ.",
+  "repository": {
+    "url": "https://github.com/ising-tech/isingq-toolkit",
+    "source": "github"
+  },
+  "version": "0.4.3",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@ising-tech/isingq-mcp",
+      "version": "0.4.3",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

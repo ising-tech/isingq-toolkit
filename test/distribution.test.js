@@ -8,6 +8,7 @@ const test = require('node:test');
 const root = path.resolve(__dirname, '..');
 const publicDistributionFiles = [
   'README.md',
+  'server.json',
   'install/install.sh',
   'install/install.ps1',
   'skills/install-isingq-mcp/SKILL.md',
@@ -65,6 +66,7 @@ test('npm package includes only runtime and public integration files', () => {
     'LICENSE',
     'NOTICE',
     'SECURITY.md',
+    'server.json',
     'bin/',
     'install/',
     'packages/core/',
@@ -75,6 +77,23 @@ test('npm package includes only runtime and public integration files', () => {
   assert.equal(pkg.dependencies?.['@deepseek-ai/dsh-tools'], undefined);
   assert.equal(pkg.license, 'Apache-2.0');
   assert.ok(!pkg.files.some((entry) => /\.agents|output|playwright|video/.test(entry)));
+});
+
+test('publishes MCP Registry metadata aligned with the npm package', () => {
+  const pkg = JSON.parse(read('package.json'));
+  const server = JSON.parse(read('server.json'));
+  assert.equal(pkg.mcpName, 'io.github.ising-tech/isingq-mcp');
+  assert.equal(server.name, pkg.mcpName);
+  assert.equal(server.version, pkg.version);
+  assert.equal(server.repository.url, 'https://github.com/ising-tech/isingq-toolkit');
+  assert.equal(server.repository.source, 'github');
+  assert.deepEqual(server.packages, [{
+    registryType: 'npm',
+    identifier: pkg.name,
+    version: pkg.version,
+    transport: { type: 'stdio' },
+  }]);
+  assert.equal(server.packages[0].environmentVariables, undefined);
 });
 
 test('publishes the same Apache-2.0 license and notice in every package', () => {
