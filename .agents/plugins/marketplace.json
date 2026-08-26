@@ -1,0 +1,20 @@
+{
+  "name": "isingq-toolkit",
+  "interface": {
+    "displayName": "IsingQ Toolkit"
+  },
+  "plugins": [
+    {
+      "name": "isingq-mcp",
+      "source": {
+        "source": "local",
+        "path": "./plugins/isingq-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -98,7 +98,7 @@ Agent 应先展示变量映射、目标函数、约束、Penalty、矩阵摘要�
 | 接入方式 | 适用范围 | 是否需要 Node.js |
 | --- | --- | --- |
 | 标准 MCP | WorkBuddy、Claude Code、Cursor、VS Code 等 MCP Host | npx 方式需要 Node.js 18+；Release 不需要 |
-| Codex Plugin | Codex 内置 Plugin 接入 | 否 |
+| Codex Plugin | Codex Repo Marketplace 接入 | 需要 Node.js 18+ |
 | DSH 原生 Plugin | DeepSeek Harness | 由 DSH 管理 |
 
 标准 MCP 的 Release 程序支持 macOS arm64/x64、Linux arm64/x64 和 Windows x64。同一台电脑只需要一份运行程序，不同 Agent 可以分别注册它。
@@ -106,6 +106,17 @@ Agent 应先展示变量映射、目标函数、约束、Penalty、矩阵摘要�
 ## 其他安装方式
 
 快速开始中的 Agent Skill 是普通用户的推荐入口。下面的命令适合需要手动管理安装或配置的用户。
+
+### Codex Repo Marketplace
+
+需要 Node.js 18 或更高版本。先添加官方仓库 Marketplace，再安装 Plugin：
+
+```bash
+codex plugin marketplace add ising-tech/isingq-toolkit --ref main
+codex plugin add isingq-mcp@isingq-toolkit
+```
+
+安装后新建 Codex 任务，并让 Codex“配置我的 IsingQ API Key”。Plugin 会通过系统安全输入框完成配置，不要在对话中粘贴 API Key。
 
 ### npm / npx
 

@@ -99,7 +99,7 @@ The current cloud API supports up to 2,048 QUBO binary variables. Whether a prob
 | Integration | Intended Hosts | Node.js required |
 | --- | --- | --- |
 | Standard MCP | WorkBuddy, Claude Code, Cursor, VS Code, and other MCP Hosts | Node.js 18+ for npx; not required for Releases |
-| Codex Plugin | Built-in Codex Plugin integration | No |
+| Codex Plugin | Codex Repo Marketplace integration | Node.js 18+ |
 | Native DSH Plugin | DeepSeek Harness | Managed by DSH |
 
 Standard MCP Release binaries support macOS arm64/x64, Linux arm64/x64, and Windows x64. One runtime per computer is sufficient; multiple Agents can register it independently.
@@ -107,6 +107,17 @@ Standard MCP Release binaries support macOS arm64/x64, Linux arm64/x64, and Wind
 ## Other installation methods
 
 The Agent Skill in Quick start is the recommended path for most users. The commands below are for users who want to manage installation or configuration manually.
+
+### Codex Repo Marketplace
+
+Requires Node.js 18 or later. Add the official repository marketplace, then install the plugin:
+
+```bash
+codex plugin marketplace add ising-tech/isingq-toolkit --ref main
+codex plugin add isingq-mcp@isingq-toolkit
+```
+
+After installation, start a new Codex task and ask Codex to “configure my IsingQ API Key.” The plugin uses the operating system's secure input dialog; do not paste the API Key into the conversation.
 
 ### npm / npx
 
