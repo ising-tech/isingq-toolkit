@@ -1,6 +1,6 @@
 {
   "name": "isingq-mcp",
-  "version": "0.5.0+codex.20260826020010",
+  "version": "0.5.0+codex.20260826021025",
   "description": "Use IsingQ from Codex for public product knowledge, guided QUBO modeling, validation, and user-confirmed solving.",
   "author": {
     "name": "北京伊辛智能科技有限公司",
@@ -34,6 +34,6 @@
     ],
     "brandColor": "#F97316",
     "composerIcon": "./assets/isingq-icon.png",
-    "logo": "./assets/isingq-logo.png"
+    "logo": "./assets/isingq-icon.png"
   }
 }

@@ -27,6 +27,6 @@
     ],
     "brandColor": "#F97316",
     "composerIcon": "./plugins/isingq-mcp/assets/isingq-icon.png",
-    "logo": "./plugins/isingq-mcp/assets/isingq-logo.png"
+    "logo": "./plugins/isingq-mcp/assets/isingq-icon.png"
   }
 }
