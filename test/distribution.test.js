@@ -17,6 +17,10 @@ const publicDistributionFiles = [
   'skills/install-isingq-mcp/scripts/install-macos.sh',
   'skills/install-isingq-mcp/scripts/install-windows.ps1',
   '.codex-plugin/plugin.json',
+  '.agents/plugins/marketplace.json',
+  'plugins/isingq-mcp/.codex-plugin/plugin.json',
+  'plugins/isingq-mcp/.mcp.json',
+  'lhm.plugin.json',
   '.gitignore',
   '.gitattributes',
   'LICENSE',
@@ -41,7 +45,9 @@ test('public distribution files contain no internal endpoint or repository metad
       assert.doesNotMatch(content, /http:\/\/(?!\*)[A-Za-z0-9[]/, relative);
     }
   }
-  assert.equal(fs.existsSync(path.join(root, '.agents', 'plugins', 'marketplace.json')), false);
+  const marketplace = JSON.parse(read('.agents/plugins/marketplace.json'));
+  assert.equal(marketplace.name, 'isingq-toolkit');
+  assert.equal(marketplace.plugins[0].source.path, './plugins/isingq-mcp');
   assert.match(read('.gitignore'), /^node_modules\/$/m);
   assert.match(read('.gitignore'), /^\.env$/m);
   assert.match(read('.gitignore'), /^\.playwright-cli\/$/m);

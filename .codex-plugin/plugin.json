@@ -25,8 +25,6 @@
       "把这个业务问题建成 QUBO，确认后调用 IsingQ 求解",
       "玉盘·伊辛云当前支持多少自旋？"
     ],
-    "brandColor": "#F97316",
-    "composerIcon": "./plugins/isingq-mcp/assets/isingq-icon.png",
-    "logo": "./plugins/isingq-mcp/assets/isingq-icon.png"
+    "brandColor": "#F97316"
   }
 }

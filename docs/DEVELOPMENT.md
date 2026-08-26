@@ -14,6 +14,21 @@ npm workspaces 包含三个发布单元：
 
 三个包同步版本。DSH 原生 Plugin 与标准 MCP 不应在同一 Profile 中同时启用。
 
+## 分发目录
+
+仓库同时服务 npm、Codex Repo Marketplace、LobeHub、Official MCP Registry 和 Glama。以下文件名称相近，但职责不同：
+
+| 路径 | 职责 | 运行入口 |
+| --- | --- | --- |
+| `.codex-plugin/plugin.json` + `.mcp.json` | npm/source Codex Plugin；随 `@ising-tech/isingq-mcp` 打包 | 仓库或 npm 包内的 `bin/isingq-mcp.js` |
+| `.agents/plugins/marketplace.json` | Codex Repo Marketplace 目录，只声明可安装项与策略 | 指向 `plugins/isingq-mcp/` |
+| `plugins/isingq-mcp/` | Repo Marketplace 的轻量包装和展示素材 | `npx -y @ising-tech/isingq-mcp serve` |
+| `lhm.plugin.json` | LobeHub Marketplace 的工具、Resource 与展示快照 | 发布前由本地源码 MCP 重新生成并人工核对 |
+| `server.json` | Official MCP Registry 元数据 | npm stdio 包 |
+| `glama.json` | Glama 作者认领声明 | 不定义运行入口 |
+
+外层和内层 `.codex-plugin` 不得互相引用资源文件。更新 Plugin 名称、描述、默认 Prompt 或 Logo 时应同步核对两份 manifest；更新 MCP 工具或 Resources 后应重新生成并检查 `lhm.plugin.json`。
+
 ## MCP 与 Resources
 
 标准 MCP 暴露 7 个工具；DSH 原生 Plugin 额外提供 `isingq_resource_list` 和 `isingq_resource_read`。13 个本地 Resources 覆盖公司、产品、技术、云平台、方案、案例、FAQ、术语、来源、QUBO 建模与数据流。

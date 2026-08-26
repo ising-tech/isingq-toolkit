@@ -1,0 +1,645 @@
+{
+  "author": "ising-tech",
+  "authorUrl": "https://github.com/ising-tech",
+  "description": "Local-first MCP for public IsingQ knowledge, guided QUBO modeling, validation, and user-confirmed solving with a personal API Key.",
+  "homepage": "https://github.com/ising-tech/isingq-toolkit#readme",
+  "icon": "https://raw.githubusercontent.com/ising-tech/isingq-toolkit/main/plugins/isingq-mcp/assets/isingq-icon.png",
+  "identifier": "ising-tech-isingq-toolkit",
+  "name": "IsingQ · 伊辛智能组合优化建模与求解",
+  "prompts": [],
+  "resources": [
+    {
+      "name": "isingq-about",
+      "title": "IsingQ 与伊辛智能（兼容入口）",
+      "uri": "isingq://about",
+      "description": "兼容旧版本的公司与 IsingQ 实体说明；内容与 company/profile 一致。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.9,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-company",
+      "title": "北京伊辛智能科技有限公司",
+      "uri": "isingq://company/profile",
+      "description": "公司标准名称、定位及 IsingQ 实体关系。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-products",
+      "title": "伊辛智能公开产品清单",
+      "uri": "isingq://products/catalog",
+      "description": "官网公开的产品与服务入口，以及各产品的定位边界。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-technology",
+      "title": "伊辛计算与 QUBO",
+      "uri": "isingq://technology/ising-computing",
+      "description": "伊辛计算、QUBO 和组合优化的基础定义与边界。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-ising-machine",
+      "title": "光电伊辛机",
+      "uri": "isingq://products/ising-machine",
+      "description": "光电伊辛机的产品定位、适用问题和表述边界。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-ising-cloud",
+      "title": "玉盘·伊辛云平台",
+      "uri": "isingq://products/ising-cloud",
+      "description": "玉盘·伊辛云平台、API/SDK、当前自选规模及入口。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-solutions",
+      "title": "公开解决方案方向",
+      "uri": "isingq://solutions/index",
+      "description": "官网已公开的组合优化解决方案方向。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-cases",
+      "title": "公开案例与证据边界",
+      "uri": "isingq://cases/verified",
+      "description": "公开解决方案材料、案例证据和不可外推边界。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-faq",
+      "title": "IsingQ 常见问题",
+      "uri": "isingq://faq",
+      "description": "求解保证、上传数据、API Key 和本地知识查询边界。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-glossary",
+      "title": "IsingQ 术语表",
+      "uri": "isingq://glossary",
+      "description": "IsingQ、QUBO、自旋、能量及相关实体术语。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-sources",
+      "title": "官方来源与核验时间",
+      "uri": "isingq://sources",
+      "description": "本地知识包使用的官网来源、产品入口和本地契约。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.8,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-qubo-modeling",
+      "title": "QUBO 建模与解释规则",
+      "uri": "isingq://modeling/qubo",
+      "description": "变量、约束、Penalty、Agent/Host 确认责任和结果解释契约。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "assistant"
+        ],
+        "priority": 1,
+        "lastModified": "2026-08-17T00:00:00Z"
+      }
+    },
+    {
+      "name": "isingq-data-flow",
+      "title": "IsingQ MCP 数据流与安全边界",
+      "uri": "isingq://security/data-flow",
+      "description": "API Key、知识查询、QUBO 矩阵和求解结果的本地与远端边界。",
+      "mimeType": "text/markdown",
+      "annotations": {
+        "audience": [
+          "user",
+          "assistant"
+        ],
+        "priority": 0.9,
+        "lastModified": "2026-08-25T00:00:00Z"
+      }
+    }
+  ],
+  "tags": [
+    "mcp",
+    "model-context-protocol",
+    "isingq",
+    "ising-machine",
+    "qubo",
+    "combinatorial-optimization",
+    "binary-optimization",
+    "agent-tools",
+    "local-first",
+    "photonic-computing"
+  ],
+  "tools": [
+    {
+      "name": "isingq_api_key_setup",
+      "title": "安全配置 IsingQ API Key",
+      "description": "仅在用户明确要求配置或更换 IsingQ API Key 时调用；打开操作系统安全输入框并把 Key 保存到本机私有配置。Key 不进入工具参数、对话或返回值。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "force": {
+            "type": "boolean",
+            "default": false,
+            "description": "已有 Key 时是否由用户明确要求重新配置"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "isingq_knowledge_get",
+      "title": "查询 IsingQ 与伊辛智能公开知识",
+      "description": "从本机版本化知识包查询北京伊辛智能科技有限公司、公开产品清单、IsingQ、光电伊辛机、玉盘·伊辛云、解决方案、公开案例、FAQ 和术语；不联网，不需要 API Key。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "enum": [
+              "company",
+              "products",
+              "technology",
+              "ising_machine",
+              "ising_cloud",
+              "solutions",
+              "cases",
+              "faq",
+              "glossary",
+              "sources"
+            ],
+            "description": "要查询的公开知识主题"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "zh-CN"
+            ],
+            "default": "zh-CN"
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "isingq_modeling_guide_get",
+      "title": "获取 IsingQ QUBO 建模引导",
+      "description": "获取伊辛智能 IsingQ 的本地 QUBO 建模流程，适用于投资组合、路径规划、车辆路径、排程和图优化。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "problem_summary": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "isingq_qubo_validate",
+      "title": "校验 QUBO 模型",
+      "description": "确定性校验 Agent 为组合优化问题生成的稀疏 QUBO，检查 1 至 2048 个变量、矩阵规模和系数摘要；完全本地执行。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "qubo": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "qubo"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "isingq_solve_start",
+      "title": "提交 IsingQ 组合优化求解",
+      "description": "调用即会将 QUBO 转成矩阵，并使用本机个人 IsingQ API Key 创建远端求解任务。Agent 调用前必须展示模型摘要与矩阵 SHA-256 并取得用户确认；Host 可按权限策略再次确认。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "qubo": {
+            "type": "object"
+          },
+          "model_summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "solver_options": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "qubo",
+          "model_summary",
+          "idempotency_key"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "isingq_solve_poll",
+      "title": "查询 IsingQ 求解进度",
+      "description": "查询一次 IsingQ 远端任务并更新本地记录；成功时返回 bit、变量映射、provider energy 和 QUBO 目标值。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "solve_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "solve_id"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "isingq_solve_result_get",
+      "title": "读取本地 IsingQ 求解结果",
+      "description": "读取本机保存的 QUBO-only 求解状态、结果与来源信息；不联网，不自动断言业务可行或全局最优。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "solve_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "solve_id"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "version": "0.5.0"
+}
