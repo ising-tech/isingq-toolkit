@@ -6,6 +6,7 @@ const { IsingQError } = require('./isingq');
 const {
   RESOURCES,
   SolverService,
+  SolveStartError,
   TOOL_DEFINITIONS,
   getKnowledge,
   modelingGuide,
@@ -47,8 +48,9 @@ function toolResult(payload) {
 function errorPayload(error) {
   return {
     ok: false,
+    ...(error instanceof SolveStartError ? { data: error.run } : {}),
     error: {
-      code: error instanceof IsingQError ? 'isingq_error' : 'validation_error',
+      code: error instanceof SolveStartError ? 'solve_start_failed' : error instanceof IsingQError ? 'isingq_error' : 'validation_error',
       message: error instanceof IsingQError
         ? `IsingQ 调用失败（phase=${error.phase}, status=${error.status ?? 'none'}, retryable=${error.retryable}）`
         : String(error.message || error),

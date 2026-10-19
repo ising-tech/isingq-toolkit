@@ -202,6 +202,8 @@ See the [Security Policy](SECURITY.md) for additional boundaries.
 
 - **Update**: rerun the installation Skill, or update the npm package, Release binary, Codex Plugin, or DSH Plugin currently in use.
 - **Existing data**: updates preserve the local API Key and solve records.
+- **Retry after a missing Key**: configure the Key through `isingq_api_key_setup`, then resubmit the same model with the same `idempotency_key`. A new call without a Key leaves no solve record.
+- **Failed or uncertain submissions**: retry with the same key only when the runtime can confirm that no remote task was created. For `submission_unknown` or legacy failures with an ambiguous submission phase, check your tasks in IsingQ Cloud first; do not automatically change the key or delete the record to resubmit.
 - **Tools are missing**: reconnect `isingq` and approve the Host's trust prompt; fully restart the Agent only if tools still do not load.
 - **The Host cannot register automatically**: run `isingq-mcp config --json` and import the result through the Host's MCP settings.
 - **Sandbox blocks writes**: approve only the exact installation and user configuration directories; never move the API Key into the project.

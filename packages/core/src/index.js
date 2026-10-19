@@ -62,6 +62,25 @@ function publicRun(run) {
   };
 }
 
+class SolveStartError extends Error {
+  constructor(run) {
+    const phase = run.error?.phase || 'unknown';
+    const guidance = run.status === 'submission_unknown' || !canRetrySubmission(run)
+      ? '请先按 solve_id 核查远端任务及本地记录，不要更换幂等键盲目重提'
+      : '修复上述阶段的错误后，可用相同模型和幂等键重试';
+    super(`求解启动失败（solve_id=${run.solve_id}, status=${run.status}, phase=${phase}, http_status=${run.error?.http_status ?? 'none'}）；${guidance}`);
+    this.run = publicRun(run);
+  }
+}
+
+function canRetrySubmission(run) {
+  if (run.status !== 'failed' || run.provider_task_id || run.submitted_at) return false;
+  if (run.submission_outcome) return run.submission_outcome === 'not_created';
+  // Older records have no outcome. Only known pre-create phases are evidence
+  // that no remote task exists; legacy generic submit failures stay blocked.
+  return ['upload_signature', 'upload'].includes(run.error?.phase);
+}
+
 class SolverService {
   constructor({ store = new SolveStore(), transport = null } = {}) {
     this.store = store;
@@ -88,10 +107,22 @@ class SolverService {
       solver_options: solverOptions,
     })).digest('hex');
     const idempotencyDigest = crypto.createHash('sha256').update(args.idempotency_key).digest('hex');
-    const existing = this.store.findByIdempotency(idempotencyDigest);
+    const existing = this.store.findByIdempotency(idempotencyDigest, { includeArchived: true });
     if (existing) {
       if (existing.request_digest !== requestDigest) throw new Error('idempotency_key 已用于不同模型');
-      return publicRun(existing);
+      if (!existing.archived_at && !canRetrySubmission(existing)) {
+        if (['failed', 'submission_unknown'].includes(existing.status)) throw new SolveStartError(existing);
+        return publicRun(existing);
+      }
+    }
+    // Synchronous preflight preserves the lookup -> reservation boundary. An
+    // injected transport without this hook retains its existing submit API, but
+    // its unclassified failures are conservatively treated as unknown.
+    const credentials = this.transport.prepareSubmission?.();
+    if (credentials && typeof credentials.then === 'function') throw new Error('prepareSubmission 必须同步完成凭据校验');
+    if (existing && !existing.archived_at) {
+      if (typeof this.store.archive !== 'function') throw new Error(`存储不支持归档，已停止重新提交（solve_id=${existing.solve_id}）`);
+      this.store.archive(existing);
     }
     const timestamp = new Date().toISOString();
     const run = {
@@ -111,15 +142,22 @@ class SolverService {
       updated_at: timestamp,
       submitted_at: null,
       completed_at: null,
+      submission_outcome: 'unknown',
     };
     this.store.save(run);
     try {
-      const submitted = await this.transport.submit(matrix, solverOptions);
+      const submitted = await this.transport.submit(matrix, solverOptions, credentials);
+      if (typeof submitted?.task_id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(submitted.task_id)) {
+        throw new IsingQError('IsingQ 创建任务响应缺少有效 task_id', { phase: 'create_task', submissionOutcome: 'unknown', submissionUnknown: true });
+      }
       run.provider_task_id = submitted.task_id;
+      run.submission_outcome = 'created';
       run.status = 'submitted';
       run.submitted_at = new Date().toISOString();
     } catch (error) {
-      run.status = error instanceof IsingQError && error.submissionUnknown ? 'submission_unknown' : 'failed';
+      run.submission_outcome = error instanceof IsingQError && ['not_created', 'rejected'].includes(error.submissionOutcome)
+        ? error.submissionOutcome : 'unknown';
+      run.status = run.submission_outcome === 'unknown' ? 'submission_unknown' : 'failed';
       run.completed_at = new Date().toISOString();
       run.updated_at = run.completed_at;
       run.error = {
@@ -128,7 +166,7 @@ class SolverService {
         retryable: error instanceof IsingQError ? error.retryable : false,
       };
       this.store.save(run);
-      throw error;
+      throw new SolveStartError(run);
     }
     run.updated_at = new Date().toISOString();
     this.store.save(run);
@@ -168,6 +206,7 @@ module.exports = {
   RESOURCES,
   RESULT_LIMITATIONS,
   SolverService,
+  SolveStartError,
   TOPICS,
   TOOL_DEFINITIONS,
   configureApiKeyAsync,

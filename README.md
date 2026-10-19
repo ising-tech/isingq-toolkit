@@ -201,6 +201,8 @@ f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i \lt j} Q_{ij}x_i x_j
 
 - **升级**：重新执行安装 Skill，或更新当前使用的 npm、Release、Codex Plugin、DSH Plugin。
 - **已有配置**：升级会保留本机 API Key 和求解记录。
+- **缺少 Key 后重试**：通过 `isingq_api_key_setup` 配置 Key 后，可用相同模型和 `idempotency_key` 再次提交；缺 Key 的新调用不会留下求解记录。
+- **提交失败或结果未知**：只有能确认尚未创建远端任务的失败才允许同 key 重试。遇到 `submission_unknown` 或无法判定提交阶段的旧失败记录时，先到云平台核对任务；不要自动更换 key 或删除记录后重提。
 - **工具未出现**：先在 Host 中重连 `isingq` 并批准信任提示；仍未加载时再完全重启 Agent。
 - **Host 无法自动接入**：运行 `isingq-mcp config --json`，通过 Host 的 MCP 设置页面导入。
 - **沙箱禁止写入**：只授权准确的安装目录和用户配置目录，不要把 API Key 放进项目目录。
