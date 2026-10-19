@@ -26,6 +26,41 @@ const QUBO = {
   variables: [{ index: 0, name: 'x_a' }, { index: 1, name: 'x_b' }],
 };
 
+for (const name of ['isingq_qubo_validate', 'isingq_solve_start']) {
+  test(`${name} rejects non-array QUBO fields before storage or transport access`, async () => {
+    const calls = { lookup: 0, save: 0, prepare: 0, submit: 0 };
+    const store = new MemoryStore();
+    store.findByIdempotency = () => { calls.lookup += 1; return null; };
+    store.save = (run) => { calls.save += 1; store.runs.set(run.solve_id, structuredClone(run)); };
+    const handle = createHandler(new SolverService({
+      store,
+      transport: {
+        prepareSubmission: () => { calls.prepare += 1; return {}; },
+        submit: async () => { calls.submit += 1; return { task_id: 'must-not-submit' }; },
+      },
+    }));
+    for (const field of ['linear', 'quadratic', 'variables']) {
+      for (const value of ['private-input-must-not-appear', '', {}, null, 123, false]) {
+        const response = await handle({
+          method: 'tools/call',
+          params: {
+            name,
+            arguments: { qubo: { ...QUBO, [field]: value }, model_summary: '非法字段测试', idempotency_key: 'invalid-array-field' },
+          },
+        });
+        assert.equal(response.isError, true, `${name}: ${field} must fail`);
+        assert.equal(response.structuredContent.ok, false);
+        assert.equal(response.structuredContent.error.code, 'validation_error');
+        assert.match(response.structuredContent.error.message, new RegExp(`^${field} 必须是数组`));
+        assert.deepEqual(JSON.parse(response.content[0].text), response.structuredContent);
+        assert.doesNotMatch(JSON.stringify(response), /private-input-must-not-appear/);
+        assert.deepEqual(calls, { lookup: 0, save: 0, prepare: 0, submit: 0 });
+        assert.equal(store.runs.size, 0);
+      }
+    }
+  });
+}
+
 test('exposes knowledge, guidance, validation and solving tools', async () => {
   const handle = createHandler(new SolverService({
     store: new MemoryStore(),
