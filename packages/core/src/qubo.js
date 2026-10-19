@@ -12,6 +12,14 @@ function finiteNumber(value, field) {
   return value;
 }
 
+function arrayField(value, field) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) {
+    throw new Error(`${field} 必须是数组（收到 ${value === null ? 'null' : typeof value}）`);
+  }
+  return value;
+}
+
 function index(value, numBits, field) {
   if (!Number.isInteger(value) || value < 0 || value >= numBits) {
     throw new Error(`${field} 必须在 0 到 ${numBits - 1} 之间（value=${value}）`);
@@ -30,9 +38,9 @@ function validateQubo(input) {
   if (!Number.isInteger(numBits) || numBits < 1 || numBits > MAX_BITS) {
     throw new Error(`num_bits 必须在 1 到 ${MAX_BITS} 之间`);
   }
-  const linear = Array.isArray(input.linear) ? input.linear : [];
-  const quadratic = Array.isArray(input.quadratic) ? input.quadratic : [];
-  const variables = Array.isArray(input.variables) ? input.variables : [];
+  const linear = arrayField(input.linear, 'linear');
+  const quadratic = arrayField(input.quadratic, 'quadratic');
+  const variables = arrayField(input.variables, 'variables');
   const diagonal = new Map();
   for (const [position, term] of linear.entries()) {
     if (!term || Array.isArray(term) || typeof term !== 'object') {

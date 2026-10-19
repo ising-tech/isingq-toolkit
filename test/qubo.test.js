@@ -38,6 +38,33 @@ test('rejects duplicate and invalid terms', () => {
   }), /不能包含对角项/);
 });
 
+test('rejects explicitly non-array QUBO fields instead of silently dropping them', () => {
+  for (const field of ['linear', 'quadratic', 'variables']) {
+    for (const value of ['private-input-must-not-appear', '', {}, null, 123, false]) {
+      assert.throws(() => validateQubo({ num_bits: 2, [field]: value }), (error) => {
+        assert.match(error.message, new RegExp(`^${field} 必须是数组`));
+        assert.ok(error.message.includes(value === null ? 'null' : typeof value));
+        assert.doesNotMatch(error.message, /private-input-must-not-appear/);
+        return true;
+      }, `${field} must reject ${value === null ? 'null' : typeof value}`);
+    }
+    assert.throws(() => validateQubo({ num_bits: 2, [field]: [null] }),
+      new RegExp(`${field}\\[0\\] 必须是 object`));
+  }
+});
+
+test('preserves empty-array defaults for omitted and undefined QUBO fields', () => {
+  for (const input of [
+    { num_bits: 2 },
+    { num_bits: 2, linear: undefined, quadratic: undefined, variables: undefined },
+    { num_bits: 2, linear: [], quadratic: [], variables: [] },
+  ]) {
+    const document = matrixDocument(input);
+    assert.deepEqual(document.qubo, { num_bits: 2, linear: [], quadratic: [], offset: 0, variables: [] });
+    assert.equal(document.content.toString(), '0,0\n0,0\n');
+  }
+});
+
 test('decodes variables and evaluates objective including offset', () => {
   assert.deepEqual(decodeBits(QUBO, [1, 1]), [
     { index: 0, name: 'choose_a', meaning: '选择 A', value: 1 },
