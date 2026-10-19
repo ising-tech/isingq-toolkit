@@ -55,7 +55,7 @@ function apiKey(environment = process.env) {
     if (!value || /\s/.test(value)) throw new Error();
     return value;
   } catch (_) {
-    throw new Error('IsingQ API Key 未配置；请运行 isingq-mcp setup');
+    throw new Error('IsingQ API Key 未配置；请运行 isingq_api_key_setup 工具或 isingq-mcp setup');
   }
 }
 
@@ -93,13 +93,29 @@ class SolveStore {
     return readJson(this.path(id), '求解记录');
   }
 
-  findByIdempotency(digest) {
-    for (const name of fs.readdirSync(this.directory).slice(0, 10000)) {
-      if (!/^solve_[a-f0-9]{32}\.json$/.test(name)) continue;
-      const run = readJson(path.join(this.directory, name), '求解记录');
-      if (run.idempotency_digest === digest) return run;
+  archive(run) {
+    const archived = { ...run, archived_at: new Date().toISOString() };
+    try {
+      this.save(archived);
+    } catch (_) {
+      throw new Error(`归档失败，已停止重新提交；请检查求解记录目录权限和磁盘空间（solve_id=${run.solve_id}, path=${this.directory}）`);
     }
-    return null;
+    return archived;
+  }
+
+  findByIdempotency(digest, { includeArchived = false } = {}) {
+    let archived = null;
+    const names = fs.readdirSync(this.directory).filter((name) => /^solve_[a-f0-9]{32}\.json$/.test(name));
+    if (names.length > 10000) {
+      throw new Error(`求解记录超过安全扫描上限，已停止提交以避免重复任务；请先备份并整理记录（path=${this.directory}, count=${names.length}, limit=10000）`);
+    }
+    for (const name of names) {
+      const run = readJson(path.join(this.directory, name), '求解记录');
+      if (run.idempotency_digest !== digest) continue;
+      if (!run.archived_at) return run;
+      archived = run;
+    }
+    return includeArchived ? archived : null;
   }
 }
 

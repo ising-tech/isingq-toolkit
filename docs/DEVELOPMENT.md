@@ -87,6 +87,27 @@ MCP 生成 upper-triangular CSV。`offset` 不写入矩阵，但用于重新计�
 - OSS 上传只使用短期 `policy`、`signature` 和 `security_token`，不携带个人 API Key。
 - 创建任务出现不确定结果时标记为 `submission_unknown`，不得自动重复提交。
 
+### 幂等提交与恢复
+
+`isingq_solve_start` 先检查已有幂等记录；同 key 的模型和求解选项必须一致。新请求在创建本地记录前读取并校验凭据，同次提交复用凭据快照。缺少或无效 Key 不占用幂等 key；已有有效记录的读取不依赖当前是否配置 Key。
+
+是否允许再次创建远端任务，由 Transport 提供的明确提交结果决定，不能仅凭异常类名、`retryable` 或 `failed` 状态推断：
+
+| 失败位置或已有状态 | 同 key 再次提交 |
+| --- | --- |
+| 获取签名、上传矩阵等创建任务之前的失败 | 确认未创建任务后允许；归档原失败记录并创建新尝试 |
+| 创建任务请求后发生网络、响应读取或解析异常，无法确认 task ID | 保留 `submission_unknown`，阻止再次创建 |
+| 已有远端 task ID，后续求解或轮询失败 | 保留原任务，阻止再次创建 |
+| 正在提交、已提交、运行中或已成功 | 返回原记录，不重复创建 |
+
+Transport 的同步 `prepareSubmission()` 返回仅供本次 `submit(matrix, options, credentials)` 使用的凭据快照，不写入求解记录。`IsingQError.submissionOutcome` 区分 `not_created`、`unknown` 和明确拒绝的 `rejected`；本地记录用 `submission_outcome` 保存该结果，成功时为 `created`。自定义 Transport 可继续只实现原有 `submit` 接口，但未明确分类的异常按提交结果未知处理，不能自动重提。
+
+归档记录保留诊断信息；归档持久化失败时中止本次重试并报错。升级前的失败记录仅在已有阶段信息足以证明尚未创建任务时允许恢复；`phase: submit`、空 task ID 等信息本身不足以证明安全，需要人工核查云端任务。
+
+本地求解记录（含归档）超过 10000 条时停止提交，并提示目录、实际数量与备份整理建议；不会通过截断扫描来判断幂等 key 不存在。
+
+`solve_start` 遇到无法恢复的失败或 `submission_unknown` 时，core 抛出包含公开求解记录的错误，MCP 返回 `ok: false`、`isError: true`，DSH 原生入口同样得到失败。`solve_poll` 和 `solve_result_get` 保持“调用是否成功”与“任务是否成功”分离：成功读取 `failed` 记录仍表示读取操作成功。
+
 ## 本地验证
 
 ```bash

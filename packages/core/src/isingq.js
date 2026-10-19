@@ -5,12 +5,13 @@ const crypto = require('crypto');
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 
 class IsingQError extends Error {
-  constructor(message, { phase = 'unknown', status = null, retryable = false, submissionUnknown = false } = {}) {
+  constructor(message, { phase = 'unknown', status = null, retryable = false, submissionUnknown = false, submissionOutcome = null } = {}) {
     super(message);
     this.phase = phase;
     this.status = status;
     this.retryable = retryable;
     this.submissionUnknown = submissionUnknown;
+    this.submissionOutcome = submissionOutcome;
   }
 }
 
@@ -48,6 +49,7 @@ async function checkedFetch(url, options, phase, timeoutSeconds) {
         status: response.status,
         retryable,
         submissionUnknown: phase === 'create_task' && (retryable || response.status === 409),
+        submissionOutcome: phase !== 'create_task' ? 'not_created' : (retryable || response.status === 409 ? 'unknown' : 'rejected'),
       });
     }
     return response;
@@ -57,6 +59,7 @@ async function checkedFetch(url, options, phase, timeoutSeconds) {
       phase,
       retryable: phase !== 'create_task',
       submissionUnknown: phase === 'create_task',
+      submissionOutcome: phase === 'create_task' ? 'unknown' : 'not_created',
     });
   } finally {
     clearTimeout(timer);
@@ -128,54 +131,76 @@ class IsingQTransport {
     return { Authorization: key, channel: 'sdk' };
   }
 
-  async submit(matrix, solverOptions) {
-    const signatureResponse = await checkedFetch(
-      endpoint(this.baseUrl, '/files/getPostSignatureForOssUpload'),
-      { method: 'GET', headers: this.headers() },
-      'upload_signature',
-      this.timeoutSeconds,
-    );
-    const signature = uploadSignature(await boundedJson(signatureResponse, 'upload_signature'));
-    const objectKey = `${crypto.randomUUID().slice(0, 8)}/isingq-mcp-qubo.csv`;
-    const form = new FormData();
-    form.append('success_action_status', '200');
-    form.append('policy', signature.policy);
-    form.append('x-oss-signature', signature.signature);
-    form.append('x-oss-signature-version', 'OSS4-HMAC-SHA256');
-    form.append('x-oss-credential', signature.x_oss_credential);
-    form.append('x-oss-date', signature.x_oss_date);
-    form.append('key', objectKey);
-    form.append('x-oss-security-token', signature.security_token);
-    form.append('file', new Blob([matrix.content], { type: 'text/csv' }), 'isingq-mcp-qubo.csv');
-    await checkedFetch(
-      signature.host,
-      { method: 'POST', body: form },
-      'upload',
-      this.timeoutSeconds,
-    );
-    const normalized = options(solverOptions);
-    const created = await checkedFetch(
-      endpoint(this.baseUrl, '/tasks/create-general'),
-      {
-        method: 'POST',
-        headers: { ...this.headers(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `isingq-mcp-${matrix.sha256.slice(0, 12)}`,
-          computerTypeId: normalized.computer_type_id,
-          inputJFile: `${signature.host.replace(/\/$/, '')}/${objectKey}`,
-          inputHFile: null,
-          questionType: normalized.question_type,
-          caculateCount: normalized.calculate_count,
-          postProcess: Number(normalized.post_process),
-          couponId: null,
-          useCoupon: false,
-          useCredit: normalized.use_credit,
-        }),
-      },
-      'create_task',
-      this.timeoutSeconds,
-    );
-    return { task_id: taskId(await boundedJson(created, 'create_task')), options: normalized };
+  prepareSubmission() {
+    return this.headers();
+  }
+
+  async submit(matrix, solverOptions, credentials = this.prepareSubmission()) {
+    let phase = 'upload_signature';
+    try {
+      const signatureResponse = await checkedFetch(
+        endpoint(this.baseUrl, '/files/getPostSignatureForOssUpload'),
+        { method: 'GET', headers: credentials },
+        'upload_signature',
+        this.timeoutSeconds,
+      );
+      const signature = uploadSignature(await boundedJson(signatureResponse, 'upload_signature'));
+      phase = 'upload';
+      const objectKey = `${crypto.randomUUID().slice(0, 8)}/isingq-mcp-qubo.csv`;
+      const form = new FormData();
+      form.append('success_action_status', '200');
+      form.append('policy', signature.policy);
+      form.append('x-oss-signature', signature.signature);
+      form.append('x-oss-signature-version', 'OSS4-HMAC-SHA256');
+      form.append('x-oss-credential', signature.x_oss_credential);
+      form.append('x-oss-date', signature.x_oss_date);
+      form.append('key', objectKey);
+      form.append('x-oss-security-token', signature.security_token);
+      form.append('file', new Blob([matrix.content], { type: 'text/csv' }), 'isingq-mcp-qubo.csv');
+      await checkedFetch(
+        signature.host,
+        { method: 'POST', body: form },
+        'upload',
+        this.timeoutSeconds,
+      );
+      const normalized = options(solverOptions);
+      phase = 'create_task';
+      const created = await checkedFetch(
+        endpoint(this.baseUrl, '/tasks/create-general'),
+        {
+          method: 'POST',
+          headers: { ...credentials, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: `isingq-mcp-${matrix.sha256.slice(0, 12)}`,
+            computerTypeId: normalized.computer_type_id,
+            inputJFile: `${signature.host.replace(/\/$/, '')}/${objectKey}`,
+            inputHFile: null,
+            questionType: normalized.question_type,
+            caculateCount: normalized.calculate_count,
+            postProcess: Number(normalized.post_process),
+            couponId: null,
+            useCoupon: false,
+            useCredit: normalized.use_credit,
+          }),
+        },
+        'create_task',
+        this.timeoutSeconds,
+      );
+      return { task_id: taskId(await boundedJson(created, 'create_task')), options: normalized };
+    } catch (error) {
+      // Only the transport knows whether task creation may have started. This
+      // boundary includes response-body reads and local parsing, not just fetch.
+      const outcome = error instanceof IsingQError && error.submissionOutcome
+        ? error.submissionOutcome : (phase === 'create_task' ? 'unknown' : 'not_created');
+      if (error instanceof IsingQError) {
+        error.submissionOutcome = outcome;
+        error.submissionUnknown = outcome === 'unknown';
+        throw error;
+      }
+      throw new IsingQError(`IsingQ 提交失败（phase=${phase}）`, {
+        phase, submissionOutcome: outcome, submissionUnknown: outcome === 'unknown', retryable: outcome === 'not_created',
+      });
+    }
   }
 
   async poll(providerTaskId, numBits) {
