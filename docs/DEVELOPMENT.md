@@ -31,7 +31,7 @@ npm workspaces 包含三个发布单元：
 
 ## MCP 与 Resources
 
-标准 MCP 暴露 7 个工具；DSH 原生 Plugin 额外提供 `isingq_resource_list` 和 `isingq_resource_read`。13 个本地 Resources 覆盖公司、产品、技术、云平台、方案、案例、FAQ、术语、来源、QUBO 建模与数据流。
+标准 MCP 暴露 9 个工具；DSH 原生 Plugin 额外提供 `isingq_resource_list` 和 `isingq_resource_read`。13 个本地 Resources 覆盖公司、产品、技术、云平台、方案、案例、FAQ、术语、来源、QUBO 建模与数据流。
 
 Resources 是版本化的本地公开知识，不在读取时访问远程网站。是否自动加入上下文由 Host 决定，关键行为必须由工具 schema 和运行时门禁保证。
 
@@ -68,6 +68,10 @@ x_i ∈ {0,1}
 
 MCP 生成 upper-triangular CSV。`offset` 不写入矩阵，但用于重新计算 `objective_value`。结果同时保留 IsingQ 返回的 `provider_energy`。
 
+共享 core 根入口和 `/qubo` 子路径公开 `validateQubo`、`matrixDocument`、`modelDigest`、`objectiveEnergy`、`decodeBits`；专家 CLI 应复用这些函数，并检测 `QUBO_CONTRACT_VERSION === '1'` 和 `MODEL_DIGEST_VERSION === 'isingq-model-v1'`。`offset: null` 继续按 0 处理。
+
+`isingq_qubo_validate` 直接调用 `SolverService.validate`，在原有矩阵信息之外返回 `model_sha256` 与 `model_digest_version`。完整模型摘要覆盖规范化系数、num_bits、offset 和变量映射，矩阵摘要继续只覆盖上传 CSV；既有 `request_digest` 和云端请求保持原定义。精确排序、显式零项、负零、字符串和黄金样例见 [QUBO 契约与摘要规范](../packages/core/MODEL-DIGEST.md)。
+
 ## 结果来源
 
 每条本地求解记录包含：
@@ -91,7 +95,9 @@ MCP 生成 upper-triangular CSV。`offset` 不写入矩阵，但用于重新计�
 
 ### 幂等提交与恢复
 
-`isingq_solve_start` 先检查已有幂等记录；同 key 的模型和求解选项必须一致。新请求在创建本地记录前读取并校验凭据，同次提交复用凭据快照。缺少或无效 Key 不占用幂等 key；已有有效记录的读取不依赖当前是否配置 Key。
+`isingq_solve_start` 先校验原始 `solver_options` 中显式的 `use_credit:boolean`（true=算力券，false=账户余额），再检查已有幂等记录；同 key 的模型和求解选项（含付款选择）必须一致。缺选择先询问，不得自动补 false 或切换付款。新请求在创建本地记录前读取并校验凭据，同次提交复用凭据快照。缺少或无效 Key 不占用幂等 key；旧 start 缺付款也拒绝，历史记录使用 poll/get 读取且不依赖 Key。直接 Transport.submit 同样在凭据与上传前拒绝缺付款。纯 validateSolverOptions 的默认兼容保持，不能作为付款授权。
+
+公开 `CLOUD_SUBMISSION_CONTRACT_VERSION='isingq-cloud-submission-v1'` 与 `validateCloudSubmissionOptions(input)` 供其他入口复用；应传入未补默认付款的原始对象。HTTP 错误只按平台顶层 JSON message 解析，在实际 16 KiB 流式读取上限与 512 字符脱敏公开上限内保留诊断；不公开 HTML、堆栈或其他原始响应字段。诊断读取失败不改 HTTP 受理分类；安全 provider_message 随错误持久化，MCP/DSH 一致使用。公开记录包含 submission_outcome；旧记录无此信息时为 null。
 
 是否允许再次创建远端任务，由 Transport 提供的明确提交结果决定，不能仅凭异常类名、`retryable` 或 `failed` 状态推断：
 
@@ -142,7 +148,7 @@ npm run build:binaries -- --target node22-win-x64
 
 ## GitHub Actions 与 Release
 
-`.github/workflows/release.yml` 在 GitHub 官方原生 Runner 上分别构建五个平台，并使用打包后的程序验证 MCP `initialize`、7 个工具和 13 个 Resources。
+`.github/workflows/release.yml` 在 GitHub 官方原生 Runner 上分别构建五个平台，并使用打包后的程序验证 MCP `initialize`、9 个工具和 13 个 Resources。
 
 - `main` 和 Pull Request：运行测试、构建和 smoke test，只生成 Workflow Artifacts。
 - `v*` tag：要求 tag 版本与 `package.json` 一致，汇总产物后创建 GitHub Release。

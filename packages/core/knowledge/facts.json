@@ -1,5 +1,5 @@
 {
-  "knowledge_version": "2026-08-18",
+  "knowledge_version": "2026-11-03",
   "last_verified": "2026-08-18",
   "facts": [
     {
@@ -294,13 +294,13 @@
       "topic": "faq",
       "subject": "isingq-mcp",
       "predicate": "求解数据流",
-      "value": "建模引导与 QUBO 校验在本机完成；只有用户明确确认后的求解矩阵会发送至 IsingQ",
+      "value": "建模引导与 QUBO 校验工具在本机执行；调用求解提交工具会将矩阵发送至 IsingQ。确认当前任务是 Agent/Host 的流程义务",
       "scope": "local-mcp",
       "status": "verified",
       "audience": "public",
       "source_ids": ["local.mcp_contract"],
-      "last_verified": "2026-08-17",
-      "caveat": "知识查询完全本地，不会上传问题、矩阵或求解结果。"
+      "last_verified": "2026-11-03",
+      "caveat": "知识查询工具完全本地，不上传问题、矩阵或求解结果；LLM 宿主的数据处理另计。Host 放行后工具执行提交，MCP 不验证不可伪造的人工授权记录或其与模型、参数的强绑定。"
     },
     {
       "id": "faq.api_key",

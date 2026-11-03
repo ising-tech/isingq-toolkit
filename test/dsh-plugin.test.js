@@ -31,12 +31,12 @@ test('keeps MCP, shared core and native DSH adapter as separate packages', () =>
   assert.equal(corePackage.version, dshPackage.version);
 });
 
-test('loads nine native DSH tools from the shared seven-tool catalog', async () => {
+test('loads the shared native DSH catalog plus resource tools', async () => {
   const { plugin, tools } = await loadTools();
   assert.equal(plugin.name, 'isingq-dsh-plugin');
-  assert.deepEqual(tools.slice(0, 7).map((tool) => tool.name), TOOL_DEFINITIONS.map((tool) => tool.name));
-  assert.deepEqual(tools.slice(7).map((tool) => tool.name), ['isingq_resource_list', 'isingq_resource_read']);
-  assert.equal(tools.length, 9);
+  assert.deepEqual(tools.slice(0, TOOL_DEFINITIONS.length).map((tool) => tool.name), TOOL_DEFINITIONS.map((tool) => tool.name));
+  assert.deepEqual(tools.slice(TOOL_DEFINITIONS.length).map((tool) => tool.name), ['isingq_resource_list', 'isingq_resource_read']);
+  assert.equal(tools.length, TOOL_DEFINITIONS.length + 2);
   for (const [index, definition] of TOOL_DEFINITIONS.entries()) {
     assert.equal(tools[index].description, definition.description);
   }
@@ -59,4 +59,16 @@ test('executes local knowledge and resource tools through the native adapter', a
   assert.equal(result.topic, 'company');
   assert.match(result.answer, /北京伊辛智能科技有限公司/);
   assert.equal((await resourceList.execute({})).length, 13);
+});
+
+
+test('native QUBO input preserves required fields, omitted defaults and nullable offset', async () => {
+  const { tools } = await loadTools();
+  const tool = tools.find(tool => tool.name === 'isingq_qubo_validate');
+  assert.deepEqual(tool.parameters.properties.qubo.required, ['num_bits']);
+  assert.deepEqual(tool.parameters.properties.qubo.properties.offset.oneOf, [{ type: 'number' }, { type: 'null' }]);
+  const omitted = await tool.execute({ qubo: { num_bits: 1 } });
+  const explicit = await tool.execute({ qubo: { num_bits: 1, linear: [], quadratic: [], variables: [], offset: 0 } });
+  const nullable = await tool.execute({ qubo: { num_bits: 1, offset: null } });
+  assert.deepEqual(omitted, explicit); assert.deepEqual(omitted, nullable);
 });

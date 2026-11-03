@@ -1,0 +1,203 @@
+{
+  "schema_version": "math-model-v1",
+  "id": "inventory",
+  "variables": [
+    {
+      "id": "p1",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity"
+      }
+    },
+    {
+      "id": "p2",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity"
+      }
+    },
+    {
+      "id": "p3",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity"
+      }
+    },
+    {
+      "id": "i1",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity"
+      }
+    },
+    {
+      "id": "i2",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity"
+      }
+    },
+    {
+      "id": "i3",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity"
+      }
+    }
+  ],
+  "objective": {
+    "sense": "min",
+    "expression": {
+      "terms": [
+        {
+          "coefficient": {
+            "param": "unit_cost_1"
+          },
+          "variables": [
+            "p1"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "unit_cost_2"
+          },
+          "variables": [
+            "p2"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "unit_cost_3"
+          },
+          "variables": [
+            "p3"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "holding_1"
+          },
+          "variables": [
+            "i1",
+            "i1"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "holding_2"
+          },
+          "variables": [
+            "i2",
+            "i2"
+          ]
+        }
+      ]
+    }
+  },
+  "constraints": [
+    {
+      "id": "balance_1",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "p1"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "i1"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "demand_1"
+      }
+    },
+    {
+      "id": "balance_2",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "p2"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "i1"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "i2"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "demand_2"
+      }
+    },
+    {
+      "id": "balance_3",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "p3"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "i2"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "i3"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "demand_3"
+      }
+    },
+    {
+      "id": "terminal_stock",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "i3"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "terminal_stock"
+      }
+    }
+  ]
+}

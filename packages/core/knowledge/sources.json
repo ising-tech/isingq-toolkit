@@ -1,5 +1,5 @@
 {
-  "knowledge_version": "2026-08-18",
+  "knowledge_version": "2026-11-03",
   "sources": [
     {
       "id": "official.home",
@@ -83,7 +83,7 @@
       "title": "isingq-mcp 本地数据流与求解契约",
       "type": "local-contract",
       "uri": "isingq://security/data-flow",
-      "last_verified": "2026-08-17"
+      "last_verified": "2026-11-03"
     }
   ]
 }

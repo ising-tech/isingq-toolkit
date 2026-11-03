@@ -1,6 +1,6 @@
 {
   "name": "isingq-mcp",
-  "version": "0.5.0+codex.20260826021025",
+  "version": "0.8.0+codex.20261030",
   "description": "Use IsingQ from Codex for public product knowledge, guided QUBO modeling, validation, and user-confirmed solving.",
   "author": {
     "name": "北京伊辛智能科技有限公司",

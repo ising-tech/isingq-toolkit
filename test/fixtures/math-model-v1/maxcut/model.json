@@ -1,0 +1,155 @@
+{
+  "schema_version": "math-model-v1",
+  "id": "maxcut",
+  "variables": [
+    {
+      "id": "x1",
+      "domain": "binary"
+    },
+    {
+      "id": "x2",
+      "domain": "binary"
+    },
+    {
+      "id": "x3",
+      "domain": "binary"
+    },
+    {
+      "id": "x4",
+      "domain": "binary"
+    }
+  ],
+  "objective": {
+    "sense": "max",
+    "expression": {
+      "terms": [
+        {
+          "coefficient": {
+            "param": "weight_12"
+          },
+          "variables": [
+            "x1"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "weight_12"
+          },
+          "variables": [
+            "x2"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "negative_twice_weight_12"
+          },
+          "variables": [
+            "x1",
+            "x2"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "weight_13"
+          },
+          "variables": [
+            "x1"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "weight_13"
+          },
+          "variables": [
+            "x3"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "negative_twice_weight_13"
+          },
+          "variables": [
+            "x1",
+            "x3"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "weight_23"
+          },
+          "variables": [
+            "x2"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "weight_23"
+          },
+          "variables": [
+            "x3"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "negative_twice_weight_23"
+          },
+          "variables": [
+            "x2",
+            "x3"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "weight_24"
+          },
+          "variables": [
+            "x2"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "weight_24"
+          },
+          "variables": [
+            "x4"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "negative_twice_weight_24"
+          },
+          "variables": [
+            "x2",
+            "x4"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "weight_34"
+          },
+          "variables": [
+            "x3"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "weight_34"
+          },
+          "variables": [
+            "x4"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "negative_twice_weight_34"
+          },
+          "variables": [
+            "x3",
+            "x4"
+          ]
+        }
+      ]
+    }
+  },
+  "constraints": []
+}

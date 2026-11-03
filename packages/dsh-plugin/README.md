@@ -1,6 +1,6 @@
 # @ising-tech/isingq-dsh-plugin
 
-Native IsingQ integration for DeepSeek Harness. The Plugin registers nine typed tools in the DSH process and reuses `@ising-tech/isingq-core` for QUBO guidance, validation, public knowledge, HTTPS solving, and local result records.
+Native IsingQ integration for DeepSeek Harness. The Plugin registers eleven typed tools in the DSH process and reuses `@ising-tech/isingq-core` for QUBO guidance, validation, public knowledge, HTTPS solving, and local result records.
 
 [中文说明](#中文说明)
 
@@ -12,7 +12,7 @@ Install the Plugin into the DSH Profile you actually use:
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-Replace `<profile>` with the real Profile name and confirm that nine `isingq_*` tools are available. Restart the running Profile only if it did not reload the new bundle. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
+Replace `<profile>` with the real Profile name and confirm that eleven `isingq_*` tools are available. Restart the running Profile only if it did not reload the new bundle. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
 
 Uninstall from the same Profile:
 
@@ -46,6 +46,8 @@ Once the DSH Host permits `isingq_solve_start`, the Plugin creates the remote ta
 | `isingq_knowledge_get` | Read versioned public IsingQ knowledge | No |
 | `isingq_modeling_guide_get` | Get QUBO modeling and constraint guidance | No |
 | `isingq_qubo_validate` | Validate a QUBO and produce a matrix summary | No |
+| `isingq_delivery_validate` | Validate supplied delivery artifacts and derive objective report facts; business correctness remains unverified | No |
+| `isingq_report_verify` | Verify declared finite integer models locally; consume computed reports and rank only provided feasible candidates | No |
 | `isingq_solve_start` | Submit a confirmed QUBO solve task | Yes |
 | `isingq_solve_poll` | Query task status once and save the result | Yes |
 | `isingq_solve_result_get` | Read a locally stored solve result | No |
@@ -77,7 +79,7 @@ The peer range permits later compatible `0.1` releases, but versions newer than 
 
 ## 中文说明
 
-这是面向 DeepSeek Harness 的 IsingQ 原生 Plugin。它在 DSH 进程内注册 9 个 typed tools，并复用 `@ising-tech/isingq-core` 提供 QUBO 建模引导、校验、公开知识、HTTPS 求解和本地结果记录。
+这是面向 DeepSeek Harness 的 IsingQ 原生 Plugin。它在 DSH 进程内注册 11 个 typed tools，并复用 `@ising-tech/isingq-core` 提供 QUBO 建模引导、校验、公开知识、HTTPS 求解和本地结果记录。
 
 ## 安装
 
@@ -87,7 +89,7 @@ The peer range permits later compatible `0.1` releases, but versions newer than 
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-将 `<profile>` 替换为真实 Profile 名，并确认出现 9 个 `isingq_*` 工具。只有正在运行的 Profile 没有重新加载新 Bundle 时才重启。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
+将 `<profile>` 替换为真实 Profile 名，并确认出现 11 个 `isingq_*` 工具。只有正在运行的 Profile 没有重新加载新 Bundle 时才重启。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
 
 从同一 Profile 卸载：
 
@@ -121,6 +123,8 @@ DSH Host 放行 `isingq_solve_start` 后，Plugin 会立即创建远端任务，
 | `isingq_knowledge_get` | 查询版本化的 IsingQ 公开知识 | 否 |
 | `isingq_modeling_guide_get` | 获取 QUBO 建模与约束引导 | 否 |
 | `isingq_qubo_validate` | 校验 QUBO 并生成矩阵摘要 | 否 |
+| `isingq_delivery_validate` | 本地校验交付契约并生成客观摘要；不证明业务正确性或测试真实性 | 否 |
+| `isingq_report_verify` | 本地复算数学规格、候选与基线，消费核验报告；仅排名供应可行候选 | 否 |
 | `isingq_solve_start` | 提交已经确认的 QUBO 求解任务 | 是 |
 | `isingq_solve_poll` | 查询一次任务状态并保存结果 | 是 |
 | `isingq_solve_result_get` | 读取本机保存的求解结果 | 否 |

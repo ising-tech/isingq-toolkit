@@ -1,0 +1,13 @@
+{
+  "supply": 3,
+  "capacity_sa": 2,
+  "capacity_sb": 2,
+  "capacity_at": 2,
+  "capacity_bt": 2,
+  "capacity_ab": 1,
+  "cost_sa": 1,
+  "cost_sb": 3,
+  "cost_at": 4,
+  "cost_bt": 1,
+  "cost_ab": 1
+}

@@ -4,6 +4,8 @@
 
 <h1 align="center">IsingQ Toolkit</h1>
 
+> Source version 0.8.0 adds local delivery validation and round artifact helpers. It is not published yet; release installation commands below do not imply this version is available. Use a tested, pinned source/local artifact for these capabilities. Existing global installations are not upgraded automatically.
+
 <p align="center">
   QUBO modeling, validation, and IsingQ solving for AI Agents
 </p>
@@ -19,8 +21,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/isingq-toolkit-capabilities-demo.gif" width="800" alt="An Agent modeling and solving a QUBO with IsingQ Toolkit">
+  <img src="docs/assets/isingq-toolkit-capabilities-demo.gif" width="800" alt="Historical modeling and solving illustration, not current acceptance evidence">
 </p>
+
+> **Historical workflow illustration, not evidence of this release's execution or results.** Confirmation in the animation is an Agent/Host workflow obligation, not an unforgeable human-authorization binding enforced by MCP. Natural language may be processed by a networked LLM Host. The API Key is stored locally in a private file by default, but is used over HTTPS to authenticate to IsingQ. Example percentages such as “78.25%” lack original inputs and verification records; they remain unverified and are not measured improvements or general benefits.
 
 IsingQ Toolkit is a local Agent toolkit maintained publicly by Beijing Ising Intelligent Technology Co., Ltd.
 
@@ -30,6 +34,8 @@ Describe a scheduling, routing, portfolio, or graph optimization problem in natu
 - A matrix is sent to IsingQ over HTTPS only when the solve tool is called.
 - The API Key is stored in a private local file by default. A Headless administrator may instead inject it before the Agent process starts; the Agent must never request, set, or display it.
 - Standard MCP, Codex Plugin, and native DeepSeek Harness Plugin integrations are supported.
+
+The Toolkit assists with modeling and deterministic checks within their declared scope; it does not automatically prove natural-language business completeness or QUBO equivalence. Cloud solver algorithms, solution quality, runtime, and returned plans depend on the external service. This project maintains integration, faithful result presentation, and existing recomputation; it does not guarantee global optimality or general performance advantages. Additional Host explanations require separate verification.
 
 ## Quick start
 
@@ -42,18 +48,20 @@ Install IsingQ MCP and connect only the current Agent.
 Never ask for or display my API Key in chat; use the operating system's secure input prompt.
 After installation, reconnect the isingq MCP first.
 If the current Agent cannot reload MCP dynamically, wait for me to restart it,
-then verify that seven MCP tools are loaded.
+then verify that nine MCP tools are loaded.
 ```
 
 The installation Skill selects one integration for the current Agent and operating system. It does not modify every Agent installed on the computer. If a Host cannot register automatically, the Skill outputs stdio JSON for manual import.
 
-A standard MCP Host should expose seven `isingq_*` tools after setup. The native DSH Plugin exposes nine tools.
+A standard MCP Host should expose nine `isingq_*` tools after setup. The native DSH Plugin exposes eleven tools.
 
 ### Installation demo
 
 <p align="center">
-  <img src="docs/assets/isingq-toolkit-install-demo.gif" width="800" alt="An Agent installing IsingQ Toolkit from the installation Skill">
+  <img src="docs/assets/isingq-toolkit-install-demo.gif" width="800" alt="Historical installation illustration; 7/7 is not the current tool count">
 </p>
+
+> **Historical installation illustration, not acceptance evidence for the current version.** The animation's “7/7” refers to an older version. The current standard MCP should enumerate nine tools; actual loading must be checked against the final pinned candidate and cannot be inferred from this animation.
 
 ## First solve
 
@@ -78,7 +86,9 @@ Exactly one of tasks A and B may be selected. A has value 8 and B has value 5.
 
 The Agent should show the variable mapping, objective, constraints, penalties, matrix summary, and SHA-256 first. It should call `isingq_solve_start` only after you confirm.
 
-Once the Host permits that tool call, it creates the remote task immediately. The MCP does not open an additional operating-system solve prompt; another confirmation appears only if the Host's tool-permission policy requires it.
+Cloud submission requires an explicit payment choice: `solver_options.use_credit=true` uses compute credits (算力券), and `false` uses the account balance. Ask when missing; never supply a default payment choice or switch payment automatically. Read historical tasks with poll/get, and check the original task before confirming changed payment or other parameters. Never change the idempotency key to bypass a failed or unknown submission.
+
+Once the Host permits that tool call, it creates the remote task immediately. The MCP does not open an additional operating-system solve prompt; another confirmation appears only if the Host's tool-permission policy requires it. The MCP does not verify an unforgeable human authorization record or bind one to the model and parameters. The confirmation described above is an Agent/Host workflow obligation.
 
 ## More capabilities
 
@@ -164,11 +174,15 @@ Source execution, architecture, package boundaries, and the Release process are 
 | `isingq_knowledge_get` | Query public company, product, technology, case, FAQ, and source knowledge | No |
 | `isingq_modeling_guide_get` | Return QUBO modeling steps and constraint guidance | No |
 | `isingq_qubo_validate` | Validate a QUBO and produce a matrix summary | No |
+| `isingq_delivery_validate` | Validate supplied delivery artifacts and derive objective report facts; business correctness remains unverified | No |
+| `isingq_report_verify` | Recompute supplied mathematical candidates and rankings; additional prose is not verified | No |
 | `isingq_solve_start` | Submit to IsingQ immediately after the Host permits the call | Yes |
 | `isingq_solve_poll` | Query task status once and save the result | Yes |
 | `isingq_solve_result_get` | Read a locally stored solve result | No |
 
 The native DSH Plugin also provides `isingq_resource_list` and `isingq_resource_read` to list and read local, versioned public knowledge resources.
+
+`isingq_qubo_validate` returns both `matrix_sha256` and the versioned full-model digest, `model_sha256` with `model_digest_version`. The full-model digest covers the number of bits, coefficients, offset and variable mapping, so changing an offset or variable meaning changes it even when the uploaded matrix stays the same. Validation runs locally. See the [core API](packages/core/README.md) and [digest specification](packages/core/MODEL-DIGEST.md) for integration details.
 
 ## Data and result conventions
 
@@ -207,7 +221,7 @@ See the [Security Policy](SECURITY.md) for additional boundaries.
 - **Tools are missing**: reconnect `isingq` and approve the Host's trust prompt; fully restart the Agent only if tools still do not load.
 - **The Host cannot register automatically**: run `isingq-mcp config --json` and import the result through the Host's MCP settings.
 - **Sandbox blocks writes**: approve only the exact installation and user configuration directories; never move the API Key into the project.
-- **Only an NDJSON response was tested**: that proves process reachability only. Standard MCP integration is complete when the Agent exposes seven native tools.
+- **Only an NDJSON response was tested**: that proves process reachability only. Standard MCP integration is complete when the Agent exposes nine native tools.
 
 ## Project and development
 

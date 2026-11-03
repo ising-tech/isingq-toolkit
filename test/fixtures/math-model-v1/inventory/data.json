@@ -1,0 +1,12 @@
+{
+  "capacity": 3,
+  "demand_1": 1,
+  "demand_2": 2,
+  "demand_3": 1,
+  "unit_cost_1": 3,
+  "unit_cost_2": 1,
+  "unit_cost_3": 4,
+  "holding_1": 2,
+  "holding_2": 1,
+  "terminal_stock": 0
+}

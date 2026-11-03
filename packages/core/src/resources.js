@@ -1,6 +1,9 @@
 'use strict';
 
 const { TOPICS, getKnowledge } = require('./knowledge');
+const { modelingGuide } = require('./modeling');
+
+const MODELING_GUIDE = modelingGuide();
 
 const LAST_MODIFIED = '2026-08-17T00:00:00Z';
 const SECURITY_LAST_MODIFIED = '2026-08-25T00:00:00Z';
@@ -10,9 +13,23 @@ const LOCAL_RESOURCE_CONTENT = {
 
 目标函数：offset + Σ linear[i]·x_i + Σ quadratic[i,j]·x_i·x_j，其中 x_i ∈ {0,1}；当前支持 1 至 2048 个二进制变量。
 
-Agent 必须先确认业务目标、变量、硬约束、软约束和输入数据；每个变量应包含稳定 index、name 和 meaning。硬约束通常通过平方惩罚加入 QUBO，Penalty 必须说明选择依据。
+输入必填项：${MODELING_GUIDE.qubo_contract.input_schema.required.join(", ")}。linear/quadratic/variables省略为[]，offset省略或null为0；完整规范化输出不是必填清单。
 
-调用顺序：获取建模引导 → 生成 QUBO → 确定性校验 → 向用户展示模型摘要 → 用户明确确认 → 提交求解 → 轮询结果 → 按变量映射解释结果。
+${MODELING_GUIDE.qubo_contract.transport_boundary.description}
+
+意图入口：${Object.keys(MODELING_GUIDE.intent_routes).join(' / ')}。数据阶段：symbolic_model / numeric_matrix / cloud_submission。概念解释不安装，仅建模不要求云权限；缺实例值可先做符号模型，只阻断依赖步骤，不重复追问已知信息。
+
+按当前入口选用步骤：
+${MODELING_GUIDE.required_sequence.map((step) => '- ' + step).join('\n')}
+
+用户确认业务范围、目标约束、数据外发、付款选择与任务执行摘要；后台关联 model_sha256、求解参数和稳定幂等键。矩阵/hash/日志按需提供，无需用户读懂矩阵；专业技术交付要求完整满足。
+
+结果证据状态：
+${Object.entries(MODELING_GUIDE.result_evidence.states).map(([state, evidence]) => '- ' + state + '：' + evidence).join('\n')}
+
+${Object.values(MODELING_GUIDE.explanation_contract).join('\n')}
+
+${MODELING_GUIDE.agent_rules.join('\n')}
 
 isingq_solve_start 被 Host 放行后会立即创建远端任务。MCP 不弹出额外的操作系统求解确认框；Host 可以根据自身工具权限策略再次要求确认。
 

@@ -140,3 +140,17 @@ test('publishes focused discovery keywords for each package boundary', () => {
   assert.ok(dsh.keywords.includes('deepseek-harness'));
   assert.ok(dsh.keywords.includes('dsh-plugin'));
 });
+
+test('release versions and lockfile identify the new shared-contract build', () => {
+  const pkg = JSON.parse(read('package.json'));
+  assert.equal(pkg.version, '0.8.0');
+  const lock = JSON.parse(read('package-lock.json'));
+  assert.equal(lock.version, pkg.version);
+  for (const name of ['', 'packages/core', 'packages/dsh-plugin']) {
+    assert.equal(lock.packages[name].version, pkg.version);
+    const file = name ? `${name}/package.json` : 'package.json';
+    assert.equal(JSON.parse(read(file)).version, pkg.version);
+  }
+  assert.equal(lock.packages['packages/dsh-plugin'].dependencies['@ising-tech/isingq-core'], pkg.version);
+  assert.equal(JSON.parse(read('packages/dsh-plugin/package.json')).dependencies['@ising-tech/isingq-core'], pkg.version);
+});

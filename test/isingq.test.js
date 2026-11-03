@@ -50,7 +50,7 @@ test('uses SDK HTTPS contract for signature, OSS upload, task creation and poll'
     const submitted = await transport.submit({
       content: Buffer.from('1,0\n0,1\n'),
       sha256: 'a'.repeat(64),
-    }, {});
+    }, { use_credit: false });
     const result = await transport.poll(submitted.task_id, 2);
 
     assert.equal(calls[0].url, 'https://api.isingq.example/files/getPostSignatureForOssUpload');

@@ -2,6 +2,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { TOOL_DEFINITIONS } = require('../packages/core');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
@@ -30,7 +31,7 @@ const initialize = responses.find((response) => response.id === 1);
 const tools = responses.find((response) => response.id === 2);
 const resources = responses.find((response) => response.id === 3);
 assert.equal(initialize?.result?.serverInfo?.name, 'isingq-mcp');
-assert.equal(tools?.result?.tools?.length, 7);
+assert.equal(tools?.result?.tools?.length, TOOL_DEFINITIONS.length);
 assert.equal(resources?.result?.resources?.length, 13);
 for (const tool of tools.result.tools) assert.equal(tool.outputSchema?.type, 'object', `invalid outputSchema for ${tool.name}`);
-process.stdout.write(`Release smoke passed（binary=${binary}, tools=7, resources=13）\n`);
+process.stdout.write(`Release smoke passed（binary=${binary}, tools=${TOOL_DEFINITIONS.length}, resources=13）\n`);

@@ -35,14 +35,14 @@
 
 - 优先使用 `@ising-tech/isingq-dsh-plugin` 原生包，不通过 `dsh-mcp-client` 启动 stdio 子进程。
 - 安装必须指定用户实际使用的 Profile，例如 `dsh plugin --profile web add @ising-tech/isingq-dsh-plugin`。
-- 重启后应看到 9 个 `isingq_*` 工具；工具名不带 `mcp__isingq__` 前缀。
+- 重启后应看到 11 个 `isingq_*` 工具；工具名不带 `mcp__isingq__` 前缀。
 - 不得在同一 Profile 同时加载原生 Plugin 和旧 MCP Bridge，移除旧配置前需要用户同意。
 
 ## Codex MCP、Claude Code、Cursor、VS Code
 
 - 使用 `configure-host --name <host>` 只写入用户指定的目标 Host；不得使用“检测到就全部配置”的策略。
 - Codex 只有在未选择 Plugin 路径时才进入本节；不能让 Plugin 和独立 MCP 同时注册。
-- 配置写入成功不等于工具已加载；先重连 MCP，Host 不支持动态重载时再重启，并验证 7 个原生工具。
+- 配置写入成功不等于工具已加载；先重连 MCP，Host 不支持动态重载时再重启，并验证 9 个原生工具。
 
 ## 其他 Host
 

@@ -4,6 +4,8 @@
 
 <h1 align="center">IsingQ Toolkit</h1>
 
+> 源码版本 0.8.0：新增本地交付校验和轮次产物能力。当前尚未发布；下方发行版安装方式不代表已经能下载此版本。新能力请使用经测试的固定源码/本地制品，旧全局安装不会自动升级。
+
 <p align="center">
   让 Agent 帮助你完成 QUBO 建模、校验并调用 IsingQ 求解
 </p>
@@ -19,8 +21,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/isingq-toolkit-capabilities-demo.gif" width="800" alt="Agent 使用 IsingQ Toolkit 完成 QUBO 建模与求解">
+  <img src="docs/assets/isingq-toolkit-capabilities-demo.gif" width="800" alt="旧版建模与求解流程示意，非本次验收证据">
 </p>
+
+> **旧版流程示意，非本次实测或效果证据。** 图中确认是 Agent/Host 的流程义务，不是 MCP 对人工授权的不可伪造强绑定。自然语言可能由联网 LLM 宿主处理；API Key 默认保存在本机私有文件中，但会经 HTTPS 用于 IsingQ 平台鉴权。“78.25%”等示例比例缺少原始输入与复核记录，尚未核验，不作为实测改善或普遍收益。
 
 IsingQ Toolkit 是北京伊辛智能科技有限公司公开维护的本地 Agent 工具。
 
@@ -30,6 +34,8 @@ IsingQ Toolkit 是北京伊辛智能科技有限公司公开维护的本地 Agen
 - 只有调用求解工具时，矩阵才会通过 HTTPS 提交给 IsingQ。
 - API Key 默认保存在本机私有文件中；Headless 管理员也可在 Agent 进程启动前注入环境变量。Agent 不得索要、设置或显示 Key。
 - 支持标准 MCP、Codex Plugin 和 DeepSeek Harness 原生 Plugin。
+
+本项目提供辅助建模与声明范围内的确定性校验，不自动证明自然语言业务完整性或 QUBO 等价。云端求解器算法、解质量、耗时与返回方案属于外部服务；本项目维护工具接入、如实呈现返回与已有复算，不承诺全局最优或普遍性能优势。Host 后加的业务解释仍须单独核验。
 
 ## 快速开始
 
@@ -41,18 +47,20 @@ skills/install-isingq-mcp/SKILL.zh-CN.md，严格遵循该 Skill，
 帮我安装 IsingQ MCP，并且只接入当前 Agent。
 不要在对话中索要或显示我的 API Key；需要 Key 时使用系统安全输入框。
 安装完成后先重连 isingq MCP；如果当前 Agent 不支持动态重载，
-再等我重启 Agent，然后验证是否加载出 7 个 MCP 工具。
+再等我重启 Agent，然后验证是否加载出 9 个 MCP 工具。
 ```
 
 安装 Skill 会根据当前 Agent 和操作系统选择一种接入方式，不会自动修改电脑上的其他 Agent。Host 不支持自动注册时，Skill 会输出可手工导入的 stdio JSON。
 
-完成接入后应能在标准 MCP Host 中看到 7 个 `isingq_*` 工具。DSH 原生 Plugin 提供 9 个工具。
+完成接入后应能在标准 MCP Host 中看到 9 个 `isingq_*` 工具。DSH 原生 Plugin 提供 11 个工具。
 
 ### 安装演示
 
 <p align="center">
-  <img src="docs/assets/isingq-toolkit-install-demo.gif" width="800" alt="Agent 按照安装 Skill 接入 IsingQ Toolkit">
+  <img src="docs/assets/isingq-toolkit-install-demo.gif" width="800" alt="旧版安装流程示意，7/7不代表当前工具数">
 </p>
+
+> **旧版安装示意，非当前版本验收证据。** 图中的“7/7”属于旧版；当前标准 MCP 应枚举 9 个工具，是否实际加载需按最终固定候选核对，不能由此动画认定。
 
 ## 第一次求解
 
@@ -77,7 +85,9 @@ Headless 部署无法使用系统输入框时，部署管理员可以在 Agent �
 
 Agent 应先展示变量映射、目标函数、约束、Penalty、矩阵摘要和 SHA-256。你确认后，Agent 才应调用 `isingq_solve_start`。
 
-该工具被 Host 放行后会立即创建远端任务。MCP 不再弹出额外的操作系统求解确认框；Host 是否再次确认取决于它自身的工具权限设置。
+云提交前必须明确付款选择：`solver_options.use_credit=true` 使用算力券，`false` 使用账户余额；缺选择先询问，不得自动代选或切换。历史任务用 poll/get 读取；改变付款或其他参数前先核查原任务并重新确认，不能更换幂等键绕过失败或受理不明状态。
+
+该工具被 Host 放行后会立即创建远端任务。MCP 不再弹出额外的操作系统求解确认框；Host 是否再次确认取决于它自身的工具权限设置。当前 MCP 不验证不可伪造的人工授权记录，也未将此类记录与模型、参数强绑定；前述确认是 Agent/Host 的流程义务。
 
 ## 还能做什么
 
@@ -163,11 +173,15 @@ dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
 | `isingq_knowledge_get` | 查询公开的公司、产品、技术、案例、FAQ 和来源知识 | 否 |
 | `isingq_modeling_guide_get` | 获取 QUBO 建模步骤和约束说明 | 否 |
 | `isingq_qubo_validate` | 校验 QUBO 并生成矩阵摘要 | 否 |
+| `isingq_delivery_validate` | 本地校验交付契约并生成客观摘要；不证明业务正确性或测试真实性 | 否 |
+| `isingq_report_verify` | 本地复算声明模型的候选目标、可行性与排名；不核验额外自然语言解释 | 否 |
 | `isingq_solve_start` | 被 Host 放行后立即提交 IsingQ 求解 | 是 |
 | `isingq_solve_poll` | 查询一次任务状态并保存结果 | 是 |
 | `isingq_solve_result_get` | 读取本机保存的求解结果 | 否 |
 
 DSH 原生 Plugin 还提供 `isingq_resource_list` 和 `isingq_resource_read`，用于列出和读取本机版本化公开知识资源。
+
+`isingq_qubo_validate` 同时返回矩阵 `matrix_sha256` 和带版本的完整模型摘要 `model_sha256`、`model_digest_version`。完整模型摘要包含变量数量、系数、offset 和变量映射；修改 offset 或变量含义会改变完整模型摘要，即使上传矩阵没有变化。校验完全在本机执行。集成接口与精确规则见 [core 说明](packages/core/README.md)和[摘要规范](packages/core/MODEL-DIGEST.md)。
 
 ## 数据与结果口径
 
@@ -206,10 +220,16 @@ f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i \lt j} Q_{ij}x_i x_j
 - **工具未出现**：先在 Host 中重连 `isingq` 并批准信任提示；仍未加载时再完全重启 Agent。
 - **Host 无法自动接入**：运行 `isingq-mcp config --json`，通过 Host 的 MCP 设置页面导入。
 - **沙箱禁止写入**：只授权准确的安装目录和用户配置目录，不要把 API Key 放进项目目录。
-- **只得到 NDJSON 响应**：这只能证明进程可访问；在 Agent 中出现 7 个原生工具才表示标准 MCP 接入完成。
+- **只得到 NDJSON 响应**：这只能证明进程可访问；在 Agent 中出现 9 个原生工具才表示标准 MCP 接入完成。
 
 ## 项目与开发
 
 架构、包边界、QUBO 数据契约、构建与 Release 流程见[开发者文档](docs/DEVELOPMENT.md)。问题与建议可以通过 [GitHub Issues](https://github.com/ising-tech/isingq-toolkit/issues) 提交。
 
 本项目使用 [Apache License 2.0](LICENSE)。该许可证不授予 IsingQ 或伊辛智能相关商标权。
+
+## 本地业务核验与报告（0.8.0 源码）
+
+`validateMathModel`、`evaluateMathCandidate`、`compareMathCandidates` 复用有限数学模型契约；`buildVerifiedReport` 从同次核验生成目标分项、提供候选中的排名、基线改善与约束余量。CLI/MCP/DSH共享该核心，不按业务类型分支。不可行方案不入榜；取等不代表约束冗余；不推断全局最优、QUBO等价或实测收益。输入、错误与支持范围见 [核心报告契约](packages/core/VERIFIED-REPORT.md)。
+
+此为源码变更，不表示已发布或已升级全局安装。本地报告不调用云求解、安装程序或凭据。

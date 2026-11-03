@@ -45,7 +45,7 @@ for (const name of ['isingq_qubo_validate', 'isingq_solve_start']) {
           method: 'tools/call',
           params: {
             name,
-            arguments: { qubo: { ...QUBO, [field]: value }, model_summary: '非法字段测试', idempotency_key: 'invalid-array-field' },
+            arguments: { qubo: { ...QUBO, [field]: value }, model_summary: '非法字段测试', idempotency_key: 'invalid-array-field', solver_options: { use_credit: false } },
           },
         });
         assert.equal(response.isError, true, `${name}: ${field} must fail`);
@@ -78,6 +78,8 @@ test('exposes knowledge, guidance, validation and solving tools', async () => {
     'isingq_knowledge_get',
     'isingq_modeling_guide_get',
     'isingq_qubo_validate',
+    'isingq_delivery_validate',
+    'isingq_report_verify',
     'isingq_solve_start',
     'isingq_solve_poll',
     'isingq_solve_result_get',
@@ -146,7 +148,7 @@ test('answers GEO topics from local verified knowledge without an API key', asyn
   });
   assert.equal(response.structuredContent.ok, true);
   assert.equal(response.structuredContent.data.topic, 'ising_cloud');
-  assert.equal(response.structuredContent.data.knowledge_version, '2026-08-18');
+  assert.equal(response.structuredContent.data.knowledge_version, '2026-11-03');
   assert.match(response.structuredContent.data.answer, /当前自选规模[^\n]*2048/);
   assert.equal(response.structuredContent.data.sources.some((source) => source.url === 'https://www.isingq.com/product/cloud'), true);
   assert.match(response.structuredContent.data.limitations.join(' '), /硬件.*最大规模/);
@@ -167,7 +169,7 @@ test('configures API key through a parameter-free private setup tool', async () 
   }), {
     configureApiKey: (options) => {
       calls.push(options);
-      return { configured: true, status: 'configured' };
+      return { configured: true, status: 'configured', execution_mode: 'live', credential_effect: 'written', remote_verification: 'unverified', no_real_credentials: false, credential_presence: 'available' };
     },
   });
   const response = await handle({
@@ -175,7 +177,7 @@ test('configures API key through a parameter-free private setup tool', async () 
     params: { name: 'isingq_api_key_setup', arguments: {} },
   });
   assert.equal(response.structuredContent.ok, true);
-  assert.deepEqual(response.structuredContent.data, { configured: true, status: 'configured' });
+  assert.deepEqual(response.structuredContent.data, { configured: true, status: 'configured', execution_mode: 'live', credential_effect: 'written', remote_verification: 'unverified', no_real_credentials: false, credential_presence: 'available' });
   assert.deepEqual(calls, [{ force: false }]);
   assert.doesNotMatch(JSON.stringify(response), /api[_ -]?key.*[=:].*[A-Za-z0-9_-]{8}/i);
 });
@@ -195,6 +197,7 @@ test('submits without opening an MCP-owned OS confirmation', async () => {
     qubo: QUBO,
     model_summary: '二变量测试',
     idempotency_key: 'confirm-gate',
+    solver_options: { use_credit: false },
   });
   assert.equal(started.status, 'submitted');
   assert.equal(submissions, 1);
@@ -215,11 +218,13 @@ test('submits once, polls, persists and decodes local result', async () => {
     qubo: QUBO,
     model_summary: '二变量测试',
     idempotency_key: 'same-request',
+    solver_options: { use_credit: false },
   });
   const repeated = await service.start({
     qubo: QUBO,
     model_summary: '二变量测试',
     idempotency_key: 'same-request',
+    solver_options: { use_credit: false },
   });
   const result = await service.poll(started.solve_id);
   assert.equal(submissions, 1);
@@ -252,4 +257,31 @@ test('guide describes a self-contained local modeling workflow', async () => {
   });
   assert.equal(response.structuredContent.ok, true);
   assert.match(JSON.stringify(response), /建模与 QUBO 校验应在用户电脑上完成/);
+});
+
+test('delivery validation matches core data and errors without touching an injected solver', async () => {
+  const { validateDelivery } = require('../packages/core');
+  const forbiddenService = new Proxy({}, { get() { throw new Error('SOLVER_ACCESS_FORBIDDEN'); } });
+  const handle = createHandler(forbiddenService);
+  const document = { qubo: { num_bits: 2, offset: 3, linear: [{ index: 0, coefficient: -1 }] }, candidate_bits: [1, 0],
+    test_ledger: [{ id: 'local', status: 'passed', evidence_ref: 'never-opened.json' }] };
+  const response = await handle({ method: 'tools/call', params: { name: 'isingq_delivery_validate', arguments: { document } } });
+  assert.equal(response.isError, false);
+  assert.deepEqual(response.structuredContent.data, validateDelivery(document));
+  for (const invalid of [
+    { ...document, candidate_bits: [1] }, { ...document, claimed_summary: { made_up_pass_count: 7 } },
+    { ...document, test_ledger: [{ id: 'same', status: 'passed' }, { id: 'same', status: 'passed' }] },
+  ]) {
+    let expected;
+    try { validateDelivery(invalid); } catch (error) { expected = { code: error.code, message: error.message }; }
+    const result = await handle({ method: 'tools/call', params: { name: 'isingq_delivery_validate', arguments: { document: invalid } } });
+    assert.equal(result.isError, true);
+    assert.deepEqual(result.structuredContent.error, expected);
+    assert.deepEqual(JSON.parse(result.content[0].text), result.structuredContent);
+  }
+  const misplaced = await handle({ method: 'tools/call', params: { name: 'isingq_delivery_validate', arguments: { document, claimed_summary: { total: 99 } } } });
+  assert.equal(misplaced.structuredContent.error.code, 'delivery_unknown_field');
+  assert.match(misplaced.structuredContent.error.message, /arguments.*document/);
+  const definition = TOOLS.find(tool => tool.name === 'isingq_delivery_validate');
+  assert.deepEqual(definition.annotations, { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
 });

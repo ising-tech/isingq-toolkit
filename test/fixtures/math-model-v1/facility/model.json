@@ -1,0 +1,207 @@
+{
+  "schema_version": "math-model-v1",
+  "id": "facility",
+  "variables": [
+    {
+      "id": "y_a",
+      "domain": "binary"
+    },
+    {
+      "id": "y_b",
+      "domain": "binary"
+    },
+    {
+      "id": "q_a1",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "maximum_delivery"
+      }
+    },
+    {
+      "id": "q_a2",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "maximum_delivery"
+      }
+    },
+    {
+      "id": "q_b1",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "maximum_delivery"
+      }
+    },
+    {
+      "id": "q_b2",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "maximum_delivery"
+      }
+    }
+  ],
+  "objective": {
+    "sense": "min",
+    "expression": {
+      "terms": [
+        {
+          "coefficient": {
+            "param": "fixed_cost_a"
+          },
+          "variables": [
+            "y_a"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "fixed_cost_b"
+          },
+          "variables": [
+            "y_b"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "delivery_cost_a1"
+          },
+          "variables": [
+            "q_a1"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "delivery_cost_a2"
+          },
+          "variables": [
+            "q_a2"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "delivery_cost_b1"
+          },
+          "variables": [
+            "q_b1"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "delivery_cost_b2"
+          },
+          "variables": [
+            "q_b2"
+          ]
+        }
+      ]
+    }
+  },
+  "constraints": [
+    {
+      "id": "activation_capacity_a",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": {
+              "param": "capacity_a"
+            },
+            "variables": [
+              "y_a"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "q_a1"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "q_a2"
+            ]
+          }
+        ]
+      },
+      "relation": "ge",
+      "rhs": 0
+    },
+    {
+      "id": "activation_capacity_b",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": {
+              "param": "capacity_b"
+            },
+            "variables": [
+              "y_b"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "q_b1"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "q_b2"
+            ]
+          }
+        ]
+      },
+      "relation": "ge",
+      "rhs": 0
+    },
+    {
+      "id": "demand_1",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "q_a1"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "q_b1"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "demand_1"
+      }
+    },
+    {
+      "id": "demand_2",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "q_a2"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "q_b2"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "demand_2"
+      }
+    }
+  ]
+}

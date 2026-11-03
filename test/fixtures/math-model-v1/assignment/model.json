@@ -1,0 +1,214 @@
+{
+  "schema_version": "math-model-v1",
+  "id": "assignment",
+  "variables": [
+    {
+      "id": "a1",
+      "domain": "binary"
+    },
+    {
+      "id": "a2",
+      "domain": "binary"
+    },
+    {
+      "id": "a3",
+      "domain": "binary"
+    },
+    {
+      "id": "b1",
+      "domain": "binary"
+    },
+    {
+      "id": "b2",
+      "domain": "binary"
+    },
+    {
+      "id": "b3",
+      "domain": "binary"
+    }
+  ],
+  "objective": {
+    "sense": "min",
+    "expression": {
+      "terms": [
+        {
+          "coefficient": {
+            "param": "cost_a1"
+          },
+          "variables": [
+            "a1"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "cost_a2"
+          },
+          "variables": [
+            "a2"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "cost_a3"
+          },
+          "variables": [
+            "a3"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "cost_b1"
+          },
+          "variables": [
+            "b1"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "cost_b2"
+          },
+          "variables": [
+            "b2"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "cost_b3"
+          },
+          "variables": [
+            "b3"
+          ]
+        }
+      ]
+    }
+  },
+  "constraints": [
+    {
+      "id": "job_1",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "a1"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "b1"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "required_workers"
+      }
+    },
+    {
+      "id": "job_2",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "a2"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "b2"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "required_workers"
+      }
+    },
+    {
+      "id": "job_3",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "a3"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "b3"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "required_workers"
+      }
+    },
+    {
+      "id": "load_a",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "a1"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "a2"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "a3"
+            ]
+          }
+        ]
+      },
+      "relation": "le",
+      "rhs": {
+        "param": "capacity_a"
+      }
+    },
+    {
+      "id": "load_b",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "b1"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "b2"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "b3"
+            ]
+          }
+        ]
+      },
+      "relation": "le",
+      "rhs": {
+        "param": "capacity_b"
+      }
+    }
+  ]
+}

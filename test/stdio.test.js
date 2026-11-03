@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { TOOL_DEFINITIONS } = require('../packages/core');
 const test = require('node:test');
 
 test('serves newline-delimited MCP initialize and tools/list', async () => {
@@ -38,7 +39,7 @@ test('serves newline-delimited MCP initialize and tools/list', async () => {
   assert.equal(exitCode, 0);
   assert.equal(messages[0].result.serverInfo.name, 'isingq-mcp');
   assert.match(messages[0].result.serverInfo.title, /伊辛智能/);
-  assert.equal(messages[1].result.tools.length, 7);
+  assert.equal(messages[1].result.tools.length, TOOL_DEFINITIONS.length);
   assert.equal(messages[2].result.resources.length, 13);
   assert.equal(JSON.stringify(messages).includes('must-not-leak'), false);
   assert.equal(stderr.includes('must-not-leak'), false);

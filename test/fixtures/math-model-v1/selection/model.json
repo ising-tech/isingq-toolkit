@@ -1,0 +1,106 @@
+{
+  "schema_version": "math-model-v1",
+  "id": "selection",
+  "variables": [
+    {
+      "id": "a",
+      "domain": "binary"
+    },
+    {
+      "id": "b",
+      "domain": "binary"
+    },
+    {
+      "id": "c",
+      "domain": "binary"
+    },
+    {
+      "id": "d",
+      "domain": "binary"
+    }
+  ],
+  "objective": {
+    "sense": "max",
+    "expression": {
+      "terms": [
+        {
+          "coefficient": {
+            "param": "value_a"
+          },
+          "variables": [
+            "a"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "value_b"
+          },
+          "variables": [
+            "b"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "value_c"
+          },
+          "variables": [
+            "c"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "value_d"
+          },
+          "variables": [
+            "d"
+          ]
+        }
+      ]
+    }
+  },
+  "constraints": [
+    {
+      "id": "capacity",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": {
+              "param": "weight_a"
+            },
+            "variables": [
+              "a"
+            ]
+          },
+          {
+            "coefficient": {
+              "param": "weight_b"
+            },
+            "variables": [
+              "b"
+            ]
+          },
+          {
+            "coefficient": {
+              "param": "weight_c"
+            },
+            "variables": [
+              "c"
+            ]
+          },
+          {
+            "coefficient": {
+              "param": "weight_d"
+            },
+            "variables": [
+              "d"
+            ]
+          }
+        ]
+      },
+      "relation": "le",
+      "rhs": {
+        "param": "capacity"
+      }
+    }
+  ]
+}

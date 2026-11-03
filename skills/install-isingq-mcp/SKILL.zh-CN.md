@@ -20,6 +20,8 @@ Host 配置边界和回退方式见 [HOSTS.md](HOSTS.md)。只读取本次目标
 - 不得为测试安装而提交真实求解。手写 NDJSON 只能证明进程可访问，不能证明 Host 已完成接入。
 - `isingq_solve_start` 被 Host 放行后立即提交。Agent 调用前必须展示模型摘要和矩阵 SHA-256，并取得用户明确确认。
 
+- 云提交必须由用户明确选择付款方式：`solver_options.use_credit=true` 使用算力券，`false` 使用账户余额。缺选择先询问，不得自动补默认付款或切换付款方式。历史任务用 poll/get 读取；付款或其他参数变化后重新确认并先核查原任务，不得换幂等键绕过状态保护。
+
 ## 选择唯一分发路径
 
 升级时保留当前已正常工作的分发方式。只有用户明确要求，或原路径不可用时才切换。
@@ -37,7 +39,7 @@ Host 配置边界和回退方式见 [HOSTS.md](HOSTS.md)。只读取本次目标
 ## Codex Plugin 路径
 
 1. 不下载二进制，也不修改 Codex MCP 配置；已安装 Plugin 会注册其内置源码 MCP。
-2. 验证 7 个原生 `isingq` 工具，并读取实际加载的 server 或 Plugin 版本。
+2. 验证 9 个原生 `isingq` 工具，并读取实际加载的 server 或 Plugin 版本。
 3. 取得用户同意后，调用无 API Key 参数的 `isingq_api_key_setup`。已有可读取配置时可以返回 `already_configured`。
 4. 使用 `topic="company"` 调用 `isingq_knowledge_get`，完成不联网冒烟验证。
 
@@ -47,7 +49,7 @@ Host 配置边界和回退方式见 [HOSTS.md](HOSTS.md)。只读取本次目标
 
 1. 确认实际使用的 Profile，不得默认选择 `web`、`tui` 或 `headless`。
 2. 运行 `dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin`。只有复现或回滚时才显式指定版本。
-3. 重启对应 Profile，验证 9 个 `isingq_*` 工具，其中包括 `isingq_resource_list` 和 `isingq_resource_read`，并记录安装包版本。
+3. 重启对应 Profile，验证 11 个 `isingq_*` 工具，其中包括 `isingq_resource_list` 和 `isingq_resource_read`，并记录安装包版本。
 4. 取得用户同意后调用 `isingq_api_key_setup`，再调用 `isingq_knowledge_get(topic="company")`。
 
 同一个 Profile 不得同时启用原生 Plugin 和旧 MCP Bridge。移除旧桥接属于另一个修改行为，需要用户批准。
@@ -58,7 +60,7 @@ Host 配置边界和回退方式见 [HOSTS.md](HOSTS.md)。只读取本次目标
 2. 对支持的命名 Host，运行 `npx @ising-tech/isingq-mcp configure-host --name <host> --npx`。
 3. 对需要手工注册的 Host，运行 `npx @ising-tech/isingq-mcp config --json --npx`，通过其官方 MCP 设置导入原样 stdio JSON。
 4. 先重连 `isingq`；只有 Host 不支持动态重载或仍加载旧版本时才重启。
-5. 在 Host 内验证 7 个原生工具和实际 server 版本。然后取得用户同意，调用 `isingq_api_key_setup` 并执行本地知识冒烟验证。
+5. 在 Host 内验证 9 个原生工具和实际 server 版本。然后取得用户同意，调用 `isingq_api_key_setup` 并执行本地知识冒烟验证。
 
 不得运行 `setup`、通过 stdin 传 Key，或把 Key 放入 MCP JSON。由加载后的工具负责私密 Key 配置。
 
@@ -68,7 +70,7 @@ Host 配置边界和回退方式见 [HOSTS.md](HOSTS.md)。只读取本次目标
 2. 下载固定版本程序和同一 Release 的 `SHA256SUMS`，执行前完成校验；任何不一致都必须停止。
 3. 安装到用户拥有的程序目录，不要求管理员权限，也不执行宽泛的 PATH 修改。
 4. 只在目标 Host 中注册该程序的绝对路径和 `serve` 参数。无法自动写入时，通过官方 MCP 设置导入准确 JSON。
-5. 重连后验证 7 个原生工具和二进制/server 版本，再经用户同意通过 `isingq_api_key_setup` 配置 Key。
+5. 重连后验证 9 个原生工具和二进制/server 版本，再经用户同意通过 `isingq_api_key_setup` 配置 Key。
 
 只有 Release 路径可以声称完成 Release 哈希校验。npm、Plugin 和 source 安装不能使用这一表述。
 
@@ -104,7 +106,7 @@ Host 配置边界和回退方式见 [HOSTS.md](HOSTS.md)。只读取本次目标
 - `runtime_available`：所选 Plugin、包、二进制或 server 能实际初始化；不表示一定存在原生二进制。
 - `api_key_configured`：本机已经私密保存非空 Key 且可以读取，不表示远端 API 已接受该 Key。
 - `host_registered`：目标 Host 已接受源配置、手工导入或原生 Plugin 注册。
-- `tools_loaded`：Host 内出现标准 MCP 的 7 个工具，或 DSH 原生 Plugin 的 9 个工具。CLI 或 NDJSON harness 不能把它设为 true。
+- `tools_loaded`：Host 内出现标准 MCP 的 9 个工具，或 DSH 原生 Plugin 的 11 个工具。CLI 或 NDJSON harness 不能把它设为 true。
 - `loaded_version`：从实际加载 server、Plugin manager 或二进制观察到的版本；不得用仓库文件中的版本替代。
 - `blocked_by`：稳定、可机读的阻塞原因；没有则为 null。
 - `next_action`：解除阻塞所需的最小用户授权动作；没有则为 null。

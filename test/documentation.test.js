@@ -26,7 +26,7 @@ test('DSH package README is bilingual and documents its install and data boundar
   assert.match(content, /dsh plugin --profile <profile> add @ising-tech\/isingq-dsh-plugin/);
   assert.match(content, />=0\.1\.0-rc\.7 <0\.2\.0-0/);
   assert.match(content, /HTTPS authentication|HTTPS 鉴权/);
-  assert.match(content, /nine `isingq_\*` tools|9 个 `isingq_\*` 工具/);
+  assert.match(content, /eleven `isingq_\*` tools|11 个 `isingq_\*` 工具/);
   assert.match(content, /dsh plugin --profile <profile> remove @ising-tech\/isingq-dsh-plugin/);
   assert.match(content, /administrator|管理员/);
   assert.match(content, /osascript/);
@@ -103,5 +103,24 @@ test('README math blocks avoid raw HTML delimiters that break GitHub rendering',
     const blocks = [...read(file).matchAll(/```math\n([\s\S]*?)\n```/g)].map((match) => match[1]);
     assert.ok(blocks.length >= 2, `${file}: expected documented energy and objective formulas`);
     for (const block of blocks) assert.doesNotMatch(block, /[<>]/, file);
+  }
+});
+
+test('public cloud size claims match MAX_BITS and the executable QUBO boundary', () => {
+  const { validateQubo } = require('../packages/core/src/qubo');
+  const source = read('packages/core/src/qubo.js');
+  const maximum = source.match(/^const MAX_BITS = (\d+);$/m);
+  assert.ok(maximum, 'MAX_BITS declaration must remain inspectable by the documentation contract test');
+  const maxBits = Number(maximum[1]);
+  for (const [file, pattern] of [
+    ['README.md', /云平台 API 当前支持最高 ([\d,]+) 个 QUBO 二进制变量/],
+    ['README.en.md', /current cloud API supports up to ([\d,]+) QUBO binary variables/],
+  ]) {
+    const claim = read(file).match(pattern);
+    assert.ok(claim, `${file}: missing explicit cloud size claim`);
+    const advertised = Number(claim[1].replaceAll(',', ''));
+    assert.equal(advertised, maxBits, `${file}: advertised=${advertised}, MAX_BITS=${maxBits}`);
+    assert.doesNotThrow(() => validateQubo({ num_bits: advertised }));
+    assert.throws(() => validateQubo({ num_bits: advertised + 1 }), /num_bits/);
   }
 });

@@ -1,0 +1,21 @@
+{
+  "objective_sense": "min",
+  "optimum": 7,
+  "optimal_count": 1,
+  "feasible_count": 6,
+  "candidate_expectations": {
+    "baseline": {
+      "status": "feasible",
+      "objective_value": 9
+    },
+    "improved": {
+      "status": "feasible",
+      "objective_value": 7
+    },
+    "bad": {
+      "status": "infeasible",
+      "objective_value": 5
+    }
+  },
+  "absolute_improvement": 2
+}

@@ -4,6 +4,47 @@ const crypto = require('crypto');
 
 const MAX_BITS = 2048;
 const MAX_MATRIX_BYTES = 20 * 1024 * 1024;
+const QUBO_CONTRACT_VERSION = '1';
+const MODEL_DIGEST_VERSION = 'isingq-model-v1';
+
+// Public input shape mirrors validateQubo; populated normalized output is not a
+// declaration that callers must explicitly supply every defaulted field.
+const QUBO_INPUT_SCHEMA = {
+  type: 'object',
+  description: '稀疏QUBO输入；仅num_bits必填。省略默认项是合法输入，规范化补默认值不构成模型修复。',
+  properties: {
+    num_bits: { type: 'integer', minimum: 1, maximum: MAX_BITS },
+    linear: { type: 'array', items: { type: 'object' }, default: [] },
+    quadratic: { type: 'array', items: { type: 'object' }, default: [] },
+    offset: { type: ['number', 'null'], default: 0, description: '省略或null规范化为0；数值必须有限。' },
+    variables: { type: 'array', items: { type: 'object' }, default: [] },
+  },
+  required: ['num_bits'], additionalProperties: false,
+};
+const QUBO_TRANSPORT_BOUNDARY = {
+  input_representation: 'normalized_qubo', upload_representation: 'matrix_csv',
+  create_task_model_field: 'inputJFile', original_qubo_json_sent: false,
+  description: '先校验并规范化QUBO，再生成矩阵CSV上传；create_task传inputJFile及求解参数，不传原始QUBO JSON。补齐默认字段不改变规范化模型、矩阵或语义请求，不能据此认定修复远端拒绝。上传文件URL每次可不同，不能把随机对象名变化当模型变化。',
+};
+
+// Keep digest ordering independent of validateQubo's legacy normalized order:
+// the latter is already part of persisted request_digest / idempotency behavior.
+function digestNormalizedQubo(qubo) {
+  const canonical = {
+    model_digest_version: MODEL_DIGEST_VERSION,
+    num_bits: qubo.num_bits,
+    offset: qubo.offset,
+    linear: qubo.linear.filter((term) => term.coefficient !== 0)
+      .sort((a, b) => a.index - b.index),
+    quadratic: qubo.quadratic.filter((term) => term.coefficient !== 0)
+      .sort((a, b) => a.i - b.i || a.j - b.j),
+    variables: qubo.variables,
+  };
+  return {
+    model_sha256: crypto.createHash('sha256').update(JSON.stringify(canonical), 'utf8').digest('hex'),
+    model_digest_version: MODEL_DIGEST_VERSION,
+  };
+}
 
 function finiteNumber(value, field) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -99,8 +140,14 @@ function validateQubo(input) {
       named_variables: variableMap.size,
       max_abs_coefficient: magnitude,
       convention: 'upper_triangular',
+      ...digestNormalizedQubo(normalized),
     },
   };
+}
+
+function modelDigest(input) {
+  const { summary } = validateQubo(input);
+  return { model_sha256: summary.model_sha256, model_digest_version: summary.model_digest_version };
 }
 
 function matrixDocument(input) {
@@ -145,4 +192,14 @@ function objectiveEnergy(qubo, bits) {
     + validated.quadratic.reduce((sum, term) => sum + term.coefficient * bits[term.i] * bits[term.j], 0);
 }
 
-module.exports = { decodeBits, matrixDocument, objectiveEnergy, validateQubo };
+module.exports = {
+  QUBO_INPUT_SCHEMA,
+  QUBO_TRANSPORT_BOUNDARY,
+  QUBO_CONTRACT_VERSION,
+  MODEL_DIGEST_VERSION,
+  decodeBits,
+  matrixDocument,
+  modelDigest,
+  objectiveEnergy,
+  validateQubo,
+};

@@ -14,6 +14,7 @@ const marketplaceManifest = JSON.parse(fs.readFileSync(path.join(marketplacePlug
 const marketplaceMcp = JSON.parse(fs.readFileSync(path.join(marketplacePluginRoot, '.mcp.json'), 'utf8'));
 const lobeManifest = JSON.parse(fs.readFileSync(path.join(root, 'lhm.plugin.json'), 'utf8'));
 const pkg = require('../package.json');
+const { TOOL_DEFINITIONS } = require('../packages/core');
 
 test('packages the repository as an IsingQ Codex plugin', () => {
   assert.equal(manifest.name, 'isingq-mcp');
@@ -65,7 +66,7 @@ test('LobeHub manifest is a reviewed local-stdio capability snapshot', () => {
   assert.equal(lobeManifest.version, pkg.version);
   assert.equal(lobeManifest.author, 'ising-tech');
   assert.equal(lobeManifest.cloudEndpoint, undefined);
-  assert.equal(lobeManifest.tools.length, 7);
+  assert.equal(lobeManifest.tools.length, TOOL_DEFINITIONS.length);
   assert.equal(lobeManifest.resources.length, 13);
   assert.match(lobeManifest.icon, /^https:\/\/raw\.githubusercontent\.com\/ising-tech\/isingq-toolkit\//);
   const solveStart = lobeManifest.tools.find(({ name }) => name === 'isingq_solve_start');

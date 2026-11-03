@@ -1,0 +1,11 @@
+{
+  "required_workers": 1,
+  "capacity_a": 2,
+  "capacity_b": 2,
+  "cost_a1": 2,
+  "cost_a2": 5,
+  "cost_a3": 3,
+  "cost_b1": 4,
+  "cost_b2": 1,
+  "cost_b3": 6
+}

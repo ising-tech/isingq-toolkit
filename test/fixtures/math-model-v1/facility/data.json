@@ -1,0 +1,13 @@
+{
+  "maximum_delivery": 2,
+  "capacity_a": 4,
+  "capacity_b": 4,
+  "demand_1": 2,
+  "demand_2": 2,
+  "fixed_cost_a": 5,
+  "fixed_cost_b": 1,
+  "delivery_cost_a1": 1,
+  "delivery_cost_a2": 3,
+  "delivery_cost_b1": 3,
+  "delivery_cost_b2": 1
+}

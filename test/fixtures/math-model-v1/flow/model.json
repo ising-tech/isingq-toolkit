@@ -1,0 +1,195 @@
+{
+  "schema_version": "math-model-v1",
+  "id": "flow",
+  "variables": [
+    {
+      "id": "sa",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity_sa"
+      }
+    },
+    {
+      "id": "sb",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity_sb"
+      }
+    },
+    {
+      "id": "at",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity_at"
+      }
+    },
+    {
+      "id": "bt",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity_bt"
+      }
+    },
+    {
+      "id": "ab",
+      "domain": "integer",
+      "lower": 0,
+      "upper": {
+        "param": "capacity_ab"
+      }
+    }
+  ],
+  "objective": {
+    "sense": "min",
+    "expression": {
+      "terms": [
+        {
+          "coefficient": {
+            "param": "cost_sa"
+          },
+          "variables": [
+            "sa"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "cost_sb"
+          },
+          "variables": [
+            "sb"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "cost_at"
+          },
+          "variables": [
+            "at"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "cost_bt"
+          },
+          "variables": [
+            "bt"
+          ]
+        },
+        {
+          "coefficient": {
+            "param": "cost_ab"
+          },
+          "variables": [
+            "ab"
+          ]
+        }
+      ]
+    }
+  },
+  "constraints": [
+    {
+      "id": "source_supply",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "sa"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "sb"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "supply"
+      }
+    },
+    {
+      "id": "balance_a",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "sa"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "at"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "ab"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": 0
+    },
+    {
+      "id": "balance_b",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "sb"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "ab"
+            ]
+          },
+          {
+            "coefficient": -1,
+            "variables": [
+              "bt"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": 0
+    },
+    {
+      "id": "sink_demand",
+      "expression": {
+        "terms": [
+          {
+            "coefficient": 1,
+            "variables": [
+              "at"
+            ]
+          },
+          {
+            "coefficient": 1,
+            "variables": [
+              "bt"
+            ]
+          }
+        ]
+      },
+      "relation": "eq",
+      "rhs": {
+        "param": "supply"
+      }
+    }
+  ]
+}

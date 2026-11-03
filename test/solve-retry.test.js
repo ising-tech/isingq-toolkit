@@ -11,7 +11,7 @@ const { IsingQTransport } = require('../src/isingq');
 const { SolveStore, apiKey, saveApiKey } = require('../src/store');
 const { createHandler } = require('../src/server');
 
-const ARGS = { qubo: { num_bits: 1, linear: [{ index: 0, coefficient: -1 }] }, model_summary: '重试测试', idempotency_key: 'retry-request' };
+const ARGS = { qubo: { num_bits: 1, linear: [{ index: 0, coefficient: -1 }] }, model_summary: '重试测试', idempotency_key: 'retry-request', solver_options: { use_credit: false } };
 const SIGNATURE = { data: { host: 'https://oss.example/upload', policy: 'policy', signature: 'signature', x_oss_credential: 'credential', x_oss_date: 'date', security_token: 'token' } };
 function json(value) { return new Response(JSON.stringify(value), { status: 200 }); }
 function fixture(t, handler, key = 'test-private-key') {
@@ -242,7 +242,7 @@ test('only legacy pre-create failures without task evidence may retry', async (t
       Object.assign(run, { status: 'failed', error: { phase, http_status: null }, provider_task_id: taskId, submitted_at: submittedAt });
       store.save(run);
       if (allowed) assert.equal((await service.start(ARGS)).status, 'submitted');
-      else await assert.rejects(() => service.start(ARGS), /核查远端任务/);
+      else await assert.rejects(() => service.start(ARGS), error => error.run.recovery.same_key_retry_allowed === false);
       assert.equal(creates, allowed ? 2 : 1);
     });
   }
