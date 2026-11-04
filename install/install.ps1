@@ -5,10 +5,10 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $InstallPrefix = if ($env:ISINGQ_MCP_NPM_PREFIX) { $env:ISINGQ_MCP_NPM_PREFIX } else { Join-Path $env:LOCALAPPDATA 'Programs\isingq-mcp-node' }
 $Target = Join-Path $InstallPrefix 'isingq-mcp.cmd'
 
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw '缺少 Node.js 18 或更高版本' }
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw '缺少 Node.js 18.17 或更高版本' }
 if (-not (Get-Command npm -ErrorAction SilentlyContinue)) { throw '缺少 npm' }
-$NodeMajor = [int]((& node -p 'Number(process.versions.node.split(".")[0])').Trim())
-if ($NodeMajor -lt 18) { throw "Node.js 版本过低（major=$NodeMajor, required=18）" }
+$NodeVersion = (& node -p 'process.versions.node').Trim()
+if ([version]$NodeVersion -lt [version]'18.17.0') { throw "Node.js 版本过低（version=$NodeVersion, required=>=18.17）；请升级 Node.js" }
 
 Write-Host "正在从本地源码安装 isingq-mcp（source=$RepoRoot）..."
 & npm install --global --prefix $InstallPrefix $RepoRoot

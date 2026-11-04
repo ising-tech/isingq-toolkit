@@ -16,7 +16,7 @@ test('default MCP and DSH discovery/delivery stay offline without constructing a
     let constructions=0;
     core.SolverService=class{constructor(){constructions++}validate(q){return {legacy:q}}start(q){return {started:q}}poll(id){return {polled:id}}get(id){return {got:id}}};
     require('node:child_process').spawnSync=()=>{throw Error('SPAWN_FORBIDDEN')};
-    global.fetch=()=>{throw Error('NETWORK_FORBIDDEN')};
+    require(${JSON.stringify(require.resolve('undici'))}).fetch=()=>{throw Error('NETWORK_FORBIDDEN')};
     for(const name of ['node:http','node:https']){const m=require(name);m.request=m.get=()=>{throw Error('NETWORK_FORBIDDEN')}}
     (async()=>{
       const {createHandler}=require(${JSON.stringify(path.join(root, 'src/server'))});

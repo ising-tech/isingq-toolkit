@@ -1,5 +1,8 @@
 'use strict';
 
+// Intercept the HTTP implementation used by core; never fall through to cloud.
+const http = require('undici');
+
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -39,9 +42,9 @@ test('cloud submission helper is detectable and preserves pure normalization com
 });
 
 test('core and MCP reject missing payment before lookup, credentials, storage or upload', async t => {
-  const previous = global.fetch;
-  global.fetch = () => { throw new Error('NETWORK_MUST_NOT_RUN'); };
-  t.after(() => { global.fetch = previous; });
+  const previous = http.fetch;
+  http.fetch = () => { throw new Error('NETWORK_MUST_NOT_RUN'); };
+  t.after(() => { http.fetch = previous; });
   for (const solver_options of INVALID) {
     const f = fixture();
     await assert.rejects(() => f.service.start({ ...ARGS, solver_options }), /付款.*poll.*get/);
@@ -53,9 +56,9 @@ test('core and MCP reject missing payment before lookup, credentials, storage or
 });
 
 test('low-level transport rejects missing payment before even reading credentials', async t => {
-  const previous = global.fetch;
-  global.fetch = () => { throw new Error('NETWORK_MUST_NOT_RUN'); };
-  t.after(() => { global.fetch = previous; });
+  const previous = http.fetch;
+  http.fetch = () => { throw new Error('NETWORK_MUST_NOT_RUN'); };
+  t.after(() => { http.fetch = previous; });
   let reads = 0;
   const transport = new IsingQTransport({ apiKey: () => { reads += 1; throw new Error('CREDENTIALS_MUST_NOT_RUN'); } });
   for (const input of INVALID) await assert.rejects(() => transport.submit({ content: Buffer.from('0'), sha256: 'a'.repeat(64) }, input), /付款/);
@@ -84,12 +87,12 @@ test('MCP snapshot and DSH keep required payment visible in their compiled neste
 });
 
 test('explicit true and false reach create exactly; changing payment keeps original occupancy', async t => {
-  const previous = global.fetch;
-  t.after(() => { global.fetch = previous; });
+  const previous = http.fetch;
+  t.after(() => { http.fetch = previous; });
   for (const use_credit of [false, true]) {
     const f = fixture();
     const created = [];
-    global.fetch = async (url, init) => {
+    http.fetch = async (url, init) => {
       if (String(url).includes('getPostSignature')) return Response.json(SIGNATURE);
       if (String(url).includes('create-general')) { created.push(JSON.parse(init.body)); return Response.json({ task_id: 'task-1' }); }
       return new Response('');
@@ -107,11 +110,11 @@ test('explicit true and false reach create exactly; changing payment keeps origi
 });
 
 test('platform JSON message survives safely in fresh/cached errors and persistence without changing rejection', async t => {
-  const previous = global.fetch;
-  t.after(() => { global.fetch = previous; });
+  const previous = http.fetch;
+  t.after(() => { http.fetch = previous; });
   const f = fixture();
   let creates = 0;
-  global.fetch = async url => {
+  http.fetch = async url => {
     if (String(url).includes('getPostSignature')) return Response.json(SIGNATURE);
     if (String(url).includes('create-general')) {
       creates += 1;
@@ -142,11 +145,11 @@ test('platform JSON message survives safely in fresh/cached errors and persisten
 });
 
 test('error bodies without content-length stop reading at the actual byte limit and cancel the stream', async t => {
-  const previous = global.fetch;
-  t.after(() => { global.fetch = previous; });
+  const previous = http.fetch;
+  t.after(() => { http.fetch = previous; });
   let pulled = 0;
   let cancelled = false;
-  global.fetch = async url => {
+  http.fetch = async url => {
     if (String(url).includes('getPostSignature')) return Response.json(SIGNATURE);
     if (!String(url).includes('create-general') && String(url) !== SIGNATURE.data.host) throw new Error('UNEXPECTED_MOCK_REQUEST');
     if (String(url) === SIGNATURE.data.host) return new Response('');
@@ -169,10 +172,10 @@ test('error bodies without content-length stop reading at the actual byte limit 
 });
 
 test('safe platform message is limited without inventing a payment reason for unrelated HTTP400', async t => {
-  const previous = global.fetch;
-  t.after(() => { global.fetch = previous; });
+  const previous = http.fetch;
+  t.after(() => { http.fetch = previous; });
   const f = fixture();
-  global.fetch = async url => {
+  http.fetch = async url => {
     if (String(url).includes('getPostSignature')) return Response.json(SIGNATURE);
     if (String(url).includes('create-general')) return Response.json({ message: '模型参数不合法：' + 'x'.repeat(2000) }, { status: 400 });
     if (String(url) === SIGNATURE.data.host) return new Response('');
@@ -187,18 +190,18 @@ test('safe platform message is limited without inventing a payment reason for un
 });
 
 test('DSH exposes the same sanitized fresh and cached failure, and keeps history reads available', async t => {
-  const previousFetch = global.fetch;
+  const previousFetch = http.fetch;
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'isingq-payment-dsh-'));
   const replacements = { XDG_CONFIG_HOME: path.join(directory, 'config'), XDG_DATA_HOME: path.join(directory, 'data'), ISINGQ_API_KEY: PRIVATE_KEY };
   const previous = Object.fromEntries(Object.keys(replacements).map(name => [name, process.env[name]]));
   Object.assign(process.env, replacements);
   t.after(() => {
-    global.fetch = previousFetch;
+    http.fetch = previousFetch;
     for (const [name, value] of Object.entries(previous)) { if (value === undefined) delete process.env[name]; else process.env[name] = value; }
     fs.rmSync(directory, { recursive: true, force: true });
   });
   let creates = 0;
-  global.fetch = async url => {
+  http.fetch = async url => {
     if (String(url).includes('getPostSignature')) return Response.json(SIGNATURE);
     if (String(url).includes('create-general')) { creates += 1; return Response.json({ message: `算力券不足 ${PRIVATE_KEY}；诊断 ${JSON.stringify({ api_key: 'OTHER_PRIVATE_SENTINEL', access_token: 'OTHER_TOKEN_SENTINEL', password: 'prefix"PRIVATE_SUFFIX' })}` }, { status: 400 }); }
     if (String(url) === SIGNATURE.data.host) return new Response('');
@@ -230,8 +233,8 @@ test('DSH exposes the same sanitized fresh and cached failure, and keeps history
 });
 
 test('unsafe, malformed, oversized and unreadable HTTP bodies preserve HTTP classification with no raw output', async t => {
-  const previous = global.fetch;
-  t.after(() => { global.fetch = previous; });
+  const previous = http.fetch;
+  t.after(() => { http.fetch = previous; });
   const cases = [
     () => new Response('<html>PRIVATE_HTML</html>', { status: 400 }),
     () => new Response('PRIVATE_TEXT', { status: 400 }),
@@ -245,7 +248,7 @@ test('unsafe, malformed, oversized and unreadable HTTP bodies preserve HTTP clas
   for (const response of cases) {
     const f = fixture();
     let creates = 0;
-    global.fetch = async url => {
+    http.fetch = async url => {
       if (String(url).includes('getPostSignature')) return Response.json(SIGNATURE);
       if (String(url).includes('create-general')) { creates += 1; return response(); }
       return new Response('');

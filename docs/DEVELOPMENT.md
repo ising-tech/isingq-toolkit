@@ -2,6 +2,16 @@
 
 本文档面向维护者和集成开发者。普通安装与使用请阅读根目录 [README](../README.md)。
 
+## 安全运行与构建环境
+
+运行最低版本为 Node.js 18.17。IsingQ HTTPS 链路显式使用固定运行依赖 `undici@6.29.1` 的 `fetch` / `FormData`，文件使用 `node:buffer` 的 `Blob`，不回退到全局 `fetch`。Core 和内嵌 core 源码的 MCP 都直接声明该依赖；DSH 通过 core 获取。依赖安装使用 `npm ci`，不要以更新 Host 的 Node.js 代替此运行依赖修复。
+
+开发依赖中传统 pkg-fetch 路径单独锁定 `undici@7.30.1`。当前 `pkg --sea` 下载器仍使用 Node.js 内置 `fetch`，构建环境应使用包含上游修复的维护版本；本轮在 macOS arm64 上验证了 Node.js 24.22.2（内置 Undici 7.30.1）。可用 `node -p "JSON.stringify({node:process.version,undici:process.versions.undici})"` 核对实际构建进程。此边界与 Toolkit 请求链路分别验证。
+
+`npm test` 包含公开 `IsingQTransport` 的真实 loopback 回归：6/7 层恶意编码及提前断连、正常 gzip、完整 multipart 上传、HTTP 错误脱敏、禁止重定向和请求超时。测试以独立子进程观察延迟的流错误；在旧 Node.js 22.22.2 上也须保持进程存活，无真实云端请求。精细合同单测拦截实际使用的 `undici.fetch` 模块属性，测试结束恢复，不能继续 mock 无关的 `global.fetch`。
+
+最低兼容版本不等于所有运行时的安全认证。本修复只覆盖更新后的 Toolkit 请求链路，不修复其他全局 fetch 使用方、既有安装或历史可执行文件；Release 需重新构建并独立核对内嵌 Node.js 版本。
+
 ## 仓库边界
 
 该公开仓库提供本地 QUBO 建模与 IsingQ 求解工具，不包含内部建模系统、模型库、Case 服务、远端文件管理、用户认证或代理求解服务。

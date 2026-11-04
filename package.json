@@ -60,11 +60,14 @@
     "url": "https://github.com/ising-tech/isingq-toolkit/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18.17"
   },
   "license": "Apache-2.0",
   "devDependencies": {
     "@yao-pkg/pkg": "6.22.0",
     "esbuild": "0.25.12"
+  },
+  "dependencies": {
+    "undici": "6.29.1"
   }
 }

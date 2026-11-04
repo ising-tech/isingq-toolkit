@@ -8,10 +8,10 @@ INSTALL_PREFIX=${ISINGQ_MCP_NPM_PREFIX:-${XDG_DATA_HOME:-"$HOME/.local"}}
 MCP_BIN="$INSTALL_PREFIX/bin/isingq-mcp"
 
 fail() { printf 'isingq-mcp 安装失败：%s\n' "$1" >&2; exit 1; }
-command -v node >/dev/null 2>&1 || fail "缺少 Node.js 18 或更高版本"
+command -v node >/dev/null 2>&1 || fail "缺少 Node.js 18.17 或更高版本"
 command -v npm >/dev/null 2>&1 || fail "缺少 npm"
-node_major=$(node -p 'Number(process.versions.node.split(".")[0])')
-[ "$node_major" -ge 18 ] || fail "Node.js 版本过低（major=$node_major, required=18）"
+node_version=$(node -p 'process.versions.node')
+node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 18 || (major === 18 && minor >= 17) ? 0 : 1)' || fail "Node.js 版本过低（version=$node_version, required=>=18.17）；请升级 Node.js"
 
 printf '正在从本地源码安装 isingq-mcp（source=%s）...\n' "$REPO_ROOT"
 npm install --global --prefix "$INSTALL_PREFIX" "$REPO_ROOT"

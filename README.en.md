@@ -108,8 +108,8 @@ The current cloud API supports up to 2,048 QUBO binary variables. Whether a prob
 
 | Integration | Intended Hosts | Node.js required |
 | --- | --- | --- |
-| Standard MCP | WorkBuddy, Claude Code, Cursor, VS Code, and other MCP Hosts | Node.js 18+ for npx; not required for Releases |
-| Codex Plugin | Codex Repo Marketplace integration | Node.js 18+ |
+| Standard MCP | WorkBuddy, Claude Code, Cursor, VS Code, and other MCP Hosts | Node.js 18.17+ for npx; not required for Releases |
+| Codex Plugin | Codex Repo Marketplace integration | Node.js 18.17+ |
 | Native DSH Plugin | DeepSeek Harness | Managed by DSH |
 
 Standard MCP Release binaries support macOS arm64/x64, Linux arm64/x64, and Windows x64. One runtime per computer is sufficient; multiple Agents can register it independently.
@@ -120,7 +120,7 @@ The Agent Skill in Quick start is the recommended path for most users. The comma
 
 ### Codex Repo Marketplace
 
-Requires Node.js 18 or later. Add the official repository marketplace, then install the plugin:
+Requires Node.js 18.17 or later. Add the official repository marketplace, then install the plugin:
 
 ```bash
 codex plugin marketplace add ising-tech/isingq-toolkit --ref main
@@ -131,7 +131,7 @@ After installation, start a new Codex task and ask Codex to “configure my Isin
 
 ### npm / npx
 
-Requires Node.js 18 or later:
+Requires Node.js 18.17 or later:
 
 ```bash
 npx @ising-tech/isingq-mcp setup

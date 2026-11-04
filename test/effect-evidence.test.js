@@ -121,7 +121,7 @@ test('native DSH normalizes injected legacy setup output and hides arbitrary cre
     core.configureApiKeyAsync = async () => calls++ === 0
       ? {configured:true,status:'configured',api_key:'SECRET_DSH_SENTINEL',test_runtime_marker:'untrusted text'}
       : {configured:false,status:'simulation',execution_mode:'simulation',credential_effect:'not_written',remote_verification:'not_applicable',no_real_credentials:true,credential_presence:'not_checked',api_key:'SECRET_DSH_SENTINEL'};
-    global.fetch=()=>{throw Error('NETWORK_FORBIDDEN')};
+    require(${JSON.stringify(require.resolve('undici'))}).fetch=()=>{throw Error('NETWORK_FORBIDDEN')};
     (async()=>{
       const plugin=await import(${JSON.stringify(require('node:url').pathToFileURL(path.join(root, 'packages/dsh-plugin/index.mjs')).href)});
       const tools=[];plugin.apply({tools:{register(t){tools.push(t)}}});

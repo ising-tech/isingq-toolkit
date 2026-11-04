@@ -107,8 +107,8 @@ Agent 应先展示变量映射、目标函数、约束、Penalty、矩阵摘要�
 
 | 接入方式 | 适用范围 | 是否需要 Node.js |
 | --- | --- | --- |
-| 标准 MCP | WorkBuddy、Claude Code、Cursor、VS Code 等 MCP Host | npx 方式需要 Node.js 18+；Release 不需要 |
-| Codex Plugin | Codex Repo Marketplace 接入 | 需要 Node.js 18+ |
+| 标准 MCP | WorkBuddy、Claude Code、Cursor、VS Code 等 MCP Host | npx 方式需要 Node.js 18.17+；Release 不需要 |
+| Codex Plugin | Codex Repo Marketplace 接入 | 需要 Node.js 18.17+ |
 | DSH 原生 Plugin | DeepSeek Harness | 由 DSH 管理 |
 
 标准 MCP 的 Release 程序支持 macOS arm64/x64、Linux arm64/x64 和 Windows x64。同一台电脑只需要一份运行程序，不同 Agent 可以分别注册它。
@@ -119,7 +119,7 @@ Agent 应先展示变量映射、目标函数、约束、Penalty、矩阵摘要�
 
 ### Codex Repo Marketplace
 
-需要 Node.js 18 或更高版本。先添加官方仓库 Marketplace，再安装 Plugin：
+需要 Node.js 18.17 或更高版本。先添加官方仓库 Marketplace，再安装 Plugin：
 
 ```bash
 codex plugin marketplace add ising-tech/isingq-toolkit --ref main
@@ -130,7 +130,7 @@ codex plugin add isingq-mcp@isingq-toolkit
 
 ### npm / npx
 
-需要 Node.js 18 或更高版本：
+需要 Node.js 18.17 或更高版本：
 
 ```bash
 npx @ising-tech/isingq-mcp setup

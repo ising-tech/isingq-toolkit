@@ -1,4 +1,7 @@
 'use strict';
+
+// Intercept the HTTP implementation used by core; never fall through to cloud.
+const http = require('undici');
 const test=require('node:test');const assert=require('node:assert/strict');
 const core=require('../packages/core');const {IsingQTransport}=require('../packages/core/src/isingq');
 const omitted={num_bits:2,linear:[{index:0,coefficient:-1}]};
@@ -24,8 +27,8 @@ test('omitted and explicit defaults normalize identically and reuse one logical 
  const a=await service.start({...args,qubo:omitted}),b=await service.start({...args,qubo:explicit});assert.equal(a.solve_id,b.solve_id);assert.equal(calls,1);
 });
 test('transport uploads identical CSV and never sends original QUBO JSON defaults',async t=>{
- const old=global.fetch;t.after(()=>global.fetch=old);const uploads=[],payloads=[];
- global.fetch=async(url,init)=>{
+ const old=http.fetch;t.after(()=>http.fetch=old);const uploads=[],payloads=[];
+ http.fetch=async(url,init)=>{
   if(String(url).includes('getPostSignature'))return Response.json({data:{host:'https://oss.example/upload',policy:'p',signature:'s',x_oss_credential:'c',x_oss_date:'date',security_token:'t'}});
   if(String(url)==='https://oss.example/upload'){uploads.push(await init.body.get('file').text());return new Response('');}
   if(String(url).includes('create-general')){payloads.push(JSON.parse(init.body));return Response.json({task_id:'t1'});}

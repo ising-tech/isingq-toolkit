@@ -1,5 +1,8 @@
 'use strict';
 
+// Intercept the HTTP implementation used by core; never fall through to cloud.
+const http = require('undici');
+
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -19,9 +22,9 @@ function fixture(t, handler, key = 'test-private-key') {
   const environment = { HOME: home };
   if (key) saveApiKey(key, environment);
   const store = new SolveStore(environment);
-  const original = global.fetch;
-  global.fetch = handler;
-  t.after(() => { global.fetch = original; fs.rmSync(home, { recursive: true, force: true }); });
+  const original = http.fetch;
+  http.fetch = handler;
+  t.after(() => { http.fetch = original; fs.rmSync(home, { recursive: true, force: true }); });
   const transport = new IsingQTransport({ apiKey: () => apiKey(environment) });
   return { environment, store, transport, service: new SolverService({ store, transport }) };
 }

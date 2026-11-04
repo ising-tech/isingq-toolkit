@@ -1,5 +1,8 @@
 'use strict';
 
+// Intercept the HTTP implementation used by core; never fall through to cloud.
+const http = require('undici');
+
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
@@ -19,7 +22,7 @@ test('pins the default solver transport to the official IsingQ API', () => {
 });
 
 test('uses SDK HTTPS contract for signature, OSS upload, task creation and poll', async () => {
-  const originalFetch = global.fetch;
+  const originalFetch = http.fetch;
   const calls = [];
   const responses = [
     new Response(JSON.stringify({
@@ -38,7 +41,7 @@ test('uses SDK HTTPS contract for signature, OSS upload, task creation and poll'
       data: { status: 2, result: { spin_config: [-1, 1], energy: -3 } },
     }), { status: 200 }),
   ];
-  global.fetch = async (url, options) => {
+  http.fetch = async (url, options) => {
     calls.push({ url: String(url), options });
     return responses.shift();
   };
@@ -66,6 +69,6 @@ test('uses SDK HTTPS contract for signature, OSS upload, task creation and poll'
     assert.deepEqual(result, { status: 'succeeded', bits: [0, 1], energy: -3 });
     assert.equal(JSON.stringify(result).includes('private-key'), false);
   } finally {
-    global.fetch = originalFetch;
+    http.fetch = originalFetch;
   }
 });

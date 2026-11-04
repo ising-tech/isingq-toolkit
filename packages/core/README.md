@@ -6,6 +6,8 @@ IsingQ 本地 Agent 集成的共享运行时，包含公开知识、QUBO 建模�
 
 该包不直接注册 MCP 或 DSH 工具，通常不需要最终用户单独安装。标准 MCP 使用 `@ising-tech/isingq-mcp`，DeepSeek Harness 使用 `@ising-tech/isingq-dsh-plugin`。
 
+运行需要 Node.js 18.17 或更高版本。IsingQ HTTPS 链路使用固定运行依赖 `undici@6.29.1`，不使用 Node.js 内置 `fetch`。
+
 ## 共享 QUBO API
 
 根入口和 `@ising-tech/isingq-core/qubo` 导出同一组函数，供 MCP、DSH 和专家 CLI 共用；不应在消费方复制 QUBO 校验规则。

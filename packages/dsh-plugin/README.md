@@ -62,7 +62,7 @@ API requests use HTTPS. Matrix upload uses a short-lived signature and does not 
 
 ## Compatibility
 
-- Node.js 18 or later.
+- Node.js 18.17 or later.
 - Minimum supported DeepSeek Harness baseline: `0.1.0-rc.7`.
 - `@deepseek-ai/dsh-tools` peer range: `>=0.1.0-rc.7 <0.2.0-0`.
 - Current development validation version: `0.1.0-rc.8`.
@@ -139,7 +139,7 @@ API 请求使用 HTTPS。矩阵上传使用短期签名，不携带个人 API Ke
 
 ## 兼容性
 
-- Node.js 18 或更高版本。
+- Node.js 18.17 或更高版本。
 - DeepSeek Harness 最低兼容基线：`0.1.0-rc.7`。
 - `@deepseek-ai/dsh-tools` peer range：`>=0.1.0-rc.7 <0.2.0-0`。
 - 当前开发验证版本：`0.1.0-rc.8`。

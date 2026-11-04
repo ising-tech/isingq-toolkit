@@ -20,3 +20,13 @@ Do not place API Keys, QUBO matrices, task results, personal data, or unpublishe
 - Real solving sends the QUBO matrix to the IsingQ-provided signed upload endpoint as soon as the Host permits `isingq_solve_start`. The Agent must obtain explicit user confirmation before calling it; the Host may add its own tool-permission prompt. The MCP does not open a separate operating-system solve confirmation.
 - The default npm path follows the `latest` dist-tag; users who need reproducible deployment or rollback should select an explicit version. Repository-bundled installers execute only the checked-out local source tree.
 - Release binaries must come from the official GitHub repository, be tied to an immutable version, and be verified against the published manifest before execution. Remote pipe installers such as `curl | sh` and `irm | iex` are not supported; use npm or a verified GitHub Release.
+
+## Node.js runtime and build dependencies
+
+The IsingQ HTTP transport uses the exact runtime dependency `undici@6.29.1`, including its `fetch` and `FormData`, with `Blob` from `node:buffer`. It never falls back to Node.js's global `fetch`. Both the standalone core package and the MCP package (which embeds core sources) declare this runtime dependency; DSH obtains it through core. This fixes the Toolkit's response-decoding path for CVE-2026-109869 without requiring an upgrade of a Host's bundled Undici.
+
+Install with `npm ci` to use the reviewed lockfile. The separate development dependency used by the legacy pkg-fetch path is locked to Undici 7.30.1. The current `pkg --sea` downloader still uses Node.js's global `fetch`, so build environments must separately use a maintained Node.js release containing the upstream fix. Node.js 24.22.2 (bundled Undici 7.30.1) was locally verified on macOS arm64 for that build boundary.
+
+The packages require Node.js 18.17 or later for API compatibility; this minimum does not certify every matching runtime as secure. Local regression tests exercise the public `IsingQTransport` on Node.js 22.22.2, including six- and seven-layer malicious encodings with an early close, normal gzip, multipart upload, redirects, errors and timeouts. They use synthetic input routed only to loopback and do not establish exploitation of the production IsingQ endpoint. See the [upstream advisory](https://github.com/nodejs/undici/security/advisories/GHSA-xjj6-f33q-929c).
+
+This change covers requests made by the updated Toolkit transport. It does not patch unrelated global-fetch consumers, existing installations or previously built executables. Release binaries need rebuilding to incorporate the dependency, and their embedded Node.js runtime remains a separate security boundary.

@@ -37,7 +37,7 @@ test('MCP and DSH report adapters reuse core data and typed errors offline witho
     core.SolverService=class{constructor(){throw Error('SOLVER_FORBIDDEN')}};
     core.configureApiKeyAsync=()=>{throw Error('CREDENTIAL_FORBIDDEN')};
     require('node:child_process').spawnSync=()=>{throw Error('SPAWN_FORBIDDEN')};
-    global.fetch=()=>{throw Error('NETWORK_FORBIDDEN')};
+    require(${JSON.stringify(require.resolve('undici'))}).fetch=()=>{throw Error('NETWORK_FORBIDDEN')};
     for(const p of ['node:http','node:https']){const m=require(p);m.request=m.get=()=>{throw Error('NETWORK_FORBIDDEN')}}
     (async()=>{
       const handle=require(${JSON.stringify(path.join(root, 'src/server'))}).createHandler(undefined,{configureApiKey(){throw Error('CREDENTIAL_FORBIDDEN')}});

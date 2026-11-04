@@ -1,6 +1,10 @@
 'use strict';
 
 const crypto = require('crypto');
+// Keep response-decoder fixes independent from the Host's bundled fetch.
+const http = require('undici');
+const { FormData } = http;
+const { Blob } = require('node:buffer');
 
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 const MAX_ERROR_RESPONSE_BYTES = 16 * 1024;
@@ -104,7 +108,7 @@ async function checkedFetch(url, options, phase, timeoutSeconds, secrets = []) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
   try {
-    const response = await fetch(url, { ...options, redirect: 'error', signal: controller.signal });
+    const response = await http.fetch(url, { ...options, redirect: 'error', signal: controller.signal });
     if (!response.ok) {
       const retryable = [408, 425, 429].includes(response.status) || response.status >= 500;
       const providerMessage = await failureMessage(response, [...secrets, options.headers?.Authorization]);

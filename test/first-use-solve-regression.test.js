@@ -1,5 +1,8 @@
 'use strict';
 
+// Intercept the HTTP implementation used by core; never fall through to cloud.
+const http = require('undici');
+
 // BUG-20261029-001: one business model through first use, failure, retry,
 // a fresh conversation and successful mock solving. Never a live cloud test.
 const test = require('node:test');
@@ -19,15 +22,15 @@ test('first-use payment and HTTP400 regression on exactly-one supplier solving',
   assert.deepEqual(optimum, { bits:[0,1], feasible:true, cost:1 });
   for (const row of states) assert.equal(objectiveEnergy(QUBO,row.bits), row.cost+5*(row.bits[0]+row.bits[1]-1)**2);
 
-  const originalFetch = global.fetch;
-  t.after(() => { global.fetch = originalFetch; });
+  const originalFetch = http.fetch;
+  t.after(() => { http.fetch = originalFetch; });
   const runs = new Map(), events = [], created = [];
   const store = {
     findByIdempotency(digest) { events.push('lookup'); return [...runs.values()].find(r => r.idempotency_digest===digest); },
     save(run) { events.push('save'); runs.set(run.solve_id,structuredClone(run)); },
     get(id) { return structuredClone(runs.get(id)); },
   };
-  global.fetch = async (url, options) => {
+  http.fetch = async (url, options) => {
     const path = String(url);
     if (path==='https://api.isingq.example/files/getPostSignatureForOssUpload') {
       events.push('mock_signature');
