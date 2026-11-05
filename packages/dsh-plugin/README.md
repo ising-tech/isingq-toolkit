@@ -1,6 +1,6 @@
 # @ising-tech/isingq-dsh-plugin
 
-Native IsingQ integration for DeepSeek Harness. The Plugin registers eleven typed tools in the DSH process and reuses `@ising-tech/isingq-core` for QUBO guidance, validation, public knowledge, HTTPS solving, and local result records.
+Native IsingQ integration for DeepSeek Harness. The Plugin registers twelve typed tools in the DSH process and reuses `@ising-tech/isingq-core` for QUBO guidance, validation, public knowledge, HTTPS solving, and local result records.
 
 [中文说明](#中文说明)
 
@@ -12,7 +12,7 @@ Install the Plugin into the DSH Profile you actually use:
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-Replace `<profile>` with the real Profile name and confirm that eleven `isingq_*` tools are available. Restart the running Profile only if it did not reload the new bundle. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
+Replace `<profile>` with the real Profile name and confirm that twelve `isingq_*` tools are available. Restart the running Profile only if it did not reload the new bundle. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
 
 Uninstall from the same Profile:
 
@@ -42,6 +42,7 @@ Once the DSH Host permits `isingq_solve_start`, the Plugin creates the remote ta
 
 | Tool | Purpose | Network |
 | --- | --- | --- |
+| `isingq_update_check` | Explicit stable-version check; automatic notices use runtime background work | Version metadata only |
 | `isingq_api_key_setup` | Configure or replace the local API Key through a private OS prompt | No |
 | `isingq_knowledge_get` | Read versioned public IsingQ knowledge | No |
 | `isingq_modeling_guide_get` | Get QUBO modeling and constraint guidance | No |
@@ -79,7 +80,7 @@ The peer range permits later compatible `0.1` releases, but versions newer than 
 
 ## 中文说明
 
-这是面向 DeepSeek Harness 的 IsingQ 原生 Plugin。它在 DSH 进程内注册 11 个 typed tools，并复用 `@ising-tech/isingq-core` 提供 QUBO 建模引导、校验、公开知识、HTTPS 求解和本地结果记录。
+这是面向 DeepSeek Harness 的 IsingQ 原生 Plugin。它在 DSH 进程内注册 12 个 typed tools，并复用 `@ising-tech/isingq-core` 提供 QUBO 建模引导、校验、公开知识、HTTPS 求解和本地结果记录。
 
 ## 安装
 
@@ -89,7 +90,7 @@ The peer range permits later compatible `0.1` releases, but versions newer than 
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-将 `<profile>` 替换为真实 Profile 名，并确认出现 11 个 `isingq_*` 工具。只有正在运行的 Profile 没有重新加载新 Bundle 时才重启。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
+将 `<profile>` 替换为真实 Profile 名，并确认出现 12 个 `isingq_*` 工具。只有正在运行的 Profile 没有重新加载新 Bundle 时才重启。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
 
 从同一 Profile 卸载：
 
@@ -119,6 +120,7 @@ DSH Host 放行 `isingq_solve_start` 后，Plugin 会立即创建远端任务，
 
 | 工具 | 作用 | 是否联网 |
 | --- | --- | --- |
+| `isingq_update_check` | 用户主动查询版本；自动提醒由后台完成 | 仅版本元数据 |
 | `isingq_api_key_setup` | 通过操作系统私密输入框配置或更换 API Key | 否 |
 | `isingq_knowledge_get` | 查询版本化的 IsingQ 公开知识 | 否 |
 | `isingq_modeling_guide_get` | 获取 QUBO 建模与约束引导 | 否 |

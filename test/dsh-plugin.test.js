@@ -1,4 +1,6 @@
 'use strict';
+// Keep optional release metadata out of unrelated behavior fixtures.
+process.env.ISINGQ_UPDATE_CHECK = 'off';
 
 const assert = require('node:assert/strict');
 const path = require('node:path');

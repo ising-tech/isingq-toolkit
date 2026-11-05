@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const MAX_CONFIG_BYTES = 1024 * 1024;
+const { fileLimit, assertFileBytes, readFileBounded, FileLimitError } = require('../packages/core/src/file-limits');
 
 function hostPaths(environment = process.env, platform = process.platform) {
   const home = environment.HOME || environment.USERPROFILE || os.homedir();
@@ -75,7 +75,9 @@ function refuseSymlink(file) {
   }
 }
 
-function atomicWrite(file, content) {
+function atomicWrite(file, content, maxBytes) {
+  const bytes = Buffer.byteLength(content, 'utf8');
+  assertFileBytes(bytes, maxBytes, 'hostConfig', file);
   const directory = path.dirname(file);
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
   refuseSymlink(file);
@@ -89,15 +91,15 @@ function atomicWrite(file, content) {
   }
 }
 
-function readJsonObject(file, rootKey) {
+function readJsonObject(file, rootKey, environment = process.env) {
+  const maxBytes = fileLimit('hostConfig', environment);
   refuseSymlink(file);
   if (!fs.existsSync(file)) return { [rootKey]: {} };
-  const metadata = fs.statSync(file);
-  if (metadata.size > MAX_CONFIG_BYTES) throw new Error(`Agent 配置过大（path=${file}, bytes=${metadata.size}）`);
   let parsed;
   try {
-    parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch {
+    parsed = JSON.parse(readFileBounded(file, maxBytes, 'hostConfig').toString('utf8'));
+  } catch (error) {
+    if (error instanceof FileLimitError) throw error;
     throw new Error(`Agent 配置不是有效 JSON（path=${file}）`);
   }
   if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error(`Agent 配置根节点必须是 object（path=${file}）`);
@@ -108,8 +110,9 @@ function readJsonObject(file, rootKey) {
   return parsed;
 }
 
-function configureJsonHost(file, rootKey, command, includeType) {
-  const config = readJsonObject(file, rootKey);
+function configureJsonHost(file, rootKey, command, includeType, environment) {
+  const maxBytes = fileLimit('hostConfig', environment);
+  const config = readJsonObject(file, rootKey, environment);
   const existing = config[rootKey].isingq;
   const next = existing && !Array.isArray(existing) && typeof existing === 'object' ? { ...existing } : {};
   for (const key of ['url', 'headers', 'env', 'disabled']) delete next[key];
@@ -117,7 +120,7 @@ function configureJsonHost(file, rootKey, command, includeType) {
   next.args = command.args;
   if (includeType) next.type = 'stdio'; else delete next.type;
   config[rootKey].isingq = next;
-  atomicWrite(file, `${JSON.stringify(config, null, 2)}\n`);
+  atomicWrite(file, `${JSON.stringify(config, null, 2)}\n`, maxBytes);
 }
 
 function configureCodex(command) {
@@ -130,17 +133,19 @@ function configureCodex(command) {
 }
 
 function configureHosts(hosts, command, paths = hostPaths(), options = {}) {
+  const environment = { ...(options.environment || process.env) };
+  fileLimit('hostConfig', environment);
   for (const host of hosts) {
-    if (host === 'workbuddy') configureJsonHost(paths.workbuddy, 'mcpServers', command, true);
+    if (host === 'workbuddy') configureJsonHost(paths.workbuddy, 'mcpServers', command, true, environment);
     else if (host === 'codex') configureCodex(command);
-    else if (host === 'claude-code') configureJsonHost(paths.claudeCode, 'mcpServers', command, true);
-    else if (host === 'cursor') configureJsonHost(paths.cursor, 'mcpServers', command, false);
-    else if (host === 'vscode') configureJsonHost(paths.vscode, 'servers', command, false);
-    else if (host === 'generic') configureJsonHost(paths.generic, 'mcpServers', command, false);
+    else if (host === 'claude-code') configureJsonHost(paths.claudeCode, 'mcpServers', command, true, environment);
+    else if (host === 'cursor') configureJsonHost(paths.cursor, 'mcpServers', command, false, environment);
+    else if (host === 'vscode') configureJsonHost(paths.vscode, 'servers', command, false, environment);
+    else if (host === 'generic') configureJsonHost(paths.generic, 'mcpServers', command, false, environment);
     else throw new Error(`不支持的 Agent Host（host=${host}）`);
   }
   if (options.writeGeneric !== false && !hosts.includes('generic')) {
-    configureJsonHost(paths.generic, 'mcpServers', command, false);
+    configureJsonHost(paths.generic, 'mcpServers', command, false, environment);
   }
   return hosts;
 }

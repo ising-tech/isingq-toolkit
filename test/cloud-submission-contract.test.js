@@ -1,4 +1,6 @@
 'use strict';
+// Keep optional release metadata out of unrelated behavior fixtures.
+process.env.ISINGQ_UPDATE_CHECK = 'off';
 
 // Intercept the HTTP implementation used by core; never fall through to cloud.
 const http = require('undici');

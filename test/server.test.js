@@ -83,6 +83,7 @@ test('exposes knowledge, guidance, validation and solving tools', async () => {
     'isingq_solve_start',
     'isingq_solve_poll',
     'isingq_solve_result_get',
+    'isingq_update_check',
   ]);
   assert.equal(listed.tools[0].annotations.readOnlyHint, false);
   assert.equal(listed.tools[0].annotations.openWorldHint, false);

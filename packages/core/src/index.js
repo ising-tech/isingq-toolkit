@@ -1,6 +1,8 @@
 'use strict';
 
 const crypto = require('crypto');
+const { createBackgroundUpdates } = require('./background-updates');
+const { UPDATE_CONTRACT_VERSION, checkUpdate } = require('./update-check');
 
 const { CLOUD_SUBMISSION_CONTRACT_VERSION, IsingQError, IsingQTransport, options, validateCloudSubmissionOptions } = require('./isingq');
 const { TOPICS, getKnowledge } = require('./knowledge');
@@ -262,6 +264,11 @@ class SolverService {
 }
 
 module.exports = {
+  createBackgroundUpdates,
+  UPDATE_CONTRACT_VERSION,
+  checkUpdate,
+  FILE_LIMITS_CONTRACT_VERSION: 'isingq-file-limits-v1',
+  fileLimit: require('./file-limits').fileLimit,
   RECOVERY_GUIDANCE,
   RECOVERY_CONTRACT_VERSION,
   EFFECT_EVIDENCE_CONTRACT_VERSION,

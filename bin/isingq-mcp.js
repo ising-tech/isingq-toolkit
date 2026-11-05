@@ -4,6 +4,7 @@
 const { apiKey, roots, saveApiKey } = require('../src/store');
 const { configureHosts, detectHosts } = require('../src/hosts');
 const { VERSION, serve } = require('../src/server');
+const { checkUpdate } = require('../packages/core');
 
 const PACKAGE_SPEC = '@ising-tech/isingq-mcp';
 
@@ -30,6 +31,7 @@ function usage() {
   return `isingq-mcp ${VERSION}
 
 Usage:
+  isingq-mcp update-check [--refresh]  Check official stable release (no installation)
   isingq-mcp serve
   isingq-mcp onboard
   isingq-mcp setup
@@ -152,6 +154,10 @@ async function main(argv = process.argv.slice(2)) {
   }
   if (argv.length === 1 && ['-v', '--version'].includes(argv[0])) {
     process.stdout.write(`isingq-mcp ${VERSION}\n`);
+    return 0;
+  }
+  if (argv[0] === 'update-check' && (argv.length === 1 || (argv.length === 2 && argv[1] === '--refresh'))) {
+    process.stdout.write(`${JSON.stringify({ ok: true, data: await checkUpdate({ refresh: argv.length === 2 }) })}\n`);
     return 0;
   }
   if (argv.length === 1 && argv[0] === 'setup') {

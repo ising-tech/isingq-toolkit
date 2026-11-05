@@ -44,7 +44,7 @@ After one path reaches its acceptance criteria, stop. Do not install another Plu
 ## Codex Plugin path
 
 1. Do not download a binary or edit Codex MCP configuration. The installed Plugin already registers its bundled source MCP.
-2. Verify nine native `isingq` tools and obtain the loaded server or Plugin version.
+2. Verify ten native `isingq` tools and obtain the loaded server or Plugin version.
 3. With user approval, call parameter-free `isingq_api_key_setup`. Existing readable local configuration may return `already_configured`.
 4. Call `isingq_knowledge_get` with `topic="company"` as the non-network smoke test.
 
@@ -54,7 +54,7 @@ If the native tool is not already visible, this path is not selected. Do not inf
 
 1. Identify the exact active Profile; do not assume `web`, `tui`, or `headless`.
 2. Run `dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin`. Add an explicit version only for reproduction or rollback.
-3. Restart that Profile and verify eleven `isingq_*` tools, including `isingq_resource_list` and `isingq_resource_read`. Record the installed package version.
+3. Restart that Profile and verify twelve `isingq_*` tools, including `isingq_resource_list` and `isingq_resource_read`. Record the installed package version.
 4. With user approval, call `isingq_api_key_setup`, then call `isingq_knowledge_get` with `topic="company"`.
 
 Do not enable the native Plugin and the legacy MCP bridge in the same Profile. Removing an old bridge is a separate mutation and requires user approval.
@@ -65,7 +65,7 @@ Do not enable the native Plugin and the legacy MCP bridge in the same Profile. R
 2. For a supported named Host, run `npx @ising-tech/isingq-mcp configure-host --name <host> --npx`.
 3. For a Host that requires manual registration, run `npx @ising-tech/isingq-mcp config --json --npx` and import the exact stdio JSON through its official MCP settings.
 4. Reconnect `isingq`. Restart the Host only if it cannot reload MCP dynamically or still exposes a stale version.
-5. Verify nine native tools and the server version inside the Host. Then, with user approval, call `isingq_api_key_setup` and run the local knowledge smoke test.
+5. Verify ten native tools and the server version inside the Host. Then, with user approval, call `isingq_api_key_setup` and run the local knowledge smoke test.
 
 Do not run `setup`, pass a Key through stdin, or place a Key in the MCP JSON. The loaded tool owns private Key setup.
 
@@ -75,7 +75,7 @@ Do not run `setup`, pass a Key through stdin, or place a Key in the MCP JSON. Th
 2. Download the fixed-version binary and that Release's `SHA256SUMS`. Verify the binary before execution; stop on any mismatch.
 3. Install it in a user-owned program directory. Do not require administrator privileges or add broad PATH changes.
 4. Register its absolute path with the `serve` argument in only the selected Host. If the Host cannot be written automatically, import the exact JSON through its official MCP settings.
-5. Reconnect, verify nine native tools and the binary/server version, then configure the Key through `isingq_api_key_setup` with user approval.
+5. Reconnect, verify ten native tools and the binary/server version, then configure the Key through `isingq_api_key_setup` with user approval.
 
 Checksum verification belongs only to the Release path. Never claim that npm, Plugin, or source installation was Release-hash-verified.
 
@@ -111,7 +111,7 @@ Report one final object using this path-neutral schema:
 - `runtime_available`: the selected Plugin/package/binary/server can actually initialize; it does not mean a native binary exists.
 - `api_key_configured`: a non-empty local Key is privately stored and readable. It does not prove that the Key is accepted by the remote API.
 - `host_registered`: the selected Host accepted the source configuration, manual import, or native Plugin registration.
-- `tools_loaded`: the Host exposes nine standard MCP tools or eleven native DSH tools. A CLI or NDJSON harness test cannot set this to true.
+- `tools_loaded`: the Host exposes ten standard MCP tools or twelve native DSH tools. A CLI or NDJSON harness test cannot set this to true.
 - `loaded_version`: the version observed from the loaded server, Plugin manager, or binary. Do not substitute a version merely read from repository files.
 - `blocked_by`: a stable machine-readable blocker, or null.
 - `next_action`: the smallest user-approved action that can clear the blocker, or null.

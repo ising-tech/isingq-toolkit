@@ -30,3 +30,8 @@ Install with `npm ci` to use the reviewed lockfile. The separate development dep
 The packages require Node.js 18.17 or later for API compatibility; this minimum does not certify every matching runtime as secure. Local regression tests exercise the public `IsingQTransport` on Node.js 22.22.2, including six- and seven-layer malicious encodings with an early close, normal gzip, multipart upload, redirects, errors and timeouts. They use synthetic input routed only to loopback and do not establish exploitation of the production IsingQ endpoint. See the [upstream advisory](https://github.com/nodejs/undici/security/advisories/GHSA-xjj6-f33q-929c).
 
 This change covers requests made by the updated Toolkit transport. It does not patch unrelated global-fetch consumers, existing installations or previously built executables. Release binaries need rebuilding to incorporate the dependency, and their embedded Node.js runtime remains a separate security boundary.
+
+
+## Optional release metadata checks
+
+Runtime startup may query the fixed public npm metadata endpoint without API Keys or model data. The cache stores only validated versions, status and timestamps in private files; it never authorizes installation or payment. Failed or unavailable checks cannot replace a business result. The short-lived worker has a bounded lifetime and an environment allowlist excluding application credentials and Node preload settings. ISINGQ_UPDATE_CHECK=off disables automatic checks and notices; an explicit manual check remains a separate user-requested operation.

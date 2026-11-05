@@ -26,7 +26,7 @@ test('DSH package README is bilingual and documents its install and data boundar
   assert.match(content, /dsh plugin --profile <profile> add @ising-tech\/isingq-dsh-plugin/);
   assert.match(content, />=0\.1\.0-rc\.7 <0\.2\.0-0/);
   assert.match(content, /HTTPS authentication|HTTPS 鉴权/);
-  assert.match(content, /eleven `isingq_\*` tools|11 个 `isingq_\*` 工具/);
+  assert.match(content, /twelve `isingq_\*` tools|12 个 `isingq_\*` 工具/);
   assert.match(content, /dsh plugin --profile <profile> remove @ising-tech\/isingq-dsh-plugin/);
   assert.match(content, /administrator|管理员/);
   assert.match(content, /osascript/);

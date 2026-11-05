@@ -143,7 +143,7 @@ test('publishes focused discovery keywords for each package boundary', () => {
 
 test('release versions and lockfile identify the new shared-contract build', () => {
   const pkg = JSON.parse(read('package.json'));
-  assert.equal(pkg.version, '0.8.0');
+  assert.equal(pkg.version, '0.8.1');
   const lock = JSON.parse(read('package-lock.json'));
   assert.equal(lock.version, pkg.version);
   for (const name of ['', 'packages/core', 'packages/dsh-plugin']) {

@@ -13,6 +13,8 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const {
+  checkUpdate,
+  createBackgroundUpdates,
   RESOURCES,
   SolverService,
   TOOL_DEFINITIONS,
@@ -64,10 +66,15 @@ function dshParameters(inputSchema) {
   }));
 }
 
-export function apply(ctx) {
+export function apply(ctx, { backgroundUpdates } = {}) {
+  try {
+    if (backgroundUpdates === undefined) backgroundUpdates = createBackgroundUpdates({ mode: 'inline' });
+    backgroundUpdates?.start();
+  } catch { backgroundUpdates = null; }
   let service;
   const getService = () => service ||= new SolverService();
   const execute = {
+    isingq_update_check: (args) => checkUpdate(args),
     isingq_api_key_setup: async (args) => normalizeSetupResult(await configureApiKeyAsync({ force: args.force === true })),
     isingq_knowledge_get: (args) => getKnowledge(args.topic, args.locale),
     isingq_modeling_guide_get: (args) => modelingGuide(args.problem_summary),
@@ -107,7 +114,19 @@ export function apply(ctx) {
             description: 'isingq-verified-report-v1 document；model/data/candidates 及可选 baseline/top_k 由本地 core 严格校验。只消费核验结果，不自行补数字、排名或约束结论。' } }
           : dshParameters(definition.inputSchema),
       output: { schema: OBJECT_SCHEMA, render: renderJson },
-      execute: execute[definition.name],
+      execute: (args) => {
+        const deliver = (data) => {
+          if (['isingq_modeling_guide_get', 'isingq_qubo_validate', 'isingq_knowledge_get'].includes(definition.name)) {
+            try {
+              const notice = backgroundUpdates?.takeNotice();
+              if (notice) return { ...data, update_notice: notice };
+            } catch { /* Keep optional update delivery out of the business result path. */ }
+          }
+          return data;
+        };
+        const data = execute[definition.name](args);
+        return data && typeof data.then === 'function' ? data.then(deliver) : deliver(data);
+      },
     }));
   }
 
