@@ -157,7 +157,7 @@ dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
 ```
 
-最低兼容基线为 DeepSeek Harness `0.1.0-rc.7`，当前开发验证版本为 `0.1.0-rc.8`。`@deepseek-ai/dsh-tools` 支持范围为 `>=0.1.0-rc.7 <0.2.0-0`。
+最低兼容基线为 DeepSeek Harness `0.1.0-rc.7`，当前开发验证版本为 `0.2.2-rc.1`。`engines.dsh` 与 `@deepseek-ai/dsh-tools` peer 范围同为 `>=0.1.0-rc.7 <0.3.0-0`，同时覆盖 `0.1.x` 与 `0.2.x` 运行时。
 
 不要在同一个 DSH Profile 中同时启用 IsingQ 原生 Plugin 和旧 MCP Bridge。详细说明见 [DSH Plugin README](packages/dsh-plugin/README.md)。
 

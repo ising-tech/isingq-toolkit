@@ -24,7 +24,7 @@ test('DSH package README is bilingual and documents its install and data boundar
   assert.match(content, /^## Install$/m);
   assert.match(content, /^## 中文说明$/m);
   assert.match(content, /dsh plugin --profile <profile> add @ising-tech\/isingq-dsh-plugin/);
-  assert.match(content, />=0\.1\.0-rc\.7 <0\.2\.0-0/);
+  assert.match(content, />=0\.1\.0-rc\.7 <0\.3\.0-0/);
   assert.match(content, /HTTPS authentication|HTTPS 鉴权/);
   assert.match(content, /eleven `isingq_\*` tools|11 个 `isingq_\*` 工具/);
   assert.match(content, /dsh plugin --profile <profile> remove @ising-tech\/isingq-dsh-plugin/);
@@ -38,7 +38,7 @@ test('root READMEs expose the native DSH package and compatibility range', () =>
   for (const file of ['README.md', 'README.en.md']) {
     const content = read(file);
     assert.match(content, /https:\/\/www\.npmjs\.com\/package\/@ising-tech\/isingq-dsh-plugin/);
-    assert.match(content, />=0\.1\.0-rc\.7 <0\.2\.0-0/);
+    assert.match(content, />=0\.1\.0-rc\.7 <0\.3\.0-0/);
     assert.match(content, /isingq_resource_list/);
     assert.match(content, /isingq_resource_read/);
   }

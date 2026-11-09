@@ -161,6 +161,7 @@ npm run build:binaries -- --target node22-win-x64
 `.github/workflows/release.yml` 在 GitHub 官方原生 Runner 上分别构建五个平台，并使用打包后的程序验证 MCP `initialize`、9 个工具和 13 个 Resources。
 
 - `main` 和 Pull Request：运行测试、构建和 smoke test，只生成 Workflow Artifacts。
+- `dsh-latest`（建议性，`main` push 和手动触发）：用 `@deepseek-ai/dsh-tools@next` 在隔离目录运行 `scripts/smoke-dsh-plugin.js`，失败只告警，用于发现上游兼容性漂移。
 - `v*` tag：要求 tag 版本与 `package.json` 一致，汇总产物后创建 GitHub Release。
 - GitHub Actions 依赖固定到 commit SHA，升级时应核对官方 release tag 与对应 SHA。
 

@@ -64,16 +64,20 @@ API requests use HTTPS. Matrix upload uses a short-lived signature and does not 
 
 - Node.js 18.17 or later.
 - Minimum supported DeepSeek Harness baseline: `0.1.0-rc.7`.
-- `@deepseek-ai/dsh-tools` peer range: `>=0.1.0-rc.7 <0.2.0-0`.
-- Current development validation version: `0.1.0-rc.8`.
+- `engines.dsh` and `@deepseek-ai/dsh-tools` peer range: `>=0.1.0-rc.7 <0.3.0-0`.
+- Current development validation version: `0.2.2-rc.1`.
 
-The peer range permits later compatible `0.1` releases, but versions newer than the current validation baseline are not automatically claimed as runtime-verified.
+DSH 0.2 reads `engines.dsh` alone when it is declared and falls back to `@deepseek-ai/dsh-*` peers only when it is absent. This range covers the `0.1.x` and `0.2.x` runtime lines that share the `defineTool` / `ctx.tools` API the Plugin uses; newer minor lines still need a compatibility check before this range is widened.
+
+### Compatibility policy
+
+`engines.dsh` is the compatibility contract, not a per-release pin: a new patch or prerelease on a supported line installs without a Plugin release. This release was validated against DSH `0.2.2-rc.1`. CI keeps the pinned baseline for reproducible tests and runs an advisory job against the newest `@deepseek-ai/dsh-tools` build; a breaking upstream change is fixed once per supported line, not tracked release by release.
 
 ## Troubleshooting
 
 - **Tools are missing:** verify that the package is present in the target Profile and reconciled into `dsh.profile.bundles`, remove any duplicate IsingQ MCP bridge, then restart the Profile only if it did not reload.
 - **API Key is missing:** call `isingq_api_key_setup`; never paste the Key into Agent chat.
-- **Installation reports a peer conflict:** confirm that DSH is within the documented `0.1` compatibility range.
+- **Installation reports a peer conflict:** confirm that DSH is within the documented `0.1.x` / `0.2.x` compatibility range.
 
 ---
 
@@ -141,13 +145,17 @@ API 请求使用 HTTPS。矩阵上传使用短期签名，不携带个人 API Ke
 
 - Node.js 18.17 或更高版本。
 - DeepSeek Harness 最低兼容基线：`0.1.0-rc.7`。
-- `@deepseek-ai/dsh-tools` peer range：`>=0.1.0-rc.7 <0.2.0-0`。
-- 当前开发验证版本：`0.1.0-rc.8`。
+- `engines.dsh` 与 `@deepseek-ai/dsh-tools` peer range：`>=0.1.0-rc.7 <0.3.0-0`。
+- 当前开发验证版本：`0.2.2-rc.1`。
 
-该范围允许后续兼容的 `0.1` 版本安装，但不会把高于当前验证基线的版本自动描述为已经完成运行验证。
+DSH 0.2 在声明了 `engines.dsh` 时只按该范围判断，未声明时才回退到 `@deepseek-ai/dsh-*` peer。该范围覆盖共用 `defineTool` / `ctx.tools` API 的 `0.1.x` 与 `0.2.x` 运行时；更新的次版本线仍需先做兼容性验证再放宽范围。
+
+### 兼容策略
+
+`engines.dsh` 是兼容契约，不是逐版本钉死：同一支持线内的补丁或预发布版本无需重新发布 Plugin。本次验证对应 DSH `0.2.2-rc.1`。CI 用固定基线保证测试可重复，另有一个建议性 job 用最新 `@deepseek-ai/dsh-tools` 跑同一适配器；上游破坏性变更按支持线修正一次，而不是逐版本追。
 
 ## 故障排查
 
 - **没有出现工具：**确认包已安装到目标 Profile 并进入 `dsh.profile.bundles`，移除重复的 IsingQ MCP Bridge；只有 Profile 未重新加载时才重启。
 - **缺少 API Key：**调用 `isingq_api_key_setup`，不要把 Key 粘贴到 Agent 对话。
-- **安装出现 peer 冲突：**确认 DSH 位于文档声明的 `0.1` 兼容范围内。
+- **安装出现 peer 冲突：**确认 DSH 位于文档声明的 `0.1.x` / `0.2.x` 兼容范围内。

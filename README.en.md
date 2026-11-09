@@ -158,7 +158,7 @@ Uninstall:
 dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
 ```
 
-The minimum supported DeepSeek Harness baseline is `0.1.0-rc.7`, and the current development validation version is `0.1.0-rc.8`. The supported `@deepseek-ai/dsh-tools` range is `>=0.1.0-rc.7 <0.2.0-0`.
+The minimum supported DeepSeek Harness baseline is `0.1.0-rc.7`, and the current development validation version is `0.2.2-rc.1`. Both `engines.dsh` and the `@deepseek-ai/dsh-tools` peer range are `>=0.1.0-rc.7 <0.3.0-0`, covering `0.1.x` and `0.2.x` runtimes.
 
 Do not enable both the native IsingQ Plugin and the legacy MCP bridge in the same DSH Profile. See the [DSH Plugin README](packages/dsh-plugin/README.md) for details.
 
