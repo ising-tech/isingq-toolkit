@@ -21,6 +21,7 @@ function modelingGuide(problemSummary = '') {
       repeat_known_questions: false,
       silent_business_defaults: false,
     },
+    update_policy: { mode: 'runtime_background', automatic_tool_call: false, notice_field: 'update_notice', when: 'after_primary_task_result', user_response_required: false, silent_when_notice_absent: true, automatic_install: false, failure_blocks_work: false },
     confirmation_policy: {
       business_summary: ['decision_scope', 'objectives_and_constraints', 'data_egress', 'payment_choice', 'task_execution'],
       binding: 'model_sha256_and_solver_options',

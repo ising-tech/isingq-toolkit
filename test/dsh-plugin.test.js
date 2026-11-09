@@ -1,4 +1,6 @@
 'use strict';
+// Keep optional release metadata out of unrelated behavior fixtures.
+process.env.ISINGQ_UPDATE_CHECK = 'off';
 
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -27,7 +29,7 @@ test('keeps MCP, shared core and native DSH adapter as separate packages', () =>
   assert.equal(dshPackage.dependencies['@ising-tech/isingq-core'], corePackage.version);
   assert.equal(dshPackage.peerDependencies['@deepseek-ai/dsh-tools'], '>=0.1.0-rc.7 <0.3.0-0');
   assert.equal(dshPackage.engines.dsh, '>=0.1.0-rc.7 <0.3.0-0');
-  assert.equal(dshPackage.devDependencies['@deepseek-ai/dsh-tools'], '0.2.1-rc.5');
+  assert.equal(dshPackage.devDependencies['@deepseek-ai/dsh-tools'], '0.1.0-rc.8');
   assert.equal(mcpPackage.version, corePackage.version);
   assert.equal(corePackage.version, dshPackage.version);
 });

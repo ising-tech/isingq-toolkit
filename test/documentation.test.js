@@ -23,11 +23,14 @@ test('DSH package README is bilingual and documents its install and data boundar
   const content = read('packages/dsh-plugin/README.md');
   assert.match(content, /^## Install$/m);
   assert.match(content, /^## 中文说明$/m);
-  assert.match(content, /dsh plugin --profile <profile> add @ising-tech\/isingq-dsh-plugin/);
+  assert.match(content, /Applications\/DeepSeek Harness\.app\/Contents\/Resources\/runtime\/cli\/bin\/dsh/);
+  assert.match(content, /plugin --profile desktop add @ising-tech\/isingq-dsh-plugin/);
   assert.match(content, />=0\.1\.0-rc\.7 <0\.3\.0-0/);
   assert.match(content, /HTTPS authentication|HTTPS 鉴权/);
-  assert.match(content, /eleven `isingq_\*` tools|11 个 `isingq_\*` 工具/);
-  assert.match(content, /dsh plugin --profile <profile> remove @ising-tech\/isingq-dsh-plugin/);
+  assert.match(content, /twelve `isingq_\*` tools|12 个 `isingq_\*` 工具/);
+  assert.match(content, /plugin --profile desktop remove @ising-tech\/isingq-dsh-plugin/);
+  assert.match(content, /fully quit|完全退出/);
+  assert.match(content, /not published yet|尚未公开发布/);
   assert.match(content, /administrator|管理员/);
   assert.match(content, /osascript/);
   assert.match(content, /systemd-ask-password/);

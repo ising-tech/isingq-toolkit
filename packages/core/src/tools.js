@@ -186,6 +186,12 @@ const TOOL_DEFINITIONS = [
     },
     annotations: READ_ONLY_ANNOTATIONS,
   },
+  {
+    name: 'isingq_update_check', title: '检查 IsingQ 更新',
+    description: '仅在用户主动询问版本或明确要求刷新时调用。自动提醒由运行时后台完成，普通任务不应主动调用本工具。只读查询官方npm稳定版本，不发送模型或凭据、不安装、不修改配置；unavailable表示未核实，不等于已是最新，不阻断其他功能。',
+    inputSchema: { type: 'object', properties: { refresh: { type: 'boolean', description: '忽略进程内缓存重新查询，默认 false' } }, additionalProperties: false },
+    annotations: { ...READ_ONLY_ANNOTATIONS, openWorldHint: true },
+  },
 ];
 
 module.exports = { TOOL_DEFINITIONS, RECOVERY_GUIDANCE };

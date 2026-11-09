@@ -1,24 +1,34 @@
 # @ising-tech/isingq-dsh-plugin
 
-Native IsingQ integration for DeepSeek Harness. The Plugin registers eleven typed tools in the DSH process and reuses `@ising-tech/isingq-core` for QUBO guidance, validation, public knowledge, HTTPS solving, and local result records.
+Native IsingQ integration for DeepSeek Harness. The Plugin registers twelve typed tools in the DSH process and reuses `@ising-tech/isingq-core` for QUBO guidance, validation, public knowledge, HTTPS solving, and local result records.
 
 [中文说明](#中文说明)
 
 ## Install
 
-Install the Plugin into the DSH Profile you actually use:
+Install into the Profile the desktop app actually runs. Use the CLI bundled with the app so the install targets the same runtime:
 
 ```bash
-dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop add @ising-tech/isingq-dsh-plugin@0.8.2
 ```
 
-Replace `<profile>` with the real Profile name and confirm that eleven `isingq_*` tools are available. Restart the running Profile only if it did not reload the new bundle. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
+`0.8.2` is not published yet; this is the post-publication registry command. For a local candidate, pass the packed tarball path instead. Confirm the bundled CLI reports `0.2.2-rc.1` before installing.
 
-Uninstall from the same Profile:
+The app loads its Profile at startup, so fully quit the app (not only the window) and reopen it. Read the installed version back without printing any configuration:
 
 ```bash
-dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
+node -e "console.log(require(process.env.HOME + '/.dsh/profiles/desktop/node_modules/@ising-tech/isingq-dsh-plugin/package.json').version)"
 ```
+
+Do not edit the installed package in place. To recover, remove it and fully restart:
+
+```bash
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop remove @ising-tech/isingq-dsh-plugin
+```
+
+After reopening, confirm that twelve `isingq_*` tools are available. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
 
 ## Configure an API Key
 
@@ -42,6 +52,7 @@ Once the DSH Host permits `isingq_solve_start`, the Plugin creates the remote ta
 
 | Tool | Purpose | Network |
 | --- | --- | --- |
+| `isingq_update_check` | Explicit stable-version check; automatic notices use runtime background work | Version metadata only |
 | `isingq_api_key_setup` | Configure or replace the local API Key through a private OS prompt | No |
 | `isingq_knowledge_get` | Read versioned public IsingQ knowledge | No |
 | `isingq_modeling_guide_get` | Get QUBO modeling and constraint guidance | No |
@@ -71,35 +82,59 @@ DSH 0.2 reads `engines.dsh` alone when it is declared and falls back to `@deepse
 
 ### Compatibility policy
 
-`engines.dsh` is the compatibility contract, not a per-release pin: a new patch or prerelease on a supported line installs without a Plugin release. This release was validated against DSH `0.2.2-rc.1`. CI keeps the pinned baseline for reproducible tests and runs an advisory job against the newest `@deepseek-ai/dsh-tools` build; a breaking upstream change is fixed once per supported line, not tracked release by release.
+`engines.dsh` is the compatibility contract, not a per-release pin: a new patch or prerelease on a supported line installs without a Plugin release. This release was validated against DSH `0.2.2-rc.1` with the full-package acceptance script below. Repository unit tests pin `@deepseek-ai/dsh-tools@0.1.0-rc.8`; they do not exercise newer SDK builds, so widen the range only after rerunning full-package acceptance on the target host.
+
+## Verification
+
+`scripts/verify-dsh-plugin.js` runs the full acceptance on an isolated `DSH_HOME`: it installs the packed plugin and core tarballs, boots the real host, and checks 12 tools, 13 resources, the three local tool results, the resolved core path/version/digest, host stability across a grace window, and a separate shutdown snapshot.
+
+```bash
+node scripts/verify-dsh-plugin.js \
+  --host desktop --host-version 0.2.2-rc.1 \
+  --dsh "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  --plugin <plugin.tgz> --core <core.tgz> \
+  --out /tmp/isingq-verify-desktop
+```
+
+A copied `index.mjs` or a call that succeeds just before the host exits is not acceptance; the script fails when the host does not survive the grace window.
 
 ## Troubleshooting
 
 - **Tools are missing:** verify that the package is present in the target Profile and reconciled into `dsh.profile.bundles`, remove any duplicate IsingQ MCP bridge, then restart the Profile only if it did not reload.
 - **API Key is missing:** call `isingq_api_key_setup`; never paste the Key into Agent chat.
-- **Installation reports a peer conflict:** confirm that DSH is within the documented `0.1.x` / `0.2.x` compatibility range.
+- **Installation reports a peer conflict:** confirm that DSH is within the documented `0.1` compatibility range.
 
 ---
 
 ## 中文说明
 
-这是面向 DeepSeek Harness 的 IsingQ 原生 Plugin。它在 DSH 进程内注册 11 个 typed tools，并复用 `@ising-tech/isingq-core` 提供 QUBO 建模引导、校验、公开知识、HTTPS 求解和本地结果记录。
+这是面向 DeepSeek Harness 的 IsingQ 原生 Plugin。它在 DSH 进程内注册 12 个 typed tools，并复用 `@ising-tech/isingq-core` 提供 QUBO 建模引导、校验、公开知识、HTTPS 求解和本地结果记录。
 
 ## 安装
 
-安装到实际使用的 DSH Profile：
+安装到桌面端实际使用的 Profile。使用应用自带的 CLI，确保安装目标与运行目标一致：
 
 ```bash
-dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop add @ising-tech/isingq-dsh-plugin@0.8.2
 ```
 
-将 `<profile>` 替换为真实 Profile 名，并确认出现 11 个 `isingq_*` 工具。只有正在运行的 Profile 没有重新加载新 Bundle 时才重启。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
+`0.8.2` 尚未公开发布；这是发布后的 registry 命令。本地候选请改为传入打包 tarball 路径。安装前先确认自带 CLI 版本为 `0.2.2-rc.1`。
 
-从同一 Profile 卸载：
+桌面端在启动时加载 Profile，因此必须完全退出应用（只关窗口不够）后重新打开。用以下命令回读安装版本，不打印任何配置：
 
 ```bash
-dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
+node -e "console.log(require(process.env.HOME + '/.dsh/profiles/desktop/node_modules/@ising-tech/isingq-dsh-plugin/package.json').version)"
 ```
+
+不要直接修改已安装包。恢复方式：移除插件后完全重启：
+
+```bash
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop remove @ising-tech/isingq-dsh-plugin
+```
+
+重新打开后确认出现 12 个 `isingq_*` 工具。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
 
 ## 配置 API Key
 
@@ -123,6 +158,7 @@ DSH Host 放行 `isingq_solve_start` 后，Plugin 会立即创建远端任务，
 
 | 工具 | 作用 | 是否联网 |
 | --- | --- | --- |
+| `isingq_update_check` | 用户主动查询版本；自动提醒由后台完成 | 仅版本元数据 |
 | `isingq_api_key_setup` | 通过操作系统私密输入框配置或更换 API Key | 否 |
 | `isingq_knowledge_get` | 查询版本化的 IsingQ 公开知识 | 否 |
 | `isingq_modeling_guide_get` | 获取 QUBO 建模与约束引导 | 否 |
@@ -152,10 +188,24 @@ DSH 0.2 在声明了 `engines.dsh` 时只按该范围判断，未声明时才回
 
 ### 兼容策略
 
-`engines.dsh` 是兼容契约，不是逐版本钉死：同一支持线内的补丁或预发布版本无需重新发布 Plugin。本次验证对应 DSH `0.2.2-rc.1`。CI 用固定基线保证测试可重复，另有一个建议性 job 用最新 `@deepseek-ai/dsh-tools` 跑同一适配器；上游破坏性变更按支持线修正一次，而不是逐版本追。
+`engines.dsh` 是兼容契约，不是逐版本钉死：同一支持线内的补丁或预发布版本无需重新发布 Plugin。本次验证对应 DSH `0.2.2-rc.1`，使用下方完整包验收脚本。仓库单测固定 `@deepseek-ai/dsh-tools@0.1.0-rc.8`，不会自动覆盖更新的 SDK；放宽范围前必须在目标 Host 上重跑完整包验收。
+
+## 验证
+
+`scripts/verify-dsh-plugin.js` 在隔离 `DSH_HOME` 上完成完整包验收：安装候选插件与 core tarball，启动真实 Host，核对 12 个工具、13 个 Resources、三个本地工具字段、实际加载 core 的路径/版本/摘要、Host 在宽限期内的存活，以及独立的关闭快照。
+
+```bash
+node scripts/verify-dsh-plugin.js \
+  --host desktop --host-version 0.2.2-rc.1 \
+  --dsh "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  --plugin <plugin.tgz> --core <core.tgz> \
+  --out /tmp/isingq-verify-desktop
+```
+
+复制 `index.mjs` 或在 Host 退出前调用成功都不算验收；Host 未通过宽限期时脚本会失败。
 
 ## 故障排查
 
 - **没有出现工具：**确认包已安装到目标 Profile 并进入 `dsh.profile.bundles`，移除重复的 IsingQ MCP Bridge；只有 Profile 未重新加载时才重启。
 - **缺少 API Key：**调用 `isingq_api_key_setup`，不要把 Key 粘贴到 Agent 对话。
-- **安装出现 peer 冲突：**确认 DSH 位于文档声明的 `0.1.x` / `0.2.x` 兼容范围内。
+- **安装出现 peer 冲突：**确认 DSH 位于文档声明的 `0.1` 兼容范围内。

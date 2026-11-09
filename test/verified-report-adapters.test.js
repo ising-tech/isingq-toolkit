@@ -1,4 +1,6 @@
 'use strict';
+// Keep optional release metadata out of unrelated behavior fixtures.
+process.env.ISINGQ_UPDATE_CHECK = 'off';
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { TOOL_DEFINITIONS } = require('../packages/core');
@@ -28,6 +30,7 @@ test('MCP and DSH report adapters reuse core data and typed errors offline witho
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'isingq-report-adapters-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
   const program = `
+    process.env.ISINGQ_UPDATE_CHECK='off';
     const assert=require('node:assert/strict');
     const core=require(${JSON.stringify(path.join(root, 'packages/core'))});
     const fs=require('node:fs');

@@ -41,7 +41,7 @@ npm workspaces 包含三个发布单元：
 
 ## MCP 与 Resources
 
-标准 MCP 暴露 9 个工具；DSH 原生 Plugin 额外提供 `isingq_resource_list` 和 `isingq_resource_read`。13 个本地 Resources 覆盖公司、产品、技术、云平台、方案、案例、FAQ、术语、来源、QUBO 建模与数据流。
+标准 MCP 暴露 10 个工具；DSH 原生 Plugin 额外提供 `isingq_resource_list` 和 `isingq_resource_read`。13 个本地 Resources 覆盖公司、产品、技术、云平台、方案、案例、FAQ、术语、来源、QUBO 建模与数据流。
 
 Resources 是版本化的本地公开知识，不在读取时访问远程网站。是否自动加入上下文由 Host 决定，关键行为必须由工具 schema 和运行时门禁保证。
 
@@ -124,6 +124,25 @@ Transport 的同步 `prepareSubmission()` 返回仅供本次 `submit(matrix, opt
 
 本地求解记录（含归档）超过 10000 条时停止提交，并提示目录、实际数量与备份整理建议；不会通过截断扫描来判断幂等 key 不存在。
 
+文件容量开箱即用，不增加配置步骤或主动询问容量。默认与可选进程环境变量如下（单位均为 UTF-8 实际字节，包含 JSON 序列化和文件换行）：
+
+| 用途 | 默认值 | 可选覆盖 |
+|---|---|---|
+| 单条求解历史记录读写 | 128 MiB / 134217728 bytes | `ISINGQ_MAX_RECORD_BYTES` |
+| 本地模型/交付/报告文件导入、Workspace 文件读写 | 128 MiB / 134217728 bytes | `ISINGQ_MAX_LOCAL_FILE_BYTES` |
+| Host JSON 配置读取与合并写入 | 10 MiB / 10485760 bytes | `ISINGQ_MAX_HOST_CONFIG_BYTES` |
+| API Key 文件 | 64 KiB / 65536 bytes（含换行） | 固定，未提供覆盖 |
+
+变量不存在即使用默认；存在时仅接受正十进制整数字节数，空值、0、负值、小数、科学计数、空格、单位后缀和超出当前 Node Buffer/string 可表示范围均报 `file_limit_invalid`，不静默忽略、不输出配置原文。实例构造时固定有效值；用户需要调整时让 Agent 在启动该进程时传入对应环境变量并重启，移除变量恢复默认。示例 `ISINGQ_MAX_RECORD_BYTES=268435456 isingq-mcp serve`；仅显式需要更大文件时使用，不是正常使用的前置步骤。工具不据此改写真实凭据或 Host 配置。
+
+超过旧 4 MiB 而在有效上限内的历史可原样读取，无需迁移。`save/get/findByIdempotency/archive` 与 `start/poll/result_get` 共享有效上限，保留完整字段、同步占位和幂等检查；结构不完整的记录不跳过。`solve_record_too_large/invalid/unsafe/io_error` 区分容量、结构、路径与 IO，MCP/专家入口保留分类；超限包含实际 bytes、有效 max_bytes 与覆盖变量名，不误报损坏。超限及写入失败不替换原文件；本次创建的临时文件/Workspace 半成品清理，已存在产物仍拒绝覆盖。
+
+内容导入与存储容量不是模型计算能力认证：QUBO 仍限 2048 位、上传 CSV 仍限 20 MiB；放宽文件不能解除这些契约。HTTP 成功 JSON 仍为 1 MiB、失败诊断为 16 KiB，按实际流式字节限制；未因本地文件扩容而放大。2048 位支持形状的合成响应已核验，真实平台极限响应规模尚未取得，不能宣称全部平台响应已覆盖。
+
+共享容量实现为 `packages/core/src/file-limits.js`，专家 CLI 携带同内容副本并由跨仓回归锁定一致；输入 JSON、stdin、报告 export/check 不再绕过上限。core 标识 `FILE_LIMITS_CONTRACT_VERSION=isingq-file-limits-v1`；显式覆盖在不支持该契约的旧专家运行时上报错，不静默忽略。默认行为以本次候选源码为准，不代表旧安装已升级。
+
+容量回归见 `test/file-limits.test.js` 与 `test/store-large-history.test.js`，容量与历史累积观测通过 `node scripts/benchmark-file-capacity.js` 执行。单次容量观测不是性能承诺；各次执行结果必须绑定对应源码或制品，旧固定上限阶段的结果不能替代整合候选验收。
+
 `solve_start` 遇到无法恢复的失败或 `submission_unknown` 时，core 抛出包含公开求解记录的错误，MCP 返回 `ok: false`、`isError: true`，DSH 原生入口同样得到失败。`solve_poll` 和 `solve_result_get` 保持“调用是否成功”与“任务是否成功”分离：成功读取 `failed` 记录仍表示读取操作成功。
 
 ## 本地验证
@@ -158,7 +177,7 @@ npm run build:binaries -- --target node22-win-x64
 
 ## GitHub Actions 与 Release
 
-`.github/workflows/release.yml` 在 GitHub 官方原生 Runner 上分别构建五个平台，并使用打包后的程序验证 MCP `initialize`、9 个工具和 13 个 Resources。
+`.github/workflows/release.yml` 在 GitHub 官方原生 Runner 上分别构建五个平台，并使用打包后的程序验证 MCP `initialize`、10 个工具和 13 个 Resources。
 
 - `main` 和 Pull Request：运行测试、构建和 smoke test，只生成 Workflow Artifacts。
 - `dsh-latest`（建议性，`main` push 和手动触发）：用 `@deepseek-ai/dsh-tools@next` 在隔离目录运行 `scripts/smoke-dsh-plugin.js`，失败只告警，用于发现上游兼容性漂移。
@@ -180,3 +199,14 @@ npm run build:binaries -- --target node22-win-x64
 - 不得把真实求解作为普通安装 smoke test。
 - npm、Release 和源码安装必须复用同一 core 行为与安全门禁。
 - 本仓库使用 Apache-2.0；许可证不授予公司或产品商标权。
+
+
+## 后台更新提醒发布边界
+
+0.8.1整合后台版本提醒、显式update-check，以及大历史兼容、可选容量覆盖和文件读写保护；求解transport增加HTTP响应流式容量检查，原有求解默认参数与提交状态语义保留。不包含设备清单/推荐/强制选择，设备扩展留在独立开发分支。
+
+MCP serve和DSH apply启动inline后台管理器；专家普通validate/guide/knowledge由运行时启动detached worker。主任务不等待网络，成功结果仅从缓存消费可行动的update_notice；diagnose/setup/manualcheck不触发专家自动worker。worker最多5秒且环境白名单不继承API Key、npm令牌或NODE_OPTIONS；正常HTTP最多2秒/64KiB。
+
+缓存位于用户缓存目录isingq-mcp/updates，成功24小时、失败5分钟，token锁防并发覆盖，通知按当前/最新版本对24小时去重。TTL不是自动轮询周期，长寿命服务需要显式手动刷新或在下次启动时检查。缓存异常不影响业务；off开关用于严格离线环境。Core纯数学函数不发请求。
+
+正式发布需GitHub和npm同步，先按既定流程核对该提交CI及五平台Release，再依次发布core、MCP、DSH0.8.1；专家1.3.1公开上传前必须确认固定npm运行时可获取。当前审查候选不能冒称已发布。

@@ -110,3 +110,8 @@ validation.business_correctness 始终 unverified；ledger_authenticity 始终 n
 共享QUBO_INPUT_SCHEMA用于guide.input_schema及工具参数：仅num_bits必填；linear/quadratic/variables省略为[]，offset省略或null为0。guide旧schema字段保留为示例，schema_role明确不是校验schema；normalized_output_fields表示完整规范化输出字段。数组null仍非法，默认值不改变既有校验。
 
 规范化QUBO生成CSV上传，create_task只通过inputJFile引用矩阵并发送求解参数，不传原始QUBO JSON。省略与显式默认具有相同规范化模型、矩阵及请求摘要；上传生成的文件URL可不同，不代表语义变化。rejected动作改为diagnose_rejection：根因unverified，等价规范化不是修复，先诊断/人工核查。用户主动新任务的既有确认流程不变，不以此自动新建或重试。
+
+
+## 可选的版本提醒
+
+`checkUpdate({refresh})` 是显式手动查询。`createBackgroundUpdates()`供运行时适配器启动，start不等待网络，takeNotice只消费已完成缓存，不在Core数学/求解函数里自动调用。普通结果有update_notice时才需要用户可见提示；无字段时不说明检查状态。API Key、模型和业务结果不进入版本请求或缓存。

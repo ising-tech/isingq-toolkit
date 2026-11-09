@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { fileLimit, fileLimitHint, assertFileBytes, readFileBounded, FileLimitError } = require('./file-limits');
 
 const WORKSPACE_CONTRACT_VERSION = 'isingq-workspace-v1';
 const CATEGORIES = ['tmp', 'logs', 'output'];
@@ -17,7 +18,8 @@ class WorkspaceError extends Error {
 
 /** Local artifact paths only. This is not a shell runner or an OS sandbox. */
 class WorkspaceArtifacts {
-  constructor({ root, round } = {}) {
+  constructor({ root, round, environment = process.env } = {}) {
+    this.maxFileBytes = fileLimit('localFile', environment);
     this.root = root;
     this.round = round;
     if (typeof root !== 'string' || !root || /[\x00-\x1f\x7f]/.test(root) || !path.isAbsolute(root)) {
@@ -42,7 +44,7 @@ class WorkspaceArtifacts {
 
   fail(code, message, context = {}) {
     throw new WorkspaceError(code, `${message}（root=${this.root}, round=${this.round}${context.path ? `, path=${context.path}` : ''}）`,
-      { root: this.root, round: this.round, ...context }, '使用显式已存在的工作根、正整数轮次和本轮 tmp/、logs/、output/ 下的相对路径；检查目录权限并移除路径中的符号链接后重试。');
+      { root: this.root, round: this.round, ...context }, code === 'artifact_too_large' ? fileLimitHint('localFile') : '使用显式已存在的工作根、正整数轮次和本轮 tmp/、logs/、output/ 下的相对路径；检查目录权限并移除路径中的符号链接后重试。');
   }
 
   // Check every existing component. Never follow a symlink, including a dangling one.
@@ -114,29 +116,17 @@ class WorkspaceArtifacts {
 
   // Read only a regular artifact within the same checked round paths. Bound the
   // actual bytes read, including growth after fstat, and never create directories.
-  read(relativePath, maxBytes = 20 * 1024 * 1024) {
+  read(relativePath, maxBytes = this.maxFileBytes) {
     const target = this.resolve(relativePath);
-    if (!Number.isSafeInteger(maxBytes) || maxBytes < 0 || maxBytes > 20 * 1024 * 1024) {
-      this.fail('artifact_size_invalid', '读取上限必须为0到20MiB的安全整数', { path: relativePath });
+    if (!Number.isSafeInteger(maxBytes) || maxBytes < 0 || maxBytes > this.maxFileBytes) {
+      this.fail('artifact_size_invalid', `读取上限必须为0到有效上限的安全整数（max_bytes=${this.maxFileBytes}）；${fileLimitHint('localFile')}`, { path: relativePath });
     }
-    let descriptor;
     try {
-      descriptor = fs.openSync(target, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
-      if (!fs.fstatSync(descriptor).isFile()) this.fail('artifact_path_unsafe', '产物必须是普通文件', { path: target });
-      const buffer = Buffer.alloc(maxBytes + 1);
-      let size = 0;
-      while (size <= maxBytes) {
-        const count = fs.readSync(descriptor, buffer, size, buffer.length - size, null);
-        if (!count) break;
-        size += count;
-      }
-      if (size > maxBytes) this.fail('artifact_too_large', '产物超过读取上限；请减少报告候选或拆分交付', { path: target, max_bytes: maxBytes });
-      return buffer.subarray(0, size);
+      return readFileBounded(target, maxBytes);
     } catch (error) {
       if (error instanceof WorkspaceError) throw error;
+      if (error instanceof FileLimitError) this.fail(error.code === 'file_too_large' ? 'artifact_too_large' : 'artifact_path_unsafe', error.message, { path: target, bytes: error.bytes, max_bytes: maxBytes });
       this.fail('artifact_read_error', '无法读取产物；请检查文件存在、权限与路径节点', { path: target, fs_code: error.code });
-    } finally {
-      if (descriptor !== undefined) fs.closeSync(descriptor);
     }
   }
 
@@ -145,12 +135,18 @@ class WorkspaceArtifacts {
     if (typeof content !== 'string' && !Buffer.isBuffer(content)) {
       this.fail('artifact_content_invalid', '产物内容必须是 string 或 Buffer', { path: relativePath });
     }
+    try { assertFileBytes(Buffer.byteLength(content), this.maxFileBytes, 'localFile', target); }
+    catch (error) { this.fail('artifact_too_large', error.message, { path: target, bytes: error.bytes, max_bytes: this.maxFileBytes }); }
     this.check(target, true, true);
     let descriptor;
+    let created = false;
     try {
       descriptor = fs.openSync(target, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | (fs.constants.O_NOFOLLOW || 0), 0o600);
+      created = true;
       fs.writeFileSync(descriptor, content);
     } catch (error) {
+      if (descriptor !== undefined) { fs.closeSync(descriptor); descriptor = undefined; }
+      if (created) fs.unlinkSync(target);
       this.fail(error.code === 'EEXIST' ? 'artifact_exists' : 'artifact_io_error',
         error.code === 'EEXIST' ? '产物已存在，拒绝覆盖；请选择新文件名或下一轮' : '产物写入失败；请检查权限、磁盘状态及路径节点',
         { path: target, fs_code: error.code });

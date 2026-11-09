@@ -7,12 +7,12 @@
     "url": "https://github.com/ising-tech/isingq-toolkit",
     "source": "github"
   },
-  "version": "0.8.0",
+  "version": "0.8.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@ising-tech/isingq-mcp",
-      "version": "0.8.0",
+      "version": "0.8.2",
       "transport": {
         "type": "stdio"
       }

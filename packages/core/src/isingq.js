@@ -30,9 +30,33 @@ function endpoint(baseUrl, suffix) {
 async function boundedJson(response, phase) {
   const declared = Number(response.headers.get('content-length') || '0');
   if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+    try { await response.body?.cancel(); } catch (_) { /* Keep the size error. */ }
     throw new IsingQError(`IsingQ 响应过大（phase=${phase}, bytes=${declared}）`, { phase });
   }
-  const text = await response.text();
+  let text;
+  if (response.body?.getReader) {
+    const reader = response.body.getReader();
+    const chunks = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_RESPONSE_BYTES) {
+          try { await reader.cancel(); } catch (_) { /* Keep the size error. */ }
+          throw new IsingQError(`IsingQ 响应超过 1 MiB（phase=${phase}, bytes=${size}, max_bytes=${MAX_RESPONSE_BYTES}）`, { phase });
+        }
+        chunks.push(Buffer.from(value));
+      }
+      text = Buffer.concat(chunks, size).toString('utf8');
+    } finally {
+      reader.releaseLock();
+    }
+  } else {
+    // Preserve injected text-only transports; real fetch uses the stream above.
+    text = await response.text();
+  }
   if (Buffer.byteLength(text) > MAX_RESPONSE_BYTES) {
     throw new IsingQError(`IsingQ 响应超过 1 MiB（phase=${phase}）`, { phase });
   }

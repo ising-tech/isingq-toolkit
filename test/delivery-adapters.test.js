@@ -1,4 +1,6 @@
 'use strict';
+// Keep optional release metadata out of unrelated behavior fixtures.
+process.env.ISINGQ_UPDATE_CHECK = 'off';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -11,6 +13,7 @@ test('default MCP and DSH discovery/delivery stay offline without constructing a
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'isingq-delivery-adapters-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
   const program = `
+    process.env.ISINGQ_UPDATE_CHECK='off';
     const assert=require('node:assert/strict');
     const core=require(${JSON.stringify(path.join(root, 'packages/core'))});
     let constructions=0;

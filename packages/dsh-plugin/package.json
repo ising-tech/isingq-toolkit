@@ -1,6 +1,6 @@
 {
   "name": "@ising-tech/isingq-dsh-plugin",
-  "version": "0.8.0",
+  "version": "0.8.2",
   "description": "Native DeepSeek Harness plugin for IsingQ guided QUBO modeling and solving",
   "keywords": [
     "deepseek-harness",
@@ -48,12 +48,12 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@ising-tech/isingq-core": "0.8.0"
+    "@ising-tech/isingq-core": "0.8.2"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tools": ">=0.1.0-rc.7 <0.3.0-0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.5"
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.8"
   }
 }

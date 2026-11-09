@@ -4,7 +4,7 @@
 
 <h1 align="center">IsingQ Toolkit</h1>
 
-> Source version 0.8.0 adds local delivery validation and round artifact helpers. It is not published yet; release installation commands below do not imply this version is available. Use a tested, pinned source/local artifact for these capabilities. Existing global installations are not upgraded automatically.
+> Version 0.8.1 adds background update notices, an explicit version check, large-history compatibility, and consistent file-capacity checks with optional overrides. Install only versions available through official GitHub Releases/npm; this source tree does not itself confirm publication or update existing installations.
 
 <p align="center">
   QUBO modeling, validation, and IsingQ solving for AI Agents
@@ -48,12 +48,12 @@ Install IsingQ MCP and connect only the current Agent.
 Never ask for or display my API Key in chat; use the operating system's secure input prompt.
 After installation, reconnect the isingq MCP first.
 If the current Agent cannot reload MCP dynamically, wait for me to restart it,
-then verify that nine MCP tools are loaded.
+then verify that ten MCP tools are loaded.
 ```
 
 The installation Skill selects one integration for the current Agent and operating system. It does not modify every Agent installed on the computer. If a Host cannot register automatically, the Skill outputs stdio JSON for manual import.
 
-A standard MCP Host should expose nine `isingq_*` tools after setup. The native DSH Plugin exposes eleven tools.
+A standard MCP Host should expose ten `isingq_*` tools after setup. The native DSH Plugin exposes twelve tools.
 
 ### Installation demo
 
@@ -61,7 +61,7 @@ A standard MCP Host should expose nine `isingq_*` tools after setup. The native 
   <img src="docs/assets/isingq-toolkit-install-demo.gif" width="800" alt="Historical installation illustration; 7/7 is not the current tool count">
 </p>
 
-> **Historical installation illustration, not acceptance evidence for the current version.** The animation's “7/7” refers to an older version. The current standard MCP should enumerate nine tools; actual loading must be checked against the final pinned candidate and cannot be inferred from this animation.
+> **Historical installation illustration, not acceptance evidence for the current version.** The animation's “7/7” refers to an older version. The current standard MCP should enumerate ten tools; actual loading must be checked against the final pinned candidate and cannot be inferred from this animation.
 
 ## First solve
 
@@ -152,6 +152,8 @@ DSH uses its native Plugin and does not need an MCP bridge. Review the [npm pack
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
+On macOS, use the CLI bundled with the desktop app (`/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`) and target the `desktop` Profile the app actually runs. `0.8.2` is not published yet: the registry command above is a post-publication step; for a local candidate pass the packed tarball path.
+
 Uninstall:
 
 ```bash
@@ -170,6 +172,7 @@ Source execution, architecture, package boundaries, and the Release process are 
 
 | Tool | Purpose | Network |
 | --- | --- | --- |
+| `isingq_update_check` | Explicitly check the official stable version; never install automatically | Version metadata only |
 | `isingq_api_key_setup` | Open a secure OS prompt to configure or replace a personal API Key | No |
 | `isingq_knowledge_get` | Query public company, product, technology, case, FAQ, and source knowledge | No |
 | `isingq_modeling_guide_get` | Return QUBO modeling steps and constraint guidance | No |
@@ -221,7 +224,7 @@ See the [Security Policy](SECURITY.md) for additional boundaries.
 - **Tools are missing**: reconnect `isingq` and approve the Host's trust prompt; fully restart the Agent only if tools still do not load.
 - **The Host cannot register automatically**: run `isingq-mcp config --json` and import the result through the Host's MCP settings.
 - **Sandbox blocks writes**: approve only the exact installation and user configuration directories; never move the API Key into the project.
-- **Only an NDJSON response was tested**: that proves process reachability only. Standard MCP integration is complete when the Agent exposes nine native tools.
+- **Only an NDJSON response was tested**: that proves process reachability only. Standard MCP integration is complete when the Agent exposes ten native tools.
 
 ## Project and development
 
@@ -230,3 +233,8 @@ Architecture, package boundaries, QUBO data contracts, builds, and the Release p
 Report issues or suggestions through [GitHub Issues](https://github.com/ising-tech/isingq-toolkit/issues).
 
 This project is licensed under the [Apache License 2.0](LICENSE). The license does not grant rights to IsingQ or Ising Intelligent trademarks.
+
+
+## Background update notices (0.8.1)
+
+Runtime startup asynchronously checks official npm version metadata without business data or credentials. Ordinary tasks never await the version request. Only a completed newer-version result produces an optional update_notice; failures and pending checks remain silent. Short tasks may finish first, with a notice delivered on a later ordinary result. Cache lifetime is 24 hours for successful checks and 5 minutes for failures, with 24-hour per-version notice deduplication. This is not periodic polling. Explicit update-check remains available; ISINGQ_UPDATE_CHECK=off disables automatic checks. Diagnosis stays offline, while pure model validation stays local and the adapter may separately check version metadata. This release does not add device-selection gates or change solve options, payment, retries, or polling.
