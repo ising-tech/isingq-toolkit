@@ -151,7 +151,7 @@ DSH 使用原生 Plugin，不需要 MCP Bridge。安装前可以查看 [npm 包]
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-macOS 桌面端请使用应用自带 CLI（`/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`），并确认目标是桌面端实际使用的 `desktop` Profile；`0.8.2` 尚未发布，上面的 registry 命令属于发布后步骤，本地候选请传入打包 tarball 路径。
+macOS 桌面端请使用应用自带 CLI（`/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`），并确认目标是桌面端实际使用的 `desktop` Profile。
 
 卸载：
 
@@ -231,19 +231,14 @@ f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i \lt j} Q_{ij}x_i x_j
 
 本项目使用 [Apache License 2.0](LICENSE)。该许可证不授予 IsingQ 或伊辛智能相关商标权。
 
-## 本地业务核验与报告（0.8.0 源码）
+## 本地模型核验与报告
 
-`validateMathModel`、`evaluateMathCandidate`、`compareMathCandidates` 复用有限数学模型契约；`buildVerifiedReport` 从同次核验生成目标分项、提供候选中的排名、基线改善与约束余量。CLI/MCP/DSH共享该核心，不按业务类型分支。不可行方案不入榜；取等不代表约束冗余；不推断全局最优、QUBO等价或实测收益。输入、错误与支持范围见 [核心报告契约](packages/core/VERIFIED-REPORT.md)。
+支持根据提供的数学模型、数据和候选方案，在本地生成目标值、约束检查、基线比较及候选排名报告。
 
-此为源码变更，不表示已发布或已升级全局安装。本地报告不调用云求解、安装程序或凭据。
+核验范围限于提供的输入；业务语义及全局最优性需要另行证明。详细支持范围见[报告说明](packages/core/VERIFIED-REPORT.md)。
 
+## 更新提醒（自 0.8.1 起）
 
-## 后台更新提醒（0.8.1）
+Toolkit 从 0.8.1 起提供后台更新提醒；旧版本需先升级才能获得该功能。运行时会在后台检查官方版本，发现新版时提示，不会自动安装或升级，检查失败不影响当前任务。
 
-运行时启动后异步查询官方 npm 的 Toolkit 稳定版本，只查询版本元数据，不发送模型或凭据。正常任务不等待版本网络请求；只有发现新版时，才在普通成功结果中附加一次 `update_notice`，无需用户回应。无新版或失败不返回更新状态，不产生安装、升级或重试步骤。短任务可能先结束，提示留到后续普通结果。
-
-成功缓存24小时、失败5分钟，同一当前/最新版本对在24小时内去重。缓存有效期不是周期轮询：长期不重启的 MCP/DSH 服务可由用户主动运行 `isingq-mcp update-check [--refresh]` 查询。`ISINGQ_UPDATE_CHECK=off` 可关闭自动检查，手动检查仍保留。模型校验在本机完成；运行时的独立版本检查可联网，`diagnose` 不启动后台任务。
-
-本次更新不加入设备选择或设备容量门禁，原有求解参数、付款确认、幂等重试和结果续查流程保持不变。
-
-本版同时修复历史记录读写容量不一致。历史和本地文件默认 128 MiB，Host 配置默认 10 MiB；正常使用无需设置，有扩容需求时可按用户指令覆盖进程环境。具体变量、边界和回归说明见 [开发说明](docs/DEVELOPMENT.md)。
+版本检查只查询版本信息，不上传模型或凭据。可让 Agent 手动检查更新，或通过 `ISINGQ_UPDATE_CHECK=off` 关闭后台检查。更多配置见[开发说明](docs/DEVELOPMENT.md)。

@@ -152,7 +152,7 @@ DSH uses its native Plugin and does not need an MCP bridge. Review the [npm pack
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-On macOS, use the CLI bundled with the desktop app (`/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`) and target the `desktop` Profile the app actually runs. `0.8.2` is not published yet: the registry command above is a post-publication step; for a local candidate pass the packed tarball path.
+On macOS, use the CLI bundled with the desktop app (`/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`) and target the `desktop` Profile the app actually runs.
 
 Uninstall:
 
@@ -234,7 +234,14 @@ Report issues or suggestions through [GitHub Issues](https://github.com/ising-te
 
 This project is licensed under the [Apache License 2.0](LICENSE). The license does not grant rights to IsingQ or Ising Intelligent trademarks.
 
+## Local model verification and reports
 
-## Background update notices (0.8.1)
+Generate local reports from supplied mathematical models, data, and candidate solutions, including objective values, constraint checks, baseline comparisons, and candidate rankings.
 
-Runtime startup asynchronously checks official npm version metadata without business data or credentials. Ordinary tasks never await the version request. Only a completed newer-version result produces an optional update_notice; failures and pending checks remain silent. Short tasks may finish first, with a notice delivered on a later ordinary result. Cache lifetime is 24 hours for successful checks and 5 minutes for failures, with 24-hour per-version notice deduplication. This is not periodic polling. Explicit update-check remains available; ISINGQ_UPDATE_CHECK=off disables automatic checks. Diagnosis stays offline, while pure model validation stays local and the adapter may separately check version metadata. This release does not add device-selection gates or change solve options, payment, retries, or polling.
+Verification covers only the supplied inputs. Business correctness and global optimality require separate evidence. See the [report documentation](packages/core/VERIFIED-REPORT.md) for supported inputs and limits.
+
+## Update notices (since 0.8.1)
+
+Toolkit introduced background update notices in 0.8.1; older installations must be updated to gain this feature. The runtime checks official versions in the background and notifies you when a newer version is available. It does not automatically install or upgrade anything, and failed checks do not interrupt the current task.
+
+Version checks query only version metadata, without uploading models or credentials. Ask the Agent to check for updates manually, or set `ISINGQ_UPDATE_CHECK=off` to disable background checks. See the [developer guide](docs/DEVELOPMENT.md) for more configuration details.

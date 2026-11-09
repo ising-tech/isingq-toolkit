@@ -8,14 +8,14 @@ Native IsingQ integration for DeepSeek Harness. The Plugin registers twelve type
 
 Install into the Profile the desktop app actually runs. Use the CLI bundled with the app so the install targets the same runtime:
 
+Before installing, fully quit the desktop app and confirm that its bundled CLI is within the supported DSH version range.
+
 ```bash
 "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
   plugin --profile desktop add @ising-tech/isingq-dsh-plugin@0.8.2
 ```
 
-`0.8.2` is not published yet; this is the post-publication registry command. For a local candidate, pass the packed tarball path instead. Confirm the bundled CLI reports `0.2.2-rc.1` before installing.
-
-The app loads its Profile at startup, so fully quit the app (not only the window) and reopen it. Read the installed version back without printing any configuration:
+Reopen the app after installation. Read the installed version back without printing any configuration:
 
 ```bash
 node -e "console.log(require(process.env.HOME + '/.dsh/profiles/desktop/node_modules/@ising-tech/isingq-dsh-plugin/package.json').version)"
@@ -114,14 +114,14 @@ A copied `index.mjs` or a call that succeeds just before the host exits is not a
 
 安装到桌面端实际使用的 Profile。使用应用自带的 CLI，确保安装目标与运行目标一致：
 
+安装前完全退出桌面应用（只关窗口不够），并确认自带 CLI 处于支持的 DSH 版本范围内。
+
 ```bash
 "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
   plugin --profile desktop add @ising-tech/isingq-dsh-plugin@0.8.2
 ```
 
-`0.8.2` 尚未公开发布；这是发布后的 registry 命令。本地候选请改为传入打包 tarball 路径。安装前先确认自带 CLI 版本为 `0.2.2-rc.1`。
-
-桌面端在启动时加载 Profile，因此必须完全退出应用（只关窗口不够）后重新打开。用以下命令回读安装版本，不打印任何配置：
+安装后重新打开应用。用以下命令回读安装版本，不打印任何配置：
 
 ```bash
 node -e "console.log(require(process.env.HOME + '/.dsh/profiles/desktop/node_modules/@ising-tech/isingq-dsh-plugin/package.json').version)"

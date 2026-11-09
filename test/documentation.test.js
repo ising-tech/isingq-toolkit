@@ -30,7 +30,6 @@ test('DSH package README is bilingual and documents its install and data boundar
   assert.match(content, /twelve `isingq_\*` tools|12 个 `isingq_\*` 工具/);
   assert.match(content, /plugin --profile desktop remove @ising-tech\/isingq-dsh-plugin/);
   assert.match(content, /fully quit|完全退出/);
-  assert.match(content, /not published yet|尚未公开发布/);
   assert.match(content, /administrator|管理员/);
   assert.match(content, /osascript/);
   assert.match(content, /systemd-ask-password/);
