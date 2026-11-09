@@ -1,6 +1,6 @@
 {
   "name": "@ising-tech/isingq-mcp",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "mcpName": "io.github.ising-tech/isingq-mcp",
   "description": "IsingQ local MCP for guided QUBO modeling and personal API-key solving",
   "keywords": [
@@ -43,9 +43,10 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check bin/isingq-mcp.js && node --check src/server.js && npm run check --workspace @ising-tech/isingq-core && npm run check --workspace @ising-tech/isingq-dsh-plugin",
+    "check": "node --check bin/isingq-mcp.js && node --check src/server.js && node --check scripts/verify-dsh-plugin.js && npm run check --workspace @ising-tech/isingq-core && npm run check --workspace @ising-tech/isingq-dsh-plugin",
     "build:binaries": "node scripts/build-binaries.js",
-    "prepublishOnly": "npm test && npm run check"
+    "prepublishOnly": "npm test && npm run check",
+    "verify:dsh": "node scripts/verify-dsh-plugin.js"
   },
   "publishConfig": {
     "access": "public",

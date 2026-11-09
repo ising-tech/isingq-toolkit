@@ -151,13 +151,15 @@ DSH 使用原生 Plugin，不需要 MCP Bridge。安装前可以查看 [npm 包]
 dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
+macOS 桌面端请使用应用自带 CLI（`/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`），并确认目标是桌面端实际使用的 `desktop` Profile；`0.8.2` 尚未发布，上面的 registry 命令属于发布后步骤，本地候选请传入打包 tarball 路径。
+
 卸载：
 
 ```bash
 dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
 ```
 
-最低兼容基线为 DeepSeek Harness `0.1.0-rc.7`，当前开发验证版本为 `0.1.0-rc.8`。`@deepseek-ai/dsh-tools` 支持范围为 `>=0.1.0-rc.7 <0.2.0-0`。
+最低兼容基线为 DeepSeek Harness `0.1.0-rc.7`，当前开发验证版本为 `0.2.2-rc.1`。`engines.dsh` 与 `@deepseek-ai/dsh-tools` peer 范围同为 `>=0.1.0-rc.7 <0.3.0-0`，同时覆盖 `0.1.x` 与 `0.2.x` 运行时。
 
 不要在同一个 DSH Profile 中同时启用 IsingQ 原生 Plugin 和旧 MCP Bridge。详细说明见 [DSH Plugin README](packages/dsh-plugin/README.md)。
 

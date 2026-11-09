@@ -6,19 +6,29 @@ Native IsingQ integration for DeepSeek Harness. The Plugin registers twelve type
 
 ## Install
 
-Install the Plugin into the DSH Profile you actually use:
+Install into the Profile the desktop app actually runs. Use the CLI bundled with the app so the install targets the same runtime:
 
 ```bash
-dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop add @ising-tech/isingq-dsh-plugin@0.8.2
 ```
 
-Replace `<profile>` with the real Profile name and confirm that twelve `isingq_*` tools are available. Restart the running Profile only if it did not reload the new bundle. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
+`0.8.2` is not published yet; this is the post-publication registry command. For a local candidate, pass the packed tarball path instead. Confirm the bundled CLI reports `0.2.2-rc.1` before installing.
 
-Uninstall from the same Profile:
+The app loads its Profile at startup, so fully quit the app (not only the window) and reopen it. Read the installed version back without printing any configuration:
 
 ```bash
-dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
+node -e "console.log(require(process.env.HOME + '/.dsh/profiles/desktop/node_modules/@ising-tech/isingq-dsh-plugin/package.json').version)"
 ```
+
+Do not edit the installed package in place. To recover, remove it and fully restart:
+
+```bash
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop remove @ising-tech/isingq-dsh-plugin
+```
+
+After reopening, confirm that twelve `isingq_*` tools are available. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
 
 ## Configure an API Key
 
@@ -65,10 +75,28 @@ API requests use HTTPS. Matrix upload uses a short-lived signature and does not 
 
 - Node.js 18.17 or later.
 - Minimum supported DeepSeek Harness baseline: `0.1.0-rc.7`.
-- `@deepseek-ai/dsh-tools` peer range: `>=0.1.0-rc.7 <0.2.0-0`.
-- Current development validation version: `0.1.0-rc.8`.
+- `engines.dsh` and `@deepseek-ai/dsh-tools` peer range: `>=0.1.0-rc.7 <0.3.0-0`.
+- Current development validation version: `0.2.2-rc.1`.
 
-The peer range permits later compatible `0.1` releases, but versions newer than the current validation baseline are not automatically claimed as runtime-verified.
+DSH 0.2 reads `engines.dsh` alone when it is declared and falls back to `@deepseek-ai/dsh-*` peers only when it is absent. This range covers the `0.1.x` and `0.2.x` runtime lines that share the `defineTool` / `ctx.tools` API the Plugin uses; newer minor lines still need a compatibility check before this range is widened.
+
+### Compatibility policy
+
+`engines.dsh` is the compatibility contract, not a per-release pin: a new patch or prerelease on a supported line installs without a Plugin release. This release was validated against DSH `0.2.2-rc.1` with the full-package acceptance script below. Repository unit tests pin `@deepseek-ai/dsh-tools@0.1.0-rc.8`; they do not exercise newer SDK builds, so widen the range only after rerunning full-package acceptance on the target host.
+
+## Verification
+
+`scripts/verify-dsh-plugin.js` runs the full acceptance on an isolated `DSH_HOME`: it installs the packed plugin and core tarballs, boots the real host, and checks 12 tools, 13 resources, the three local tool results, the resolved core path/version/digest, host stability across a grace window, and a separate shutdown snapshot.
+
+```bash
+node scripts/verify-dsh-plugin.js \
+  --host desktop --host-version 0.2.2-rc.1 \
+  --dsh "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  --plugin <plugin.tgz> --core <core.tgz> \
+  --out /tmp/isingq-verify-desktop
+```
+
+A copied `index.mjs` or a call that succeeds just before the host exits is not acceptance; the script fails when the host does not survive the grace window.
 
 ## Troubleshooting
 
@@ -84,19 +112,29 @@ The peer range permits later compatible `0.1` releases, but versions newer than 
 
 ## 安装
 
-安装到实际使用的 DSH Profile：
+安装到桌面端实际使用的 Profile。使用应用自带的 CLI，确保安装目标与运行目标一致：
 
 ```bash
-dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop add @ising-tech/isingq-dsh-plugin@0.8.2
 ```
 
-将 `<profile>` 替换为真实 Profile 名，并确认出现 12 个 `isingq_*` 工具。只有正在运行的 Profile 没有重新加载新 Bundle 时才重启。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
+`0.8.2` 尚未公开发布；这是发布后的 registry 命令。本地候选请改为传入打包 tarball 路径。安装前先确认自带 CLI 版本为 `0.2.2-rc.1`。
 
-从同一 Profile 卸载：
+桌面端在启动时加载 Profile，因此必须完全退出应用（只关窗口不够）后重新打开。用以下命令回读安装版本，不打印任何配置：
 
 ```bash
-dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
+node -e "console.log(require(process.env.HOME + '/.dsh/profiles/desktop/node_modules/@ising-tech/isingq-dsh-plugin/package.json').version)"
 ```
+
+不要直接修改已安装包。恢复方式：移除插件后完全重启：
+
+```bash
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop remove @ising-tech/isingq-dsh-plugin
+```
+
+重新打开后确认出现 12 个 `isingq_*` 工具。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
 
 ## 配置 API Key
 
@@ -143,10 +181,28 @@ API 请求使用 HTTPS。矩阵上传使用短期签名，不携带个人 API Ke
 
 - Node.js 18.17 或更高版本。
 - DeepSeek Harness 最低兼容基线：`0.1.0-rc.7`。
-- `@deepseek-ai/dsh-tools` peer range：`>=0.1.0-rc.7 <0.2.0-0`。
-- 当前开发验证版本：`0.1.0-rc.8`。
+- `engines.dsh` 与 `@deepseek-ai/dsh-tools` peer range：`>=0.1.0-rc.7 <0.3.0-0`。
+- 当前开发验证版本：`0.2.2-rc.1`。
 
-该范围允许后续兼容的 `0.1` 版本安装，但不会把高于当前验证基线的版本自动描述为已经完成运行验证。
+DSH 0.2 在声明了 `engines.dsh` 时只按该范围判断，未声明时才回退到 `@deepseek-ai/dsh-*` peer。该范围覆盖共用 `defineTool` / `ctx.tools` API 的 `0.1.x` 与 `0.2.x` 运行时；更新的次版本线仍需先做兼容性验证再放宽范围。
+
+### 兼容策略
+
+`engines.dsh` 是兼容契约，不是逐版本钉死：同一支持线内的补丁或预发布版本无需重新发布 Plugin。本次验证对应 DSH `0.2.2-rc.1`，使用下方完整包验收脚本。仓库单测固定 `@deepseek-ai/dsh-tools@0.1.0-rc.8`，不会自动覆盖更新的 SDK；放宽范围前必须在目标 Host 上重跑完整包验收。
+
+## 验证
+
+`scripts/verify-dsh-plugin.js` 在隔离 `DSH_HOME` 上完成完整包验收：安装候选插件与 core tarball，启动真实 Host，核对 12 个工具、13 个 Resources、三个本地工具字段、实际加载 core 的路径/版本/摘要、Host 在宽限期内的存活，以及独立的关闭快照。
+
+```bash
+node scripts/verify-dsh-plugin.js \
+  --host desktop --host-version 0.2.2-rc.1 \
+  --dsh "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  --plugin <plugin.tgz> --core <core.tgz> \
+  --out /tmp/isingq-verify-desktop
+```
+
+复制 `index.mjs` 或在 Host 退出前调用成功都不算验收；Host 未通过宽限期时脚本会失败。
 
 ## 故障排查
 
