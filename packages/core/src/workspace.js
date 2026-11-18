@@ -145,14 +145,19 @@ class WorkspaceArtifacts {
       created = true;
       fs.writeFileSync(descriptor, content);
     } catch (error) {
-      if (descriptor !== undefined) { fs.closeSync(descriptor); descriptor = undefined; }
-      if (created) fs.unlinkSync(target);
+      if (descriptor !== undefined) { const ownedFd = descriptor; descriptor = undefined; try { fs.closeSync(ownedFd); } catch (_) {} }
+      if (created) { try { fs.unlinkSync(target); } catch (_) {} }
       this.fail(error.code === 'EEXIST' ? 'artifact_exists' : 'artifact_io_error',
         error.code === 'EEXIST' ? '产物已存在，拒绝覆盖；请选择新文件名或下一轮' : '产物写入失败；请检查权限、磁盘状态及路径节点',
         { path: target, fs_code: error.code });
-    } finally {
-      if (descriptor !== undefined) fs.closeSync(descriptor);
     }
+    const ownedFd = descriptor; descriptor = undefined;
+    try { fs.closeSync(ownedFd); }
+    catch (error) {
+      if (created) { try { fs.unlinkSync(target); } catch (_) {} }
+      this.fail('artifact_io_error', '产物写入失败；请检查权限、磁盘状态及路径节点', { path: target, fs_code: error.code });
+    }
+    created = false;
     return { workspace_contract_version: WORKSPACE_CONTRACT_VERSION, root: this.root, round: this.round,
       relative_path: path.relative(this.roundDirectory, target).split(path.sep).join('/'), path: target,
       size_bytes: Buffer.byteLength(content) };

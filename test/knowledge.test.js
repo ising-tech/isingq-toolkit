@@ -26,8 +26,9 @@ test('keeps current cloud capacity distinct from historical capacity', () => {
   assert.equal(historical.value, 1601);
   assert.equal(historical.status, 'historical');
   assert.doesNotMatch(getKnowledge('ising_cloud').answer, /当前(?:自选|求解)规模[^\n]*1601/);
-  assert.match(getKnowledge('ising_cloud').answer, /API 求解只支持 2048/);
-  assert.match(getKnowledge('ising_cloud').limitations.join('\n'), /不提供 S1601/);
+  assert.match(getKnowledge('ising_cloud').answer, /2026-08-18.*2048/);
+  assert.match(getKnowledge('ising_cloud').limitations.join('\n'), /当前.*executionCapabilities/);
+  assert.doesNotMatch(getKnowledge('ising_cloud').answer, /当前云平台 API 求解只支持 2048/);
 });
 
 test('knowledge topics are closed, local and carry answer boundaries', () => {
@@ -67,7 +68,8 @@ test('machine knowledge describes public characteristics without inventing model
   assert.match(knowledge.answer, /全连接自旋数达 4096/);
   assert.match(knowledge.answer, /私有化部署与定制化集成/);
   assert.equal(knowledge.facts.some((fact) => /S4096/.test(`${fact.subject} ${fact.predicate}`)), false);
-  assert.match(knowledge.answer, /云平台 API 不提供 S1601 选择/);
+  assert.match(knowledge.answer, /当前环境公开目录.*实际ID及能力/);
+  assert.doesNotMatch(knowledge.answer, /云平台 API 不提供 S1601 选择/);
   assert.match(knowledge.limitations.join('\n'), /computer_type_id/);
   assert.doesNotMatch(knowledge.answer, /computer_type_id\s*[=:]　?\d+/);
 });

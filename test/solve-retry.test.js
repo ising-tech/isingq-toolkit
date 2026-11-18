@@ -37,7 +37,7 @@ function success(url) {
 test('missing key leaves no run and the same key can submit after private setup', async (t) => {
   const { environment, store, service } = fixture(t, success, null);
   await assert.rejects(() => service.start(ARGS), /API Key/);
-  assert.deepEqual(fs.readdirSync(store.directory), []);
+  assert.equal(store.list().total, 0);
   saveApiKey('test-private-key', environment);
   assert.equal((await service.start(ARGS)).status, 'submitted');
 });
@@ -46,7 +46,7 @@ test('signature failure is archived before a same-key retry and survives restart
   let fail = true;
   const { environment, store, service } = fixture(t, (url) => fail ? new Response('', { status: 503 }) : success(url));
   await assert.rejects(() => service.start(ARGS));
-  const oldId = fs.readdirSync(store.directory)[0].replace('.json', '');
+  const oldId = store.list().records[0].solve_id;
   fail = false;
   const restarted = new SolverService({ store: new SolveStore(environment), transport: service.transport });
   const retried = await restarted.start(ARGS);
@@ -64,7 +64,7 @@ test('invalid create response is unknown and same-key start remains an error', a
     return success(url);
   });
   await assert.rejects(() => service.start(ARGS));
-  const run = store.get(fs.readdirSync(store.directory)[0].replace('.json', ''));
+  const run = store.list().records[0];
   assert.equal(run.status, 'submission_unknown');
   await assert.rejects(() => service.start(ARGS), (error) => error.run?.solve_id === run.solve_id);
   assert.equal(creates, 1);
@@ -91,7 +91,7 @@ test('invalid credentials are rejected before reservation without exposing their
     return /API Key/.test(error.message);
   });
   assert.equal(calls, 0);
-  assert.deepEqual(fs.readdirSync(store.directory), []);
+  assert.equal(store.list().total, 0);
 });
 
 test('in-flight and restarted reservations prevent another submit while the result is unknown', async (t) => {
@@ -133,7 +133,7 @@ test('signature and upload failures are explicitly safe to retry', async (t) => 
         assert.doesNotMatch(error.message, /private-key/);
         return true;
       });
-      const old = store.get(fs.readdirSync(store.directory)[0].replace('.json', ''));
+      const old = store.list().records[0];
       assert.equal(old.submission_outcome, 'not_created');
       assert.equal(creates, 0);
       fail = false;
@@ -197,7 +197,7 @@ test('archival failure stops before any new submission and keeps active occupanc
   let calls = 0;
   const { service, store } = fixture(t, () => { calls += 1; return new Response('', { status: 503 }); });
   await assert.rejects(() => service.start(ARGS));
-  const old = store.get(fs.readdirSync(store.directory)[0].replace('.json', ''));
+  const old = store.list().records[0];
   const save = store.save.bind(store);
   store.save = (run) => { if (run.archived_at) throw new Error('disk full'); return save(run); };
   await assert.rejects(() => service.start(ARGS), /归档失败.*停止.*solve_id=solve_/);
@@ -211,7 +211,7 @@ test('model binding survives safe failures and an archive-only restart', async (
   await assert.rejects(() => service.start(ARGS));
   const changed = { ...ARGS, qubo: { ...ARGS.qubo, offset: 1 } };
   await assert.rejects(() => service.start(changed), /不同模型/);
-  const old = store.get(fs.readdirSync(store.directory)[0].replace('.json', ''));
+  const old = store.list().records[0];
   store.archive(old);
   const restarted = new SolverService({ store: new SolveStore(environment), transport: service.transport });
   assert.equal(restarted.store.findByIdempotency(old.idempotency_digest), null);
@@ -255,7 +255,7 @@ test('created tasks which later fail are never resubmitted', async (t) => {
   let creates = 0;
   const { service } = fixture(t, (url) => {
     if (String(url).includes('create-general')) creates += 1;
-    if (/\/tasks\/task-1$/.test(String(url))) return json({ data: { status: 2 } });
+    if (/\/tasks\/task-1$/.test(String(url))) return json({ data: { status: 3 } });
     return success(url);
   });
   const started = await service.start(ARGS);

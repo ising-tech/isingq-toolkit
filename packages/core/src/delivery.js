@@ -1,6 +1,7 @@
 'use strict';
 
-const { validateQubo, matrixDocument, objectiveEnergy, decodeBits } = require('./qubo');
+const { validateQubo, matrixDocument, objectiveEnergy, decodeBits, canonicalQubo, storedObjectiveEnergy,
+  storedQuboModelDigest, QUBO_OBJECTIVE_ENERGY_VERSION } = require('./qubo');
 
 const DELIVERY_CONTRACT_VERSION = 'isingq-delivery-v1';
 const STATUSES = ['passed', 'failed', 'skipped', 'not_run'];
@@ -41,12 +42,12 @@ function finite(value, field) {
 function matchClaims(claims, expected, field) {
   fields(claims, Object.keys(expected), field);
   for (const key of Object.keys(claims)) {
-    const actual = claims[key];
+    const claimed = claims[key];
     const computed = expected[key];
     if (computed && typeof computed === 'object') {
-      matchClaims(actual, computed, `${field}.${key}`);
-    } else if (actual !== computed) {
-      fail('delivery_claim_mismatch', `${field}.${key}`, `声明与计算值不一致（actual=${display(actual)}, expected=${display(computed)}）；请用本工具的客观 summary 更新声明`);
+      matchClaims(claimed, computed, `${field}.${key}`);
+    } else if (claimed !== computed) {
+      fail('delivery_claim_mismatch', `${field}.${key}`, `声明与计算值不一致（claimed=${display(claimed)}, computed=${display(computed)}）；请先省略 claimed_summary 和 claimed_objective_value 获取客观 summary，再按返回原值更新声明；四舍五入仅用于展示`);
     }
   }
 }
@@ -69,14 +70,32 @@ function ledgerRecords(input) {
   }).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 
+function validateDelivery(document, limits) {
+  return validateDeliveryDocument(document, limits);
+}
+
+function validateRecordedDelivery(document, limits, run) {
+  return validateDeliveryDocument(document, limits, run.status === 'succeeded' && run.result ? run : undefined);
+}
+
+function deliveryObjective(qubo, bits, limits, run) {
+  if (!run || run.objective_energy_version === QUBO_OBJECTIVE_ENERGY_VERSION) return objectiveEnergy(qubo, bits, limits);
+  if (storedQuboModelDigest(run.qubo, limits).model_sha256 !== run.matrix.model_sha256) {
+    fail('target_delivery_record_invalid', 'record.qubo', '原求解记录的模型摘要不一致；请从原记录核对，保留原任务及候选');
+  }
+  // A legacy result used the original stored term order, which the
+  // order-independent model hash alone cannot recover from a delivery document.
+  return storedObjectiveEnergy(run.qubo, bits, run.objective_energy_version, limits);
+}
+
 /** Validates supplied delivery facts only; never executes code or follows evidence references. */
-function validateDelivery(document) {
+function validateDeliveryDocument(document, limits, run) {
   fields(document, DOCUMENT_FIELDS, 'document');
   if (Object.hasOwn(document, 'delivery_contract_version') && document.delivery_contract_version !== DELIVERY_CONTRACT_VERSION) {
     fail('delivery_invalid', 'document.delivery_contract_version', `不支持的契约（actual=${display(document.delivery_contract_version)}, expected=${DELIVERY_CONTRACT_VERSION}）`);
   }
   let validated;
-  try { validated = validateQubo(document.qubo); }
+  try { validated = validateQubo(document.qubo, limits); }
   catch (error) { fail('delivery_invalid', 'document.qubo', error.message); }
   const policy = document.mapping_completeness === undefined ? 'partial' : document.mapping_completeness;
   if (!['partial', 'complete'].includes(policy)) fail('delivery_invalid', 'document.mapping_completeness', `必须是 partial|complete（actual=${display(policy)}）`);
@@ -84,13 +103,9 @@ function validateDelivery(document) {
   if (policy === 'complete' && qubo.variables.length !== qubo.num_bits) {
     fail('delivery_mapping_incomplete', 'document.qubo.variables', `声明 complete 但映射未覆盖所有位（named_variables=${qubo.variables.length}, num_bits=${qubo.num_bits}）；补全索引映射或明确使用 partial`);
   }
-  // The delivery layer has canonical order and removes explicit zeros. Do not
-  // change legacy validateQubo order/counts or persisted request/matrix digests.
-  const canonical = { num_bits: qubo.num_bits, linear: qubo.linear.filter(term => term.coefficient !== 0).sort((a, b) => a.index - b.index),
-    quadratic: qubo.quadratic.filter(term => term.coefficient !== 0).sort((a, b) => a.i - b.i || a.j - b.j),
-    offset: qubo.offset, variables: qubo.variables };
+  const canonical = canonicalQubo(qubo);
   let matrix;
-  try { matrix = matrixDocument(qubo); }
+  try { matrix = matrixDocument(qubo, limits); }
   catch (error) { fail('delivery_invalid', 'document.qubo', error.message); }
   let candidate = null;
   if (Object.hasOwn(document, 'candidate_bits')) {
@@ -103,19 +118,18 @@ function validateDelivery(document) {
         fail('delivery_invalid', `document.candidate_bits[${i}]`, `必须是数字 0 或 1（actual=${display(bits[i])}）`);
       }
     }
-    const objective = objectiveEnergy(qubo, bits);
-    const canonicalObjective = objectiveEnergy(canonical, bits);
-    if (!Number.isFinite(objective) || !Number.isFinite(canonicalObjective) || objective !== canonicalObjective) {
+    const objective = deliveryObjective(qubo, bits, limits, run);
+    if (!Number.isFinite(objective)) {
       fail('delivery_numeric_instability', 'computed.candidate_objective_value',
-        `输入与 canonical 计算次序的 QUBO 能量不稳定（input_order=${objective}, canonical_order=${canonicalObjective}, offset=${qubo.offset}）；当前交付不支持该数值精度，不能据此判定业务模型或用户声明错误。请调整系数量级/消去结构，或使用可安全累加的整数系数后重新核验；简单整体缩放不保证恢复稳定`);
+        `QUBO 能量复算超出有限数值范围（computed=${objective}, offset=${qubo.offset}）；请核对系数量级与消去结构后重新核验，保留原模型与候选`);
     }
-    candidate = { bits: [...bits], objective_value: objective, variables: decodeBits(canonical, bits) };
+    candidate = { bits: [...bits], objective_value: objective, variables: decodeBits(canonical, bits, limits) };
   }
   if (Object.hasOwn(document, 'claimed_objective_value')) {
     finite(document.claimed_objective_value, 'document.claimed_objective_value');
     if (!candidate) fail('delivery_invalid', 'document.claimed_objective_value', '缺少 candidate_bits，不能核验候选能量声明');
     if (document.claimed_objective_value !== candidate.objective_value) {
-      fail('delivery_claim_mismatch', 'document.claimed_objective_value', `候选 QUBO 能量不一致（actual=${document.claimed_objective_value}, expected=${candidate.objective_value}, offset=${qubo.offset}）；复算必须包含 offset 和已编码罚项，不能用业务目标替代`);
+      fail('delivery_claim_mismatch', 'document.claimed_objective_value', `候选 QUBO 能量不一致（claimed=${document.claimed_objective_value}, computed=${candidate.objective_value}, offset=${qubo.offset}）；请先省略 claimed_objective_value 和 claimed_summary 获取 summary.candidate_objective_value，再按返回原值更新声明；四舍五入仅用于展示，复算必须包含 offset 和已编码罚项，不能用业务目标替代`);
     }
   }
   const records = ledgerRecords(document.test_ledger === undefined ? [] : document.test_ledger);
@@ -146,4 +160,4 @@ function validateDelivery(document) {
     ] };
 }
 
-module.exports = { DELIVERY_CONTRACT_VERSION, DeliveryValidationError, validateDelivery };
+module.exports = { DELIVERY_CONTRACT_VERSION, DeliveryValidationError, validateDelivery, validateRecordedDelivery };

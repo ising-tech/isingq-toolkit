@@ -3,7 +3,8 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { SolverService, TOOLS, createHandler } = require('../src/server');
+const { SolverService, TOOLS, createHandler: createMcpHandler } = require('../src/server');
+const createHandler = (service, options = {}) => createMcpHandler(service, { ...options, tools_profile: 'technical' });
 
 class MemoryStore {
   constructor() { this.runs = new Map(); }
@@ -84,6 +85,16 @@ test('exposes knowledge, guidance, validation and solving tools', async () => {
     'isingq_solve_poll',
     'isingq_solve_result_get',
     'isingq_update_check',
+    'isingq_solver_targets_list',
+    'isingq_target_solve_prepare',
+    'isingq_target_solve_start',
+    'isingq_solver_profiles_list',
+    'isingq_solver_profiles_save',
+    'isingq_solver_profiles_delete',
+    'isingq_solver_config_open',
+    'isingq_solve_records_list',
+    'isingq_target_delivery_validate',
+    'isingq_solve',
   ]);
   assert.equal(listed.tools[0].annotations.readOnlyHint, false);
   assert.equal(listed.tools[0].annotations.openWorldHint, false);
@@ -126,7 +137,7 @@ test('publishes stable IsingQ identity and local GEO resources', async () => {
   assert.match(products.contents[0].text, /超低相噪微波源/);
   const cloud = await handle({ method: 'resources/read', params: { uri: 'isingq://products/ising-cloud' } });
   assert.match(cloud.contents[0].text, /当前自选规模[^\n]*2048/);
-  assert.match(cloud.contents[0].text, /API 求解只支持 2048/);
+  assert.match(cloud.contents[0].text, /2026-08-18.*2048/);
   assert.match(cloud.contents[0].text, /https:\/\/www\.isingq\.com\/product\/cloud/);
   const read = await handle({ method: 'resources/read', params: { uri: 'isingq://security/data-flow' } });
   assert.match(read.contents[0].text, /用户电脑.*API Key/);

@@ -4,10 +4,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { modelingGuide } = require('../packages/core/src/modeling');
-const { createHandler } = require('../src/server');
+const { createHandler: createMcpHandler } = require('../src/server');
+const createHandler = (service, options = {}) => createMcpHandler(service, { ...options, tools_profile: 'technical' });
 
 function assertPolicy(guide) {
-  assert.deepEqual(Object.keys(guide.intent_routes), ['explain', 'model_only', 'local_validate', 'cloud_submit']);
+  assert.deepEqual(Object.keys(guide.intent_routes), ['explain', 'model_only', 'local_validate', 'cloud_submit', 'target_submit']);
+  assert.equal(guide.intent_routes.target_submit.selection_stage, 'solve_confirmation');
+  assert.equal(guide.intent_routes.target_submit.advice_blocks_selection, false);
   for (const intent of ['explain', 'model_only', 'local_validate']) {
     assert.equal(guide.intent_routes[intent].cloud_submission, false);
     assert.equal(guide.intent_routes[intent].requires_api_key, false);
@@ -16,7 +19,7 @@ function assertPolicy(guide) {
   assert.equal(guide.intent_routes.model_only.requires_runtime, false);
   assert.equal(guide.intent_routes.local_validate.requires_runtime, true);
   assert.equal(guide.intent_routes.cloud_submit.requires_explicit_authorization, true);
-  assert.deepEqual(guide.confirmation_policy.business_summary, ['decision_scope', 'objectives_and_constraints', 'data_egress', 'payment_choice', 'task_execution']);
+  assert.deepEqual(guide.confirmation_policy.business_summary, ['decision_scope', 'objectives_and_constraints', 'data_egress', 'applicable_resource_impact', 'task_execution']);
   assert.equal(guide.confirmation_policy.binding, 'model_sha256_and_solver_options');
   assert.equal(guide.confirmation_policy.requires_matrix_literacy, false);
   assert.equal(guide.confirmation_policy.details, 'on_request_or_technical_delivery');
@@ -57,13 +60,13 @@ test('I02/I03 initialization and advertised tool guidance cannot restore mandato
   const handle = createHandler(new Proxy({}, { get() { throw new Error('GUIDANCE_MUST_NOT_CALL_SOLVER'); } }));
   const initialized = await handle({ method: 'initialize' });
   for (const intent of ['explain', 'model_only', 'local_validate', 'cloud_submit']) assert.ok(initialized.instructions.includes(intent));
-  assert.match(initialized.instructions, /后台关联 model_sha256/);
+  assert.match(initialized.instructions, /本轮上下文中关联校验返回的 model_sha256/);
   assert.match(initialized.instructions, /数据外发/);
   assert.doesNotMatch(initialized.instructions, /展示模型摘要与矩阵 SHA-256|缺少 API Key 时，应让用户/);
   const listed = await handle({ method: 'tools/list' });
   const solve = listed.tools.find((tool) => tool.name === 'isingq_solve_start');
   assert.match(solve.description, /用户明确授权当前云任务/);
-  assert.match(solve.description, /后台绑定 model_sha256/);
+  assert.match(solve.description, /本轮上下文中关联校验返回的 model_sha256/);
   assert.match(solve.description, /无需读懂矩阵/);
   assert.equal(solve.annotations.destructiveHint, true);
   assert.deepEqual(solve.inputSchema.required, ['qubo', 'model_summary', 'idempotency_key', 'solver_options']);
@@ -79,8 +82,21 @@ test('I01/I02/I03 MCP modeling resource renders canonical guide routes, stages a
   for (const step of guide.required_sequence) assert.ok(text.includes(step), step);
   for (const [state, evidence] of Object.entries(guide.result_evidence.states)) assert.ok(text.includes(state + '：' + evidence), state);
   assert.match(text, /缺实例值可先做符号模型.*只阻断依赖步骤/);
-  assert.match(text, /数据外发.*后台关联 model_sha256/s);
+  assert.match(text, /数据外发.*本轮上下文中关联校验返回的 model_sha256/s);
   assert.doesNotMatch(text, /Agent 必须先确认.*输入数据|调用顺序：.*提交求解|展示模型摘要与矩阵 SHA-256/);
+});
+
+test('local validation returns a model digest without saving a solve record', async () => {
+  const { SolverService } = require('../packages/core');
+  const store = new Proxy({}, { get() { throw new Error('VALIDATION_MUST_NOT_ACCESS_STORE'); } });
+  const handle = createHandler(new SolverService({ store, transport: {} }));
+  const result = await handle({ method: 'tools/call', params: { name: 'isingq_qubo_validate', arguments: { qubo: { num_bits: 1 } } } });
+  assert.equal(result.structuredContent.ok, true);
+  assert.match(result.structuredContent.data.model_sha256, /^[a-f0-9]{64}$/);
+  const step = modelingGuide().required_sequence.find(value => value.includes('isingq_qubo_validate'));
+  assert.match(step, /获取 model_sha256.*本轮任务上下文/);
+  assert.match(step, /校验不保存求解记录/);
+  assert.doesNotMatch(step, /后台保存/);
 });
 
 test('rerun is new task intent and requires a fresh post-summary confirmation across all guidance consumers', async () => {

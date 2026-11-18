@@ -14,7 +14,7 @@ const marketplaceManifest = JSON.parse(fs.readFileSync(path.join(marketplacePlug
 const marketplaceMcp = JSON.parse(fs.readFileSync(path.join(marketplacePluginRoot, '.mcp.json'), 'utf8'));
 const lobeManifest = JSON.parse(fs.readFileSync(path.join(root, 'lhm.plugin.json'), 'utf8'));
 const pkg = require('../package.json');
-const { TOOL_DEFINITIONS } = require('../packages/core');
+const { createHandler } = require('../src/server');
 
 test('packages the repository as an IsingQ Codex plugin', () => {
   assert.equal(manifest.name, 'isingq-mcp');
@@ -61,12 +61,22 @@ test('repo marketplace points to the dedicated npx wrapper', () => {
   });
 });
 
-test('LobeHub manifest is a reviewed local-stdio capability snapshot', () => {
+test('LobeHub manifest preserves the complete technical capability snapshot while ordinary discovery stays small', async () => {
   assert.equal(lobeManifest.identifier, 'ising-tech-isingq-toolkit');
   assert.equal(lobeManifest.version, pkg.version);
   assert.equal(lobeManifest.author, 'ising-tech');
   assert.equal(lobeManifest.cloudEndpoint, undefined);
-  assert.equal(lobeManifest.tools.length, TOOL_DEFINITIONS.length);
+  const technical = createHandler({}, { tools_profile: 'technical' });
+  const ordinary = createHandler({}, { tools_profile: 'normal' });
+  const technicalTools = await technical({ method: 'tools/list' });
+  const technicalResources = await technical({ method: 'resources/list' });
+  const ordinaryTools = await ordinary({ method: 'tools/list' });
+  assert.deepEqual(lobeManifest.tools, technicalTools.tools);
+  assert.deepEqual(lobeManifest.resources, technicalResources.resources);
+  assert.ok(lobeManifest.tools.some(tool => tool.name === 'isingq_solve'));
+  assert.deepEqual(ordinaryTools.tools.map(tool => tool.name), [
+    'isingq_api_key_setup', 'isingq_knowledge_get', 'isingq_modeling_guide_get', 'isingq_solve',
+  ]);
   assert.equal(lobeManifest.resources.length, 13);
   assert.match(lobeManifest.icon, /^https:\/\/raw\.githubusercontent\.com\/ising-tech\/isingq-toolkit\//);
   const solveStart = lobeManifest.tools.find(({ name }) => name === 'isingq_solve_start');

@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="docs/assets/isingq-logo.png" width="500" alt="Beijing Ising Intelligent Technology">
+  <img src="https://raw.githubusercontent.com/ising-tech/isingq-toolkit/main/docs/assets/isingq-logo.png" width="500" alt="伊辛智能 · ISING INTELLIGENT">
 </p>
 
 <h1 align="center">IsingQ Toolkit</h1>
 
-> Version 0.8.1 adds background update notices, an explicit version check, large-history compatibility, and consistent file-capacity checks with optional overrides. Install only versions available through official GitHub Releases/npm; this source tree does not itself confirm publication or update existing installations.
+> This guide covers **0.9.x**. Install only versions actually published on [npm](https://www.npmjs.com/package/@ising-tech/isingq-mcp) or [GitHub Releases](https://github.com/ising-tech/isingq-toolkit/releases). A source checkout does not establish release availability; verify the version loaded by your Host.
 
 <p align="center">
-  QUBO modeling, validation, and IsingQ solving for AI Agents
+  QUBO modeling and validation for AI Agents, with cloud or private-network local solving
 </p>
 
 <p align="center">
@@ -21,227 +21,88 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/isingq-toolkit-capabilities-demo.gif" width="800" alt="Historical modeling and solving illustration, not current acceptance evidence">
+  <img src="https://raw.githubusercontent.com/ising-tech/isingq-toolkit/main/docs/assets/isingq-toolkit-capabilities-demo.gif" width="800" alt="Modeling and solving demo (historical workflow)">
 </p>
 
-> **Historical workflow illustration, not evidence of this release's execution or results.** Confirmation in the animation is an Agent/Host workflow obligation, not an unforgeable human-authorization binding enforced by MCP. Natural language may be processed by a networked LLM Host. The API Key is stored locally in a private file by default, but is used over HTTPS to authenticate to IsingQ. Example percentages such as “78.25%” lack original inputs and verification records; they remain unverified and are not measured improvements or general benefits.
+> Historical workflow demos. Use current tool counts.
 
-IsingQ Toolkit is a local Agent toolkit maintained publicly by Beijing Ising Intelligent Technology Co., Ltd.
-
-Describe a scheduling, routing, portfolio, or graph optimization problem in natural language. Your Agent can help formulate a QUBO and solve it with your own IsingQ API Key.
-
-- Modeling guidance, QUBO validation, and result records stay on your computer.
-- A matrix is sent to IsingQ over HTTPS only when the solve tool is called.
-- The API Key is stored in a private local file by default. A Headless administrator may instead inject it before the Agent process starts; the Agent must never request, set, or display it.
-- Standard MCP, Codex Plugin, and native DeepSeek Harness Plugin integrations are supported.
-
-The Toolkit assists with modeling and deterministic checks within their declared scope; it does not automatically prove natural-language business completeness or QUBO equivalence. Cloud solver algorithms, solution quality, runtime, and returned plans depend on the external service. This project maintains integration, faithful result presentation, and existing recomputation; it does not guarantee global optimality or general performance advantages. Additional Host explanations require separate verification.
+Supports standard MCP, Codex Plugin, and the native DeepSeek Harness Plugin.
 
 ## Quick start
 
-If you do not want to manage terminals or MCP configuration, send this prompt to your current Agent:
+Send this to your current Agent:
 
 ```text
-Read skills/install-isingq-mcp/SKILL.md from
-https://github.com/ising-tech/isingq-toolkit and follow it exactly.
-Install IsingQ MCP and connect only the current Agent.
-Never ask for or display my API Key in chat; use the operating system's secure input prompt.
-After installation, reconnect the isingq MCP first.
-If the current Agent cannot reload MCP dynamically, wait for me to restart it,
-then verify that ten MCP tools are loaded.
+Read skills/install-isingq-mcp/SKILL.md in
+https://github.com/ising-tech/isingq-toolkit and install IsingQ MCP
+only into this Agent. Reconnect and verify the tools for the loaded version and entrypoint.
+Local solving needs no cloud API Key. Configure one through the private prompt only for cloud use.
+Never request or display my API Key in chat.
 ```
 
-The installation Skill selects one integration for the current Agent and operating system. It does not modify every Agent installed on the computer. If a Host cannot register automatically, the Skill outputs stdio JSON for manual import.
+For manual standard MCP setup, use Node.js 18.17+ and npm:
 
-A standard MCP Host should expose ten `isingq_*` tools after setup. The native DSH Plugin exposes twelve tools.
+```bash
+npx @ising-tech/isingq-mcp configure-host --name generic --npx
+```
+
+Import the returned stdio JSON through your Host's MCP settings and reconnect `isingq`. Restart only if the Host cannot reload dynamically. Replace `generic` with `workbuddy`, `codex`, `claude-code`, `cursor`, or `vscode` to configure that specific Host.
+
+npm/npx installs published packages. Before using the 0.9.x features below, confirm the loaded version is at least 0.9. For an unpublished local candidate, follow the [development guide](https://github.com/ising-tech/isingq-toolkit/blob/main/docs/DEVELOPMENT.md).
+
+Other installation options:
+
+- **Without Node.js**: download the appropriate standalone program from [GitHub Releases](https://github.com/ising-tech/isingq-toolkit/releases), verify it with that Release's `SHA256SUMS`, and register its `serve` entrypoint.
+- **Codex Plugin**: run `codex plugin marketplace add ising-tech/isingq-toolkit --ref main`, then `codex plugin add isingq-mcp@isingq-toolkit`. Verify the connection in a new task.
+- **DeepSeek Harness**: use the [native Plugin](https://github.com/ising-tech/isingq-toolkit/tree/main/packages/dsh-plugin#readme). Avoid enabling an IsingQ MCP bridge in the same Profile.
 
 ### Installation demo
 
 <p align="center">
-  <img src="docs/assets/isingq-toolkit-install-demo.gif" width="800" alt="Historical installation illustration; 7/7 is not the current tool count">
+  <img src="https://raw.githubusercontent.com/ising-tech/isingq-toolkit/main/docs/assets/isingq-toolkit-install-demo.gif" width="800" alt="Installation demo (historical workflow)">
 </p>
 
-> **Historical installation illustration, not acceptance evidence for the current version.** The animation's “7/7” refers to an older version. The current standard MCP should enumerate ten tools; actual loading must be checked against the final pinned candidate and cannot be inferred from this animation.
+## Basic use
 
-## First solve
-
-Public knowledge lookup, modeling guidance, and QUBO validation do not require an API Key. A personal IsingQ API Key is required only when submitting a real solve task.
-
-1. Sign in or create an account at [IsingQ Cloud](https://console.isingq.com/).
-2. Open **Settings → API → Create API** and create a personal API Key with a recognizable name.
-3. Ask the Agent to call `isingq_api_key_setup`, then enter the Key in the operating system's secure input prompt.
-4. Describe the optimization problem to the Agent.
-
-Never paste an API Key into Agent chat, command arguments, MCP JSON, issues, or logs. If a Key is exposed, delete it in IsingQ Cloud and create a replacement.
-
-When a Headless deployment cannot open a system prompt, its administrator may set `ISINGQ_API_KEY` before the Agent process starts. This is not an Agent installation step; the Agent must never read, set, or echo that variable.
-
-Start with this example:
+Describe your problem, for example:
 
 ```text
-Formulate the following problem as a QUBO. Explain the variables, objective, constraints, and penalties, and show the matrix summary. Wait for my confirmation before submitting it to IsingQ:
-
-Exactly one of tasks A and B may be selected. A has value 8 and B has value 5.
+Split A, B, C into two groups to maximize the crossing edge weight:
+AB=3, AC=2, BC=1, with no group-size constraint.
+Show the variables, objective, constraints, and matrix summary first.
+At solve confirmation, let me choose a cloud model or local device and wait for my approval.
 ```
 
-The Agent should show the variable mapping, objective, constraints, penalties, matrix summary, and SHA-256 first. It should call `isingq_solve_start` only after you confirm.
+1. **Model**: the Agent presents the model. Modeling and validation need no cloud API Key.
+2. **Choose a target**: cloud models and local devices appear at solve confirmation, with suitability advice before and after selection. Advice does not block your choice.
+3. **Confirm and submit**: review the target, data destination, and resource use before explicitly confirming submission.
+4. **Check the task**: ask the Agent for the call record or open the actual viewing location attached to that record.
 
-Cloud submission requires an explicit payment choice: `solver_options.use_credit=true` uses compute credits (算力券), and `false` uses the account balance. Ask when missing; never supply a default payment choice or switch payment automatically. Read historical tasks with poll/get, and check the original task before confirming changed payment or other parameters. Never change the idempotency key to bypass a failed or unknown submission.
+| Target | Initial setup | Resource use | Task viewing location |
+| --- | --- | --- | --- |
+| Cloud | Create a personal API Key in the [cloud console](https://console.isingq.com/api-keys), then ask the Agent to open the private `isingq_api_key_setup` prompt | Choose a compute voucher or account balance before submission | The cloud entry recorded for that task |
+| Local | Ask to add/manage local solvers; enter a connection name and service address on the configuration page and test the connection | Uses the selected device, without cloud vouchers or balance | The locally accessible address recorded for that task |
 
-Once the Host permits that tool call, it creates the remote task immediately. The MCP does not open an additional operating-system solve prompt; another confirmation appears only if the Host's tool-permission policy requires it. The MCP does not verify an unforgeable human authorization record or bind one to the model and parameters. The confirmation described above is an Agent/Host workflow obligation.
+You can save multiple named local devices. Saving a connection does not submit a task. The public cloud model directory needs no personal Key; cloud task submission does. Keep API Keys out of chat, MCP JSON, and logs.
 
-## More capabilities
+## Tools and versions
 
-The Toolkit also includes local public knowledge and QUBO modeling guidance. For example:
+For 0.9.x, verify the entrypoint actually loaded by your Host:
 
-```text
-What capabilities does IsingQ Cloud currently provide? Include the knowledge version, official sources, and statement boundaries.
-```
+| Entrypoint | Tool count |
+| --- | ---: |
+| Standard MCP default (`serve`) | 4 |
+| Standard MCP technical (`serve --technical`) | 20 |
+| Native DSH Plugin | 21 |
 
-```text
-Check this QUBO's dimensions, symmetry, coefficient range, and matrix summary. Do not submit it for solving.
-```
+Default MCP exposes `isingq_api_key_setup`, `isingq_knowledge_get`, `isingq_modeling_guide_get`, and the unified `isingq_solve`. Normal use does not require the technical entrypoint.
 
-The current cloud API supports up to 2,048 QUBO binary variables. Whether a problem fits depends on its formulation and the variables introduced by its constraints.
+## Updates and help
 
-## Compatibility
+Toolkit's built-in version check provides notices. Installation and reload depend on your integration method. An expert-managed entrypoint maintains its tools under the expert's compatibility policy.
 
-| Integration | Intended Hosts | Node.js required |
-| --- | --- | --- |
-| Standard MCP | WorkBuddy, Claude Code, Cursor, VS Code, and other MCP Hosts | Node.js 18.17+ for npx; not required for Releases |
-| Codex Plugin | Codex Repo Marketplace integration | Node.js 18.17+ |
-| Native DSH Plugin | DeepSeek Harness | Managed by DSH |
+- **Missing tools or an unchanged version**: check the connection source and loaded version, reconnect, then restart if needed. Avoid duplicate entrypoints.
+- **Local device unavailable**: check the network and service address, then test the connection on the management page. A cloud Key is unnecessary.
+- **Cloud authentication failure**: replace the Key through the private prompt; never paste it into chat.
 
-Standard MCP Release binaries support macOS arm64/x64, Linux arm64/x64, and Windows x64. One runtime per computer is sufficient; multiple Agents can register it independently.
-
-## Other installation methods
-
-The Agent Skill in Quick start is the recommended path for most users. The commands below are for users who want to manage installation or configuration manually.
-
-### Codex Repo Marketplace
-
-Requires Node.js 18.17 or later. Add the official repository marketplace, then install the plugin:
-
-```bash
-codex plugin marketplace add ising-tech/isingq-toolkit --ref main
-codex plugin add isingq-mcp@isingq-toolkit
-```
-
-After installation, start a new Codex task and ask Codex to “configure my IsingQ API Key.” The plugin uses the operating system's secure input dialog; do not paste the API Key into the conversation.
-
-### npm / npx
-
-Requires Node.js 18.17 or later:
-
-```bash
-npx @ising-tech/isingq-mcp setup
-npx @ising-tech/isingq-mcp configure-host --name generic --npx
-```
-
-Replace `generic` with a supported Host name when appropriate. Keep `generic` for Hosts that require manual registration, then import the generated stdio JSON through their MCP settings.
-
-### GitHub Release
-
-To run without Node.js, download the fixed-version binary for your system from [GitHub Releases](https://github.com/ising-tech/isingq-toolkit/releases) and verify it with the accompanying `SHA256SUMS` file.
-
-### DeepSeek Harness
-
-DSH uses its native Plugin and does not need an MCP bridge. Review the [npm package](https://www.npmjs.com/package/@ising-tech/isingq-dsh-plugin) and [complete usage guide](packages/dsh-plugin/README.md) before installation:
-
-```bash
-dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
-```
-
-On macOS, use the CLI bundled with the desktop app (`/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`) and target the `desktop` Profile the app actually runs.
-
-Uninstall:
-
-```bash
-dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
-```
-
-The minimum supported DeepSeek Harness baseline is `0.1.0-rc.7`, and the current development validation version is `0.2.2-rc.1`. Both `engines.dsh` and the `@deepseek-ai/dsh-tools` peer range are `>=0.1.0-rc.7 <0.3.0-0`, covering `0.1.x` and `0.2.x` runtimes.
-
-Do not enable both the native IsingQ Plugin and the legacy MCP bridge in the same DSH Profile. See the [DSH Plugin README](packages/dsh-plugin/README.md) for details.
-
-### Source development
-
-Source execution, architecture, package boundaries, and the Release process are documented in the [developer guide](docs/DEVELOPMENT.md). Source installation is not recommended for regular users.
-
-## Tools
-
-| Tool | Purpose | Network |
-| --- | --- | --- |
-| `isingq_update_check` | Explicitly check the official stable version; never install automatically | Version metadata only |
-| `isingq_api_key_setup` | Open a secure OS prompt to configure or replace a personal API Key | No |
-| `isingq_knowledge_get` | Query public company, product, technology, case, FAQ, and source knowledge | No |
-| `isingq_modeling_guide_get` | Return QUBO modeling steps and constraint guidance | No |
-| `isingq_qubo_validate` | Validate a QUBO and produce a matrix summary | No |
-| `isingq_delivery_validate` | Validate supplied delivery artifacts and derive objective report facts; business correctness remains unverified | No |
-| `isingq_report_verify` | Recompute supplied mathematical candidates and rankings; additional prose is not verified | No |
-| `isingq_solve_start` | Submit to IsingQ immediately after the Host permits the call | Yes |
-| `isingq_solve_poll` | Query task status once and save the result | Yes |
-| `isingq_solve_result_get` | Read a locally stored solve result | No |
-
-The native DSH Plugin also provides `isingq_resource_list` and `isingq_resource_read` to list and read local, versioned public knowledge resources.
-
-`isingq_qubo_validate` returns both `matrix_sha256` and the versioned full-model digest, `model_sha256` with `model_digest_version`. The full-model digest covers the number of bits, coefficients, offset and variable mapping, so changing an offset or variable meaning changes it even when the uploaded matrix stays the same. Validation runs locally. See the [core API](packages/core/README.md) and [digest specification](packages/core/MODEL-DIGEST.md) for integration details.
-
-## Data and result conventions
-
-- The API Key is read from a private local file by default. A Headless administrator may inject `ISINGQ_API_KEY` before process startup; the runtime does not persist that variable.
-- The Agent must not receive, set, or print an API Key. The Key never enters tool arguments, chat, Host configuration, or logs.
-- Production API traffic is pinned to `https://api.isingq.com`.
-- Modeling guidance, QUBO validation, and public knowledge lookup run locally.
-- `isingq_solve_start` sends the solve matrix after the Host permits the call.
-- API traffic uses HTTPS; matrix upload uses short-lived credentials and does not carry the personal API Key.
-- Local records contain models, task IDs, and results, but never the API Key.
-
-Solve results retain two values.
-
-**IsingQ provider energy**
-
-```math
-E(s) = -\frac{1}{2}\sum_i\sum_j J_{ij}s_i s_j - \sum_i h_i s_i
-```
-
-**Objective recomputed by the MCP**
-
-```math
-f(x) = \mathrm{offset} + \sum_i Q_{ii}x_i + \sum_{i \lt j} Q_{ij}x_i x_j
-```
-
-They can differ because of variable conversion, constant offsets, or coefficient conventions. The lowest energy does not automatically establish business feasibility, a global optimum, or specific hardware performance.
-
-See the [Security Policy](SECURITY.md) for additional boundaries.
-
-## Updates and troubleshooting
-
-- **Update**: rerun the installation Skill, or update the npm package, Release binary, Codex Plugin, or DSH Plugin currently in use.
-- **Existing data**: updates preserve the local API Key and solve records.
-- **Retry after a missing Key**: configure the Key through `isingq_api_key_setup`, then resubmit the same model with the same `idempotency_key`. A new call without a Key leaves no solve record.
-- **Failed or uncertain submissions**: retry with the same key only when the runtime can confirm that no remote task was created. For `submission_unknown` or legacy failures with an ambiguous submission phase, check your tasks in IsingQ Cloud first; do not automatically change the key or delete the record to resubmit.
-- **Tools are missing**: reconnect `isingq` and approve the Host's trust prompt; fully restart the Agent only if tools still do not load.
-- **The Host cannot register automatically**: run `isingq-mcp config --json` and import the result through the Host's MCP settings.
-- **Sandbox blocks writes**: approve only the exact installation and user configuration directories; never move the API Key into the project.
-- **Only an NDJSON response was tested**: that proves process reachability only. Standard MCP integration is complete when the Agent exposes ten native tools.
-
-## Project and development
-
-Architecture, package boundaries, QUBO data contracts, builds, and the Release process are covered in the [developer guide](docs/DEVELOPMENT.md).
-
-Report issues or suggestions through [GitHub Issues](https://github.com/ising-tech/isingq-toolkit/issues).
-
-This project is licensed under the [Apache License 2.0](LICENSE). The license does not grant rights to IsingQ or Ising Intelligent trademarks.
-
-## Local model verification and reports
-
-Generate local reports from supplied mathematical models, data, and candidate solutions, including objective values, constraint checks, baseline comparisons, and candidate rankings.
-
-Verification covers only the supplied inputs. Business correctness and global optimality require separate evidence. See the [report documentation](packages/core/VERIFIED-REPORT.md) for supported inputs and limits.
-
-## Update notices (since 0.8.1)
-
-Toolkit introduced background update notices in 0.8.1; older installations must be updated to gain this feature. The runtime checks official versions in the background and notifies you when a newer version is available. It does not automatically install or upgrade anything, and failed checks do not interrupt the current task.
-
-Version checks query only version metadata, without uploading models or credentials. Ask the Agent to check for updates manually, or set `ISINGQ_UPDATE_CHECK=off` to disable background checks. See the [developer guide](docs/DEVELOPMENT.md) for more configuration details.
+[Development and integration](https://github.com/ising-tech/isingq-toolkit/blob/main/docs/DEVELOPMENT.md) · [Solver target API](https://github.com/ising-tech/isingq-toolkit/blob/main/docs/solver-targets.md) · [Core SDK](packages/core/README.md) · [Security](SECURITY.md) · [Apache-2.0](LICENSE)

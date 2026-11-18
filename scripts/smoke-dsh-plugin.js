@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+const { runWithCleanup } = require('../packages/core/src/run-with-cleanup');
 
 // Runs the native DSH adapter against an isolated @deepseek-ai/dsh-tools install.
 // The workspace keeps its pinned devDependency for reproducible tests; this
@@ -68,9 +69,8 @@ async function main() {
   console.log(`ok: ${tools.length} tools on @deepseek-ai/dsh-tools@${installed}`);
 }
 
-main()
+runWithCleanup(main, () => rmSync(directory, { recursive: true, force: true }))
   .catch((error) => {
     console.error(error);
     process.exitCode = 1;
-  })
-  .finally(() => rmSync(directory, { recursive: true, force: true }));
+  });

@@ -252,6 +252,10 @@
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
           },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
           "error": {
             "type": "object",
             "properties": {
@@ -332,6 +336,10 @@
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
           },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
           "error": {
             "type": "object",
             "properties": {
@@ -389,6 +397,10 @@
           "update_notice": {
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
           },
           "error": {
             "type": "object",
@@ -454,7 +466,17 @@
               "variables": {
                 "type": "array",
                 "items": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "meaning": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 4096,
+                      "description": "可省略；说明文字最多4096字符，不接受隐式字符串转换。"
+                    }
+                  }
                 },
                 "default": []
               }
@@ -490,6 +512,10 @@
           "update_notice": {
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
           },
           "error": {
             "type": "object",
@@ -564,7 +590,17 @@
                   "variables": {
                     "type": "array",
                     "items": {
-                      "type": "object"
+                      "type": "object",
+                      "properties": {
+                        "meaning": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 4096,
+                          "description": "可省略；说明文字最多4096字符，不接受隐式字符串转换。"
+                        }
+                      }
                     },
                     "default": []
                   }
@@ -587,7 +623,7 @@
               },
               "claimed_objective_value": {
                 "type": "number",
-                "description": "可选，必须与包含 offset 的候选 QUBO 能量严格一致"
+                "description": "可选，必须与包含 offset 的候选 QUBO 能量严格一致；可先省略以获取 summary.candidate_objective_value，声明时使用返回原值，四舍五入仅用于展示"
               },
               "mapping_completeness": {
                 "type": "string",
@@ -774,6 +810,10 @@
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
           },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
           "error": {
             "type": "object",
             "properties": {
@@ -826,12 +866,14 @@
               },
               "candidates": {
                 "type": "array",
+                "maxItems": 1000,
                 "items": {
                   "type": "object",
                   "properties": {
                     "id": {
                       "type": "string",
-                      "minLength": 1
+                      "minLength": 1,
+                      "maxLength": 1024
                     },
                     "assignment": {
                       "type": "object",
@@ -896,6 +938,10 @@
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
           },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
           "error": {
             "type": "object",
             "properties": {
@@ -922,7 +968,7 @@
     {
       "name": "isingq_solve_start",
       "title": "提交 IsingQ 组合优化求解",
-      "description": "调用即会将 QUBO 转成矩阵，并使用本机个人 IsingQ API Key 创建远端求解任务。仅在用户明确授权当前云任务后调用；先展示业务范围、目标约束、数据外发、付款选择与任务执行摘要，后台绑定 model_sha256、求解参数和稳定幂等键。用户说“再次求解”或“重跑”只是新任务意图，不当作最终确认。即使模型、参数和付款均不变，也必须先展示本次摘要（沿用或变化、付款来源、再次消耗），再询问并等待用户后续明确确认；确认仅用于本次任务。poll/get 查询已有任务不需要新求解确认；受理不明时 poll/get 仅读本地记录，需控制台或平台支持核对远端，不重提。这是 Agent 与 Host 必须遵守的对话规范；实际强制拦截仍需 Host 权限策略配合，MCP 代码不能验证人类授权，不增加 confirmed 字段或确认 token。必须按用户明确选择传入 solver_options.use_credit=true/false；缺少付款选择先询问，不得自动切换付款或更换幂等键重提。矩阵/hash 详情按需提供，用户无需读懂矩阵；Host 可按权限策略再次确认。结果必须保留 execution_mode、billing.status 与 provenance.source：simulation 是模拟，不是真实云任务或真实扣费；unknown 不能按任务 ID/mock 前缀/路径猜测。live/unknown 且 billing.status=unverified 时无平台账单证据，不能声称已扣费或确认未扣费。付款参数 use_credit、calculate_count 和 succeeded 都不是扣费证据；当前工具不查询账单。诊断只能引用实际error字段：recovery.diagnostic_evidence标明provider_message是否存在及来源；缺失时仅用已有phase/http_status，不能说平台给过脱敏提示；simulation提示是模拟诊断，unknown来源未核实。恢复必须消费 recovery（isingq-recovery-v1）：幂等键仅在本地存储去重，create_task 未向远端传此键，不承诺后端防重复或防扣费。unknown 禁止原键重试、换键、作废后新建；poll/get 此时仅读本地，需要平台控制台/支持人工核对。rejected（含 HTTP400）原键仍占用；根因未核实时先诊断/人工核查，不把规范化等价改写当已核实修复来建议新任务；用户主动新任务仍按已有确认流程处理；只有 recovery.same_key_retry_allowed=true 的未创建失败可以修复后原模型原参数原键重试。observation.remote_request_performed 只描述本次是否远端轮询，不表示费用已核实。QUBO输入仅num_bits必填；linear/quadratic/variables省略为[]，offset省略或null为0。示例和规范化后的完整对象不是必填声明。QUBO经规范化转矩阵CSV上传，远端create_task传inputJFile及参数，不传原始QUBO JSON；补默认字段不改变语义请求，不是远端400的已核实修复。",
+      "description": "调用即会将 QUBO 转成矩阵，并使用本机个人 IsingQ API Key 创建远端求解任务。仅在用户明确授权当前云任务后调用；先展示业务范围、目标约束、数据外发、付款选择与任务执行摘要，Agent 在本轮上下文中关联校验返回的 model_sha256、求解参数和稳定幂等键。用户说“再次求解”或“重跑”只是新任务意图，不当作最终确认。即使模型、参数和付款均不变，也必须先展示本次摘要（沿用或变化、付款来源、再次消耗），再询问并等待用户后续明确确认；确认仅用于本次任务。poll/get 查询已有任务不需要新求解确认；受理不明时 poll/get 仅读本地记录，需控制台或平台支持核对远端，不重提。这是 Agent 与 Host 必须遵守的对话规范；实际强制拦截仍需 Host 权限策略配合，MCP 代码不能验证人类授权，不增加 confirmed 字段或确认 token。必须按用户明确选择传入 solver_options.use_credit=true/false；缺少付款选择先询问，不得自动切换付款或更换幂等键重提。矩阵/hash 详情按需提供，用户无需读懂矩阵；Host 可按权限策略再次确认。结果必须保留 execution_mode、billing.status 与 provenance.source：simulation 是模拟，不是真实云任务或真实扣费；unknown 不能按任务 ID/mock 前缀/路径猜测。live/unknown 且 billing.status=unverified 时无平台账单证据，不能声称已扣费或确认未扣费。付款参数 use_credit、calculate_count 和 succeeded 都不是扣费证据；当前工具不查询账单。诊断只能引用实际error字段：recovery.diagnostic_evidence标明provider_message是否存在及来源；缺失时仅用已有phase/http_status，不能说平台给过脱敏提示；simulation提示是模拟诊断，unknown来源未核实。恢复必须消费 recovery（isingq-recovery-v1）：幂等键仅在本地存储去重，create_task 未向远端传此键，不承诺后端防重复或防扣费。unknown 禁止原键重试、换键、作废后新建；poll/get 此时仅读本地，需要平台控制台/支持人工核对。rejected（含 HTTP400）原键仍占用；根因未核实时先诊断/人工核查，不把规范化等价改写当已核实修复来建议新任务；用户主动新任务仍按已有确认流程处理；只有 recovery.same_key_retry_allowed=true 的未创建失败可以修复后原模型原参数原键重试。observation.remote_request_performed 只描述本次是否远端轮询，不表示费用已核实。QUBO输入仅num_bits必填；linear/quadratic/variables省略为[]，offset省略或null为0。示例和规范化后的完整对象不是必填声明。QUBO经规范化转矩阵CSV上传，远端create_task传inputJFile及参数，不传原始QUBO JSON；补默认字段不改变语义请求，不是远端400的已核实修复。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -960,7 +1006,17 @@
               "variables": {
                 "type": "array",
                 "items": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "meaning": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 4096,
+                      "description": "可省略；说明文字最多4096字符，不接受隐式字符串转换。"
+                    }
+                  }
                 },
                 "default": []
               }
@@ -1058,6 +1114,10 @@
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
           },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
           "error": {
             "type": "object",
             "properties": {
@@ -1084,7 +1144,7 @@
     {
       "name": "isingq_solve_poll",
       "title": "查询 IsingQ 求解进度",
-      "description": "仅有 provider_task_id 且非终态时查询一次远端并更新本地记录；unknown、无远端ID及终态直接返回本地记录，不能称为远端查证；成功时返回 bit、变量映射、provider energy 和 QUBO 目标值。保留 execution_mode 与 billing.status：simulation 不是真实云任务；succeeded 不代表已扣费，unverified 表示没有账单证据，不查询账单。诊断只能引用实际error字段：recovery.diagnostic_evidence标明provider_message是否存在及来源；缺失时仅用已有phase/http_status，不能说平台给过脱敏提示；simulation提示是模拟诊断，unknown来源未核实。恢复必须消费 recovery（isingq-recovery-v1）：幂等键仅在本地存储去重，create_task 未向远端传此键，不承诺后端防重复或防扣费。unknown 禁止原键重试、换键、作废后新建；poll/get 此时仅读本地，需要平台控制台/支持人工核对。rejected（含 HTTP400）原键仍占用；根因未核实时先诊断/人工核查，不把规范化等价改写当已核实修复来建议新任务；用户主动新任务仍按已有确认流程处理；只有 recovery.same_key_retry_allowed=true 的未创建失败可以修复后原模型原参数原键重试。observation.remote_request_performed 只描述本次是否远端轮询，不表示费用已核实。",
+      "description": "仅有 provider_task_id 且非终态时查询一次远端并更新本地记录；unknown、无远端ID及终态直接返回本地记录，不能称为远端查证；成功时返回 bit、变量映射、provider energy 和 QUBO 目标值。保留 execution_mode 与 billing.status：simulation 不是真实云任务；succeeded 不代表已扣费，unverified 表示没有账单证据，不查询账单。本地记录缺失时返回 solve_record_not_found；请核对任务 ID 和记录来源，不要因此重新提交任务。诊断只能引用实际error字段：recovery.diagnostic_evidence标明provider_message是否存在及来源；缺失时仅用已有phase/http_status，不能说平台给过脱敏提示；simulation提示是模拟诊断，unknown来源未核实。恢复必须消费 recovery（isingq-recovery-v1）：幂等键仅在本地存储去重，create_task 未向远端传此键，不承诺后端防重复或防扣费。unknown 禁止原键重试、换键、作废后新建；poll/get 此时仅读本地，需要平台控制台/支持人工核对。rejected（含 HTTP400）原键仍占用；根因未核实时先诊断/人工核查，不把规范化等价改写当已核实修复来建议新任务；用户主动新任务仍按已有确认流程处理；只有 recovery.same_key_retry_allowed=true 的未创建失败可以修复后原模型原参数原键重试。observation.remote_request_performed 只描述本次是否远端轮询，不表示费用已核实。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1118,6 +1178,10 @@
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
           },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
           "error": {
             "type": "object",
             "properties": {
@@ -1144,7 +1208,7 @@
     {
       "name": "isingq_solve_result_get",
       "title": "读取本地 IsingQ 求解结果",
-      "description": "读取本机保存的 QUBO-only 求解状态、结果、execution_mode、billing.status 与来源信息；不联网，不自动断言业务可行或全局最优。历史无执行标识为 unknown；simulation 不是真实云任务，unverified 不证明已扣费或未扣费，不从 ID 或路径猜测。诊断只能引用实际error字段：recovery.diagnostic_evidence标明provider_message是否存在及来源；缺失时仅用已有phase/http_status，不能说平台给过脱敏提示；simulation提示是模拟诊断，unknown来源未核实。恢复必须消费 recovery（isingq-recovery-v1）：幂等键仅在本地存储去重，create_task 未向远端传此键，不承诺后端防重复或防扣费。unknown 禁止原键重试、换键、作废后新建；poll/get 此时仅读本地，需要平台控制台/支持人工核对。rejected（含 HTTP400）原键仍占用；根因未核实时先诊断/人工核查，不把规范化等价改写当已核实修复来建议新任务；用户主动新任务仍按已有确认流程处理；只有 recovery.same_key_retry_allowed=true 的未创建失败可以修复后原模型原参数原键重试。observation.remote_request_performed 只描述本次是否远端轮询，不表示费用已核实。",
+      "description": "读取本机保存的 QUBO-only 求解状态、结果、execution_mode、billing.status 与来源信息；不联网，不自动断言业务可行或全局最优。历史无执行标识为 unknown；simulation 不是真实云任务，unverified 不证明已扣费或未扣费，不从 ID 或路径猜测。本地记录缺失时返回 solve_record_not_found；请核对任务 ID 和记录来源，不要因此重新提交任务。诊断只能引用实际error字段：recovery.diagnostic_evidence标明provider_message是否存在及来源；缺失时仅用已有phase/http_status，不能说平台给过脱敏提示；simulation提示是模拟诊断，unknown来源未核实。恢复必须消费 recovery（isingq-recovery-v1）：幂等键仅在本地存储去重，create_task 未向远端传此键，不承诺后端防重复或防扣费。unknown 禁止原键重试、换键、作废后新建；poll/get 此时仅读本地，需要平台控制台/支持人工核对。rejected（含 HTTP400）原键仍占用；根因未核实时先诊断/人工核查，不把规范化等价改写当已核实修复来建议新任务；用户主动新任务仍按已有确认流程处理；只有 recovery.same_key_retry_allowed=true 的未创建失败可以修复后原模型原参数原键重试。observation.remote_request_performed 只描述本次是否远端轮询，不表示费用已核实。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1178,6 +1242,10 @@
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
           },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
           "error": {
             "type": "object",
             "properties": {
@@ -1210,7 +1278,7 @@
         "properties": {
           "refresh": {
             "type": "boolean",
-            "description": "忽略进程内缓存重新查询，默认 false"
+            "description": "忽略进程内已完成缓存重新查询；有请求在途时合并为同一次查询，默认 false"
           }
         },
         "additionalProperties": false
@@ -1236,6 +1304,1760 @@
             "type": "object",
             "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
           },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_solver_targets_list",
+      "title": "查看云端与本地求解目标",
+      "description": "在同一求解确认环节给出可选目标与初步建议。公开云目录匿名读取；本地来自具名配置。推荐不是白名单，未被推荐仍可选，建议可延迟或忽略，不覆盖用户选择、不自动改参数。include_cloud=false可只读本地列表，无需等待云目录。零／一／多台本地配置均展示 local.management 的“添加／管理本地求解器”操作；管理操作不是求解目标，仅看目录不启动管理页。用户管理返回后重读最新本地列表，保留模型与已有合法选择，不自动改选或提交。仅看目录或建议不提交任务。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "enum": [
+              "sit",
+              "prod"
+            ],
+            "default": "prod"
+          },
+          "qubo": {
+            "type": "object",
+            "description": "云端与本地采用相同服务边界：基础连接与已知 QUBO 协议可进入标准准备，仍严格检查实际 maxScale、文件容量及已明确声明的系数范围／格点限制。maxPrecision=8bit 只是设备展示的计算精度，不据此推导上传系数必须在 ±127 内或只能为整数。未声明的系数／量化规则如实标记未知，不据此判不兼容或阻断普通准备／提交，不要求普通用户提供完整硬件内部算法。Toolkit 不自动缩放、量化、截断；不根据 bit 精度或离线猜测修改既有模型、惩罚权重、辅助位、编码或业务条件。离线量化模拟仅是明确标注假设的独立实验，不是设备能力证据，也不是擅自改模理由。设备明确拒绝或结果异常时按原接口证据定位，保留原矩阵和记录，不自动回退、重编码或重提。首次正常构造 QUBO 和惩罚权重仍允许，但须有业务及数学依据；用户主动要求或确有已声明限制需要重建模时，说明实质变化、核验业务等价性，生成新模型与最终 CSV，重新 prepare 并更新适用确认，不沿用旧提交依据。ready 只表示已检查当前可核对的合同，不证明精度无损；完整数值／量化算法及独立参考仅在实施客户端数值变换或承诺无损／精度适配时才是前提，不作为普通提交前置。",
+            "properties": {
+              "num_bits": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "实际编码维度；按所选目标能力及客户端容量独立校验，legacy入口仍使用原2048限制。"
+              },
+              "linear": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "default": []
+              },
+              "quadratic": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "default": []
+              },
+              "offset": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "default": 0,
+                "description": "省略或null规范化为0；数值必须有限。"
+              },
+              "variables": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "meaning": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 4096,
+                      "description": "可省略；说明文字最多4096字符，不接受隐式字符串转换。"
+                    }
+                  }
+                },
+                "default": []
+              }
+            },
+            "required": [
+              "num_bits"
+            ],
+            "additionalProperties": false
+          },
+          "solver_options": {
+            "type": "object",
+            "description": "云端calculate_count/post_process整数0|1/use_credit显式boolean；本地传{}使用默认配置，task_mode仅供高级兼容/诊断，普通流程不询问或展示。字段不跨目标混用，推荐不自动套用。",
+            "properties": {
+              "calculate_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "post_process": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1
+                ]
+              },
+              "use_credit": {
+                "type": "boolean"
+              },
+              "task_mode": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1,
+                  2
+                ],
+                "description": "本地 solver_options.task_mode 缺省由 Core 统一规范化为2（精准），MCP普通调用传solver_options={}即可。普通业务流程不询问、不主动展示求解模式、三档区别或服务器后处理；提交摘要只保留必要业务、目标、数据去向与设备占用，技术细节仅在用户主动查询时解释。底层兼容/诊断的显式合法高级参数及历史参数原样保留，不被新默认覆盖；不把“快点”等自然语言当作切换到0的技术指令。实际参数保留在工具原始JSON和记录供追溯；默认精准不保证最优、不承诺性能或精度无损，不改变硬件bit精度，不代表已修复设备问题。"
+              },
+              "computer_type_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "question_type": {
+                "type": "integer",
+                "const": 1,
+                "enum": [
+                  1
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "include_cloud": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_target_solve_prepare",
+      "title": "准备所选求解目标",
+      "description": "本地 prepare 返回后，必须优先按 presentation 投影生成普通用户摘要与操作选择，不从审计字段自行拼展示清单。使用 presentation.summary 的实际目标、数据去向、设备占用及就绪／阻断说明，并补入 Host 当前任务中已知的业务范围；不得杜撰业务条件。完整呈现 presentation.actions 中的确认求解、先添加／管理本地求解器、暂不提交三种操作；未就绪时不得执行确认，Host无按钮时用明确自然语言提供三种操作。audit_only_fields 保留技术追溯，普通摘要不主动展示其中的模式／内部后处理；用户主动查询技术细节时才能按原始JSON解释。prepare只读检查，不上传矩阵、不创建任务；只有本次明确确认后才可向投影所列本地地址发送矩阵并占用设备，准备令牌与展示投影均不证明用户授权。用户在求解确认环节选择具体云机型或本地连接后，独立核对能力、文件、表示与参数，只读检查，不上传或创建。ready=false保留选择并说明具体硬性问题。ready=true的preparation_token仅绑定本次准备依据，不证明用户授权；建议无需接受，也不增加接受建议的确认轮次。本地 prepare 的 ready=true／false 均保留 local.management 操作；不能在准备或最终确认时丢失管理入口。实际 Host 使用问答表单时，最终提交确认必须提供“先添加／管理本地求解器”，与“确认提交”“暂不提交”并列为操作分支；ready=false 时仍保留管理与暂不提交，未就绪不能提交。Host 无按钮时提供明确自然语言管理动作，不编造 tool:// 链接，不预先启动页面。只有用户选择管理才调用现有 isingq_solver_config_open；管理返回后刷新本地列表，保留模型、已有合法目标与已选高级参数，按需重新 prepare 本次依据，不增加接受建议轮次，不再次询问模式，保存不提交。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "cloud",
+                  "local"
+                ]
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "sit",
+                  "prod"
+                ]
+              },
+              "computer_type_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "profile_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "cloud"
+                  },
+                  "environment": {
+                    "enum": [
+                      "sit",
+                      "prod"
+                    ]
+                  },
+                  "computer_type_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "environment",
+                  "computer_type_id"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "local"
+                  },
+                  "profile_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "profile_id"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "qubo": {
+            "type": "object",
+            "description": "云端与本地采用相同服务边界：基础连接与已知 QUBO 协议可进入标准准备，仍严格检查实际 maxScale、文件容量及已明确声明的系数范围／格点限制。maxPrecision=8bit 只是设备展示的计算精度，不据此推导上传系数必须在 ±127 内或只能为整数。未声明的系数／量化规则如实标记未知，不据此判不兼容或阻断普通准备／提交，不要求普通用户提供完整硬件内部算法。Toolkit 不自动缩放、量化、截断；不根据 bit 精度或离线猜测修改既有模型、惩罚权重、辅助位、编码或业务条件。离线量化模拟仅是明确标注假设的独立实验，不是设备能力证据，也不是擅自改模理由。设备明确拒绝或结果异常时按原接口证据定位，保留原矩阵和记录，不自动回退、重编码或重提。首次正常构造 QUBO 和惩罚权重仍允许，但须有业务及数学依据；用户主动要求或确有已声明限制需要重建模时，说明实质变化、核验业务等价性，生成新模型与最终 CSV，重新 prepare 并更新适用确认，不沿用旧提交依据。ready 只表示已检查当前可核对的合同，不证明精度无损；完整数值／量化算法及独立参考仅在实施客户端数值变换或承诺无损／精度适配时才是前提，不作为普通提交前置。",
+            "properties": {
+              "num_bits": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "实际编码维度；按所选目标能力及客户端容量独立校验，legacy入口仍使用原2048限制。"
+              },
+              "linear": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "default": []
+              },
+              "quadratic": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "default": []
+              },
+              "offset": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "default": 0,
+                "description": "省略或null规范化为0；数值必须有限。"
+              },
+              "variables": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "meaning": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 4096,
+                      "description": "可省略；说明文字最多4096字符，不接受隐式字符串转换。"
+                    }
+                  }
+                },
+                "default": []
+              }
+            },
+            "required": [
+              "num_bits"
+            ],
+            "additionalProperties": false
+          },
+          "solver_options": {
+            "type": "object",
+            "description": "云端calculate_count/post_process整数0|1/use_credit显式boolean；本地传{}使用默认配置，task_mode仅供高级兼容/诊断，普通流程不询问或展示。字段不跨目标混用，推荐不自动套用。",
+            "properties": {
+              "calculate_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "post_process": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1
+                ]
+              },
+              "use_credit": {
+                "type": "boolean"
+              },
+              "task_mode": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1,
+                  2
+                ],
+                "description": "本地 solver_options.task_mode 缺省由 Core 统一规范化为2（精准），MCP普通调用传solver_options={}即可。普通业务流程不询问、不主动展示求解模式、三档区别或服务器后处理；提交摘要只保留必要业务、目标、数据去向与设备占用，技术细节仅在用户主动查询时解释。底层兼容/诊断的显式合法高级参数及历史参数原样保留，不被新默认覆盖；不把“快点”等自然语言当作切换到0的技术指令。实际参数保留在工具原始JSON和记录供追溯；默认精准不保证最优、不承诺性能或精度无损，不改变硬件bit精度，不代表已修复设备问题。"
+              },
+              "computer_type_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "question_type": {
+                "type": "integer",
+                "const": 1,
+                "enum": [
+                  1
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "target",
+          "qubo",
+          "solver_options"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_target_solve_start",
+      "title": "按本次明确选择提交求解",
+      "description": "仅在Host已展示本次业务范围、目标、数据去向及按 target.kind 适用的资源影响摘要（本地为设备占用，不主动展示模式或内部后处理，不展示云费用或付款选择；云端展示适用参数并保留显式付款规则）并取得用户明确确认后调用。保留用户选择，选后建议不覆盖、不阻塞、不增加接受建议轮次。prepare返回的token绑定依据，目标/模型/参数/能力/报价变化须重核适用确认；token不是人类授权证明。每次逻辑任务用稳定幂等键，受理未知先核查原服务，不自动换目标、换键或盲目重提。历史查询使用原poll/get。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "cloud",
+                  "local"
+                ]
+              },
+              "environment": {
+                "type": "string",
+                "enum": [
+                  "sit",
+                  "prod"
+                ]
+              },
+              "computer_type_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "profile_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "cloud"
+                  },
+                  "environment": {
+                    "enum": [
+                      "sit",
+                      "prod"
+                    ]
+                  },
+                  "computer_type_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "environment",
+                  "computer_type_id"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "local"
+                  },
+                  "profile_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "profile_id"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "qubo": {
+            "type": "object",
+            "description": "云端与本地采用相同服务边界：基础连接与已知 QUBO 协议可进入标准准备，仍严格检查实际 maxScale、文件容量及已明确声明的系数范围／格点限制。maxPrecision=8bit 只是设备展示的计算精度，不据此推导上传系数必须在 ±127 内或只能为整数。未声明的系数／量化规则如实标记未知，不据此判不兼容或阻断普通准备／提交，不要求普通用户提供完整硬件内部算法。Toolkit 不自动缩放、量化、截断；不根据 bit 精度或离线猜测修改既有模型、惩罚权重、辅助位、编码或业务条件。离线量化模拟仅是明确标注假设的独立实验，不是设备能力证据，也不是擅自改模理由。设备明确拒绝或结果异常时按原接口证据定位，保留原矩阵和记录，不自动回退、重编码或重提。首次正常构造 QUBO 和惩罚权重仍允许，但须有业务及数学依据；用户主动要求或确有已声明限制需要重建模时，说明实质变化、核验业务等价性，生成新模型与最终 CSV，重新 prepare 并更新适用确认，不沿用旧提交依据。ready 只表示已检查当前可核对的合同，不证明精度无损；完整数值／量化算法及独立参考仅在实施客户端数值变换或承诺无损／精度适配时才是前提，不作为普通提交前置。",
+            "properties": {
+              "num_bits": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "实际编码维度；按所选目标能力及客户端容量独立校验，legacy入口仍使用原2048限制。"
+              },
+              "linear": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "default": []
+              },
+              "quadratic": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "default": []
+              },
+              "offset": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "default": 0,
+                "description": "省略或null规范化为0；数值必须有限。"
+              },
+              "variables": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "meaning": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 4096,
+                      "description": "可省略；说明文字最多4096字符，不接受隐式字符串转换。"
+                    }
+                  }
+                },
+                "default": []
+              }
+            },
+            "required": [
+              "num_bits"
+            ],
+            "additionalProperties": false
+          },
+          "solver_options": {
+            "type": "object",
+            "description": "云端calculate_count/post_process整数0|1/use_credit显式boolean；本地传{}使用默认配置，task_mode仅供高级兼容/诊断，普通流程不询问或展示。字段不跨目标混用，推荐不自动套用。",
+            "properties": {
+              "calculate_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "post_process": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1
+                ]
+              },
+              "use_credit": {
+                "type": "boolean"
+              },
+              "task_mode": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1,
+                  2
+                ],
+                "description": "本地 solver_options.task_mode 缺省由 Core 统一规范化为2（精准），MCP普通调用传solver_options={}即可。普通业务流程不询问、不主动展示求解模式、三档区别或服务器后处理；提交摘要只保留必要业务、目标、数据去向与设备占用，技术细节仅在用户主动查询时解释。底层兼容/诊断的显式合法高级参数及历史参数原样保留，不被新默认覆盖；不把“快点”等自然语言当作切换到0的技术指令。实际参数保留在工具原始JSON和记录供追溯；默认精准不保证最优、不承诺性能或精度无损，不改变硬件bit精度，不代表已修复设备问题。"
+              },
+              "computer_type_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "question_type": {
+                "type": "integer",
+                "const": 1,
+                "enum": [
+                  1
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "preparation_token": {
+            "type": "string",
+            "pattern": "^prep_[a-f0-9]{64}$"
+          },
+          "model_summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "target",
+          "qubo",
+          "solver_options",
+          "preparation_token",
+          "model_summary",
+          "idempotency_key"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_solver_profiles_list",
+      "title": "查看具名本地连接",
+      "description": "只读列出当前用户/运行环境的本地连接，不创建任务，不推断网络可达或设备可提交。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_solver_profiles_save",
+      "title": "保存本地求解器连接",
+      "description": "保存名称、实际求解服务地址及可选网页地址；新增/编辑仅写配置，不连接设备、不提交任务。已有连接需要原稳定id及revision，防止覆盖同时编辑。基础信息不依赖高级矩阵合同。秘密凭据不进入本工具或普通配置，不能传入云Key。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "api_base_url": {
+                "type": "string"
+              },
+              "web_base_url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "contract": {
+                "type": "object",
+                "description": "仅由维护者按设备已核实部署约定提供；不从文档示例或当前状态补造。",
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "name",
+              "api_base_url"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "profile"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_solver_profiles_delete",
+      "title": "移除本地连接配置",
+      "description": "只移除本地连接，保留历史任务与提交时来源；不等于取消、删除或重算设备任务。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profile_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_solver_config_open",
+      "title": "打开本地求解器配置页",
+      "description": "按需启动有期限的本机loopback配置页并立即返回入口，不阻塞MCP或CLI。用户可录入/编辑名称与服务地址，保存不提交、取消不写入；样式确认与基础录入独立。返回实际 url，由实际 Host 支持打开或提供可点击入口，不让用户手拼地址；管理返回后重新读取本地目标列表，保留模型与合法选择，不自动提交。仅在Toolkit运行的本机浏览器访问，不把它当设备任务页面。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_solve_records_list",
+      "title": "逐笔查看求解调用记录",
+      "description": "读取云端/本地混合记录的原目标和查阅依据，分页读取。当前选择或配置改名/改址/删除不重写历史。旧缺来源记录明确未知，不用当前环境补填；打开网页不新建/重算任务。v2回执须消费result_interpretation说明结果证据边界。云端与本地结果采用相同证据边界：合法位串及原 QUBO 复算只说明该候选在声明域／维度下的值；单点 energy 加 offset 与原 QUBO 值一致，只证明该点数值吻合，不能证明 provider 内部未缩放、量化、截断，不能排除转换／极性问题，也不能证明整体模型、罚权或转换完整正确及真实硬件执行方式。client_quantization=none 仅表示客户端未量化，不等于 provider 未量化；结果接口未声明的 provider 内部处理为 unknown。不从 8bit 推算系数范围、量化步长或声称某个小系数模型正好适配／无损。不可行或非最优候选按已核验的业务约束与证明范围说明，原因未定，不把采样／退火未收敛认定为唯一原因，也不据单点吻合排除精度或其他问题。succeeded 仅为提供方执行与结果合同的技术状态，不等于业务可行或最优。保留原矩阵和记录，不自行生成、替换或离线试算新模型作为修复，除非用户另行要求且有实际依据；可以提议继续定位或询问是否另行建模，不凭 bit 猜测提出确定适配方案。首次正常建模与另获授权且有依据的改模仍可进行，实质变化后仍核验业务等价性、生成最终 CSV、重新 prepare 并更新适用确认。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_target_delivery_validate",
+      "title": "按本次目标校验QUBO交付",
+      "description": "纯本地复用原交付数学与摘要校验，先核对document.qubo与该笔调用模型一致，按该目标已用规模解码/复算，避免新目标上传后被旧2048全局限制拦住。不证明业务完整、测试真实或人类授权，不再提交。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "solve_id": {
+            "type": "string"
+          },
+          "document": {
+            "type": "object",
+            "description": "原isingq-delivery-v1交付文档，qubo须与该笔记录一致。"
+          }
+        },
+        "required": [
+          "solve_id",
+          "document"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "isingq_solve",
+      "title": "准备、确认与查看本次业务求解",
+      "description": "建模产物与业务求解使用同一方法。model只做本机QUBO校验及三文件导出，不读目标、设备或凭据；要求求解准备时直接prepare，同时导出与准备，不必先model。model/prepare可提供model_markdown作为变量、业务目标、约束和公式说明；模型数学信息属于正常产物。首次建模／准备呈现modeling正文及实际文件入口，再附reply和全部操作；不要只剩求解摘要。结果reply是程序生成的本步业务回复，actions含完整业务label及现成call。用户明确要求准备求解时直接prepare，同时导出产物并准备目标；model仅用于只建模／只导出意图，不是求解前强制轮次，也不增加模型接受确认。prepare后先完成用户已经明确的业务选择。返回选项与用户指定的名称和来源无歧义相符时，沿该项现成call继续准备，不重复追问已知选择；已有明确付款选择也沿对应call复用，不代选资金、不擅自改变目标。选择不等于提交。在提交前准备阶段，仅在真正缺少目标或付款选择、遇到硬性阻断，或ready等待本次执行明确确认时，才呈现reply及全部动作并等待用户。只有用户明确确认当前内容才执行confirm；现成call不是授权证明。准备／管理／查询不提交，cancel仅停止提交前准备，受理未知不重建。较大模型从原业务文件通过本地建模程序生成qubo.json并计算实际字节SHA256，model／新prepare用qubo_file:{path,sha256}代替inline qubo，二者恰好选一个；文件位于Toolkit运行主机，无需聊天或工具参数展开矩阵。review_file仅是业务核验来源，不能代替QUBO输入。正常求解返回candidate_ready后，不以候选就绪作为最终答复：沿review现成call继续本地解码和业务复核，无需再询问用户是否解读，也不再次提交。Host从原建模上下文整理review.model（math-model-v1）、data及可选baseline；按原位索引使用x_0、x_1等变量，整数或其他编码通过bindings明确写出原解码表达式。程序从原记录取候选，不允许自行填写或替换本次赋值。仅在review现成call中补充业务核验信息，保留原关联不变。业务目标与QUBO含罚项的目标分开核对；不得反推或省略原约束来制造通过。缺原业务信息时保持未知，只补问业务缺项，不要求用户填写JSON、协议或内部参数。历史列表不批量复核。成功后直接呈现review返回reply中的完整方案、业务目标和约束复核，再基于这些事实解释业务含义；不只输出位串、状态或技术日志。模型内比较不说成实际收益，单个候选不声称全局最优；失败或不支持时保留原任务，说明未完成范围，不自动改模或重算。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "model",
+              "prepare",
+              "choose",
+              "funding",
+              "confirm",
+              "status",
+              "review",
+              "history",
+              "manage",
+              "refresh",
+              "cancel"
+            ]
+          },
+          "review": {
+            "type": "object",
+            "description": "原业务核验信息，由Host沿用建模上下文整理；不要求用户填写JSON。变量赋值由程序从原求解记录解码，不接收本次候选或自报结论。",
+            "properties": {
+              "model": {
+                "type": "object",
+                "properties": {
+                  "schema_version": {
+                    "type": "string",
+                    "const": "math-model-v1"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 4096
+                  },
+                  "variables": {
+                    "type": "array",
+                    "description": "完整原业务变量，按实际模型规模核验；整体输入受本地核验容量保护。直接对应原位时用x_0、x_1等id；其他编码通过bindings声明。label写业务含义，不使用name、index或meaning字段。",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1024
+                            },
+                            "domain": {
+                              "type": "string",
+                              "const": "binary"
+                            },
+                            "label": {
+                              "type": "string",
+                              "maxLength": 4096
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "domain"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1024
+                            },
+                            "domain": {
+                              "type": "string",
+                              "const": "integer"
+                            },
+                            "label": {
+                              "type": "string",
+                              "maxLength": 4096
+                            },
+                            "lower": {
+                              "oneOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "param": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 1024
+                                    }
+                                  },
+                                  "required": [
+                                    "param"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            "upper": {
+                              "oneOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "param": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 1024
+                                    }
+                                  },
+                                  "required": [
+                                    "param"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "domain",
+                            "lower",
+                            "upper"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "objective": {
+                    "type": "object",
+                    "properties": {
+                      "sense": {
+                        "type": "string",
+                        "enum": [
+                          "min",
+                          "max"
+                        ]
+                      },
+                      "expression": {
+                        "type": "object",
+                        "properties": {
+                          "constant": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "param": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 1024
+                                  }
+                                },
+                                "required": [
+                                  "param"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "terms": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "coefficient": {
+                                  "oneOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "param": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 1024
+                                        }
+                                      },
+                                      "required": [
+                                        "param"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  ]
+                                },
+                                "variables": {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "maxItems": 2,
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 1024
+                                  }
+                                }
+                              },
+                              "required": [
+                                "coefficient",
+                                "variables"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "terms"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "sense",
+                      "expression"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "constraints": {
+                    "type": "array",
+                    "description": "完整原业务仿射约束，整体输入受本地核验容量保护；原问题无额外约束时为[]。变量域由variables定义，不增加恒等式占位。",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1024
+                        },
+                        "label": {
+                          "type": "string",
+                          "maxLength": 4096
+                        },
+                        "expression": {
+                          "type": "object",
+                          "properties": {
+                            "constant": {
+                              "oneOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "param": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 1024
+                                    }
+                                  },
+                                  "required": [
+                                    "param"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            "terms": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "coefficient": {
+                                    "oneOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "param": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 1024
+                                          }
+                                        },
+                                        "required": [
+                                          "param"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    ]
+                                  },
+                                  "variables": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "maxItems": 1,
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 1024
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "coefficient",
+                                  "variables"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "terms"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "relation": {
+                          "type": "string",
+                          "enum": [
+                            "le",
+                            "ge",
+                            "eq"
+                          ]
+                        },
+                        "rhs": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "param": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 1024
+                                }
+                              },
+                              "required": [
+                                "param"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "expression",
+                        "relation",
+                        "rhs"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "id",
+                  "variables",
+                  "objective",
+                  "constraints"
+                ],
+                "additionalProperties": false,
+                "description": "既有math-model-v1；数值、变量含义和约束逐项沿用原业务模型。"
+              },
+              "data": {
+                "type": "object",
+                "description": "原模型引用的平坦整数参数；没有参数时为{}。",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              },
+              "baseline": {
+                "type": "object",
+                "description": "可选的同模型参考方案完整赋值，不是本次候选。",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              },
+              "bindings": {
+                "type": "object",
+                "description": "可选的原编码映射，每个业务变量id对应一个math-model-v1表达式；变量引用原位x_0、x_1…，系数为整数常量。缺省时业务变量id直接对应原位。",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "constant": {
+                      "type": "integer"
+                    },
+                    "terms": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "coefficient": {
+                            "type": "integer"
+                          },
+                          "variables": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "maxItems": 2
+                          }
+                        },
+                        "required": [
+                          "coefficient",
+                          "variables"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "terms"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "model",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          "review_file": {
+            "type": "object",
+            "description": "由原模型文件导出回执提供；大模型使用此引用，不在聊天或工具参数中展开完整矩阵。文件位于Toolkit运行主机。",
+            "properties": {
+              "manifest_path": {
+                "type": "string",
+                "description": "实际清单绝对路径"
+              },
+              "content_digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "清单实际字节SHA256，直接复用导出回执"
+              }
+            },
+            "required": [
+              "manifest_path",
+              "content_digest"
+            ],
+            "additionalProperties": false
+          },
+          "model_markdown": {
+            "type": "string",
+            "maxLength": 200000,
+            "description": "Agent撰写的业务变量、目标、约束与数学公式说明，原样绑定本次模型。公式使用LaTeX行内$...$或独立$$...$$数学块（如\\sum、x_{10}），不用普通Σ_文本或代码围栏冒充数学排版。不是求解器内部参数；省略时只导出已知QUBO表达并标注业务语义未知。"
+          },
+          "qubo": {
+            "type": "object",
+            "description": "稀疏QUBO输入；仅num_bits必填。省略默认项是合法输入，规范化补默认值不构成模型修复。",
+            "properties": {
+              "num_bits": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "当前业务模型的实际二进制变量数，按所选目标核对能力。"
+              },
+              "linear": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "default": []
+              },
+              "quadratic": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "default": []
+              },
+              "offset": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "default": 0,
+                "description": "省略或null规范化为0；数值必须有限。"
+              },
+              "variables": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "meaning": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 4096,
+                      "description": "可省略；说明文字最多4096字符，不接受隐式字符串转换。"
+                    }
+                  }
+                },
+                "default": []
+              }
+            },
+            "required": [
+              "num_bits"
+            ],
+            "additionalProperties": false
+          },
+          "qubo_file": {
+            "type": "object",
+            "description": "model／新prepare与qubo恰好二选一。大模型由本地建模程序生成qubo.json和SHA256，只传文件描述；Toolkit读取同一份字节并校验摘要，不在工具参数或聊天展开矩阵。",
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "description": "Toolkit运行主机上的普通本地UTF-8 JSON文件路径；拒绝末级符号链接和非普通文件。"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "该文件实际字节的完整小写SHA256，必填；由本地建模程序计算。"
+              }
+            },
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "additionalProperties": false
+          },
+          "problem_summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000,
+            "description": "model/prepare时用简短自然语言说明当前业务目标与约束；不重复QUBO系数、编码清单或能量推断。完整模型由qubo或qubo_file提供。"
+          },
+          "preferred_target": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "prepare时可填用户指定的设备名称；来源由返回选项核对。若仍返回选项，先按已经明确且无歧义的名称／来源选择对应call继续准备。"
+          },
+          "confirmation_ref": {
+            "type": "string",
+            "description": "直接使用现成确认call中的不透明内容版本关联；不能跨摘要复用，也不是人工授权证明。"
+          },
+          "request_id": {
+            "type": "string",
+            "description": "来自返回动作call.arguments的不透明关联；直接执行现成call，不向用户单独展示或自行构造。"
+          },
+          "target_id": {
+            "type": "string",
+            "description": "choose时直接使用本次返回的目标选项标识。"
+          },
+          "payment": {
+            "type": "string",
+            "enum": [
+              "credits",
+              "balance"
+            ],
+            "description": "仅付费云目标funding使用：用户明确选择算力券或账户余额。"
+          },
+          "solve_id": {
+            "type": "string",
+            "description": "status/review查看历史任务时使用原记录标识；与request_id二选一。"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "model",
+                    "prepare"
+                  ]
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "not": {
+                "required": [
+                  "request_id"
+                ]
+              }
+            },
+            "then": {
+              "oneOf": [
+                {
+                  "required": [
+                    "qubo"
+                  ],
+                  "not": {
+                    "required": [
+                      "qubo_file"
+                    ]
+                  }
+                },
+                {
+                  "required": [
+                    "qubo_file"
+                  ],
+                  "not": {
+                    "required": [
+                      "qubo"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "工具调用是否成功"
+          },
+          "data": {
+            "type": "object",
+            "description": "成功时返回的数据"
+          },
+          "update_notice": {
+            "type": "object",
+            "description": "可选的已完成后台新版提示；不要求用户回应。不出现时不得主动谈论更新。"
+          },
+          "runtime_identity": {
+            "type": "object",
+            "description": "宿主后台核对实际加载来源；不在普通业务回复中打印。"
+          },
           "error": {
             "type": "object",
             "properties": {
@@ -1260,5 +3082,5 @@
       }
     }
   ],
-  "version": "0.8.2"
+  "version": "0.9.0"
 }

@@ -1,4 +1,5 @@
 'use strict';
+const { runWithCleanupSync } = require('../packages/core/src/run-with-cleanup');
 
 // Offline, fresh-process measurements. Peak RSS includes fixture construction;
 // these are observations of this machine, never a performance SLA.
@@ -26,7 +27,7 @@ function runScenario(name) {
   function record(index, paddingBytes = 0) {
     return {solve_id:'solve_'+index.toString(16).padStart(32,'0'),idempotency_digest:index.toString(16).padStart(64,'0'),request_digest:'f'.repeat(64),padding:'x'.repeat(paddingBytes)};
   }
-  try {
+  return runWithCleanupSync(() => {
     if(name.includes('record-')) {
       const store=new SolveStore(environment), run=record(1,(name.startsWith('raised-')?129:27)*MiB);
       result.effective_limit_bytes=store.maxRecordBytes;
@@ -62,7 +63,9 @@ function runScenario(name) {
     result.peak_rss_bytes=process.resourceUsage().maxRSS*1024;
     result.end_rss_bytes=process.memoryUsage().rss;result.status='pass';
     return result;
-  } finally {fs.rmSync(root,{recursive:true,force:true});}
+  }, () => {
+    fs.rmSync(root,{recursive:true,force:true});
+  });
 }
 
 if(process.argv[2]==='--case') {

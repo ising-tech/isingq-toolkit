@@ -3,14 +3,18 @@
 const EFFECT_EVIDENCE_CONTRACT_VERSION = 'isingq-effect-evidence-v1';
 const EXECUTION_MODES = ['simulation', 'live', 'unknown'];
 
-function executionEvidence(value, { strict = false, field = 'transport.execution_mode' } = {}) {
+function executionEvidence(value, { strict = false, field = 'transport.execution_mode', targetKind } = {}) {
   if (strict && value !== undefined && !EXECUTION_MODES.includes(value)) {
     throw new Error(`${field} 必须是 simulation、live 或 unknown；请修正受信 Adapter 的执行模式声明，不能按任务 ID 或文本猜测`);
   }
   const mode = EXECUTION_MODES.includes(value) ? value : 'unknown';
   return {
     execution_mode: mode,
-    billing: { status: mode === 'simulation' ? 'not_applicable' : 'unverified' },
+    // Only a validated target kind determines platform billing applicability.
+    // Local device execution/resource use and other costs remain unverified.
+    billing: targetKind === 'local'
+      ? { status: 'not_applicable', scope: 'cloud_platform', reason: 'local_target' }
+      : { status: mode === 'simulation' ? 'not_applicable' : 'unverified' },
     source: mode === 'live' ? 'isingq_api' : mode,
   };
 }

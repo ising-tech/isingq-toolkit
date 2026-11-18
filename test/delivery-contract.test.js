@@ -48,7 +48,7 @@ test('strictly validates the delivery format and candidate bits, including spars
     });
   }
   assert.throws(() => validateDelivery({ ...fixture(), qubo: { num_bits: 2, offset: '5' } }), /document.qubo.*offset/);
-  assert.throws(() => validateDelivery({ ...fixture(), claimed_objective_value: -1 }), /actual=-1, expected=4, offset=5/);
+  assert.throws(() => validateDelivery({ ...fixture(), claimed_objective_value: -1 }), /claimed=-1, computed=4, offset=5/);
   assert.throws(() => validateDelivery({ ...fixture(), claimed_objective_value: Infinity }), /有限数/);
   const matrixOnly = { qubo: fixture().qubo };
   assert.equal(validateDelivery(matrixOnly).candidate, null);
@@ -140,19 +140,87 @@ test('published claim schema matches every computed summary field; redundant sta
   assert.deepEqual(Object.keys(schema.properties.test_records.properties).sort(), Object.keys(result.summary.test_records).sort());
 });
 
-test('reports unsupported floating point cancellation instead of rejecting a legitimate legacy energy claim', () => {
+test('floating point claims explain how to obtain and reuse the exact computed value', () => {
+  const document = { qubo: { num_bits: 2, linear: [
+    { index: 0, coefficient: 0.1 }, { index: 1, coefficient: 0.2 },
+  ] }, candidate_bits: [1, 1] };
+  const computed = validateDelivery(document).summary.candidate_objective_value;
+  assert.equal(computed, 0.30000000000000004);
+  assert.equal(validateDelivery({ ...document, claimed_objective_value: computed }).candidate.objective_value, computed);
+  assert.throws(() => validateDelivery({ ...document, claimed_objective_value: 0.3 }), error => {
+    assert.equal(error.code, 'delivery_claim_mismatch');
+    assert.match(error.message, /claimed=0.3, computed=0.30000000000000004/);
+    assert.match(error.message, /省略 claimed_objective_value.*summary.candidate_objective_value/);
+    assert.match(error.message, /四舍五入仅用于展示/);
+    return true;
+  });
+  assert.throws(() => validateDelivery({ ...document, claimed_summary: { candidate_objective_value: 0.3 } }), error => {
+    assert.equal(error.code, 'delivery_claim_mismatch');
+    assert.match(error.message, /claimed=0.3, computed=0.30000000000000004/);
+    assert.match(error.message, /省略 claimed_summary.*summary/);
+    return true;
+  });
+  assert.throws(() => validateDelivery({ ...document, claimed_objective_value: 0.3,
+    claimed_summary: { candidate_objective_value: 0.3 } }), error => {
+    assert.match(error.message, /省略 claimed_objective_value 和 claimed_summary.*summary.candidate_objective_value/);
+    return true;
+  });
+});
+
+test('model identity, matrix bytes and candidate energy are stable across equivalent term ordering', () => {
   const document = { qubo: { num_bits: 3, linear: [
     { index: 0, coefficient: 1e16 }, { index: 2, coefficient: -1e16 }, { index: 1, coefficient: 1 },
   ] }, candidate_bits: [1, 1, 1], claimed_objective_value: 1 };
   const { objectiveEnergy } = require('../packages/core');
-  assert.equal(objectiveEnergy(document.qubo, document.candidate_bits), 1);
-  assert.throws(() => validateDelivery(document), error => {
-    assert.equal(error.code, 'delivery_numeric_instability');
-    assert.match(error.message, /input_order=1, canonical_order=0/);
-    return true;
-  });
-  const bounded = structuredClone(document);
-  bounded.qubo.linear[0].coefficient = 1e6;
-  bounded.qubo.linear[1].coefficient = -1e6;
-  assert.equal(validateDelivery(bounded).candidate.objective_value, 1);
+  const reordered = structuredClone(document);
+  reordered.qubo.linear.sort((a, b) => a.index - b.index);
+  assert.deepEqual(modelDigest(document.qubo), modelDigest(reordered.qubo));
+  assert.equal(matrixDocument(document.qubo).sha256, matrixDocument(reordered.qubo).sha256);
+  for (const input of [document, reordered]) {
+    assert.equal(objectiveEnergy(input.qubo, input.candidate_bits), 1);
+    assert.equal(validateDelivery(input).candidate.objective_value, 1);
+  }
+});
+
+test('delivery rejects a non-finite QUBO objective before comparing a claimed value', () => {
+  const document = { qubo: { num_bits: 2, linear: [
+    { index: 0, coefficient: Number.MAX_VALUE }, { index: 1, coefficient: Number.MAX_VALUE },
+  ] }, candidate_bits: [1, 1], claimed_objective_value: 0 };
+  assert.throws(() => validateDelivery(document), { code: 'delivery_numeric_instability' });
+});
+
+test('intermediate overflow does not discard finite cancellation or a tiny surviving term', () => {
+  const { objectiveEnergy } = require('../packages/core');
+  const coefficients = [Number.MAX_VALUE, Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE, Number.MIN_VALUE];
+  const qubo = { num_bits: coefficients.length, linear: coefficients.map((coefficient, index) => ({ index, coefficient })) };
+  const bits = coefficients.map(() => 1);
+  assert.equal(objectiveEnergy(qubo, bits), Number.MIN_VALUE);
+  assert.equal(validateDelivery({ qubo, candidate_bits: bits }).candidate.objective_value, Number.MIN_VALUE);
+});
+
+test('target delivery recomputes a recorded candidate using its saved energy convention', async () => {
+  const { SolverService } = require('../packages/core');
+  const { QUBO_OBJECTIVE_ENERGY_VERSION } = require('../packages/core/src/qubo');
+  const { createHandler } = require('../src/server');
+  const qubo = { num_bits: 3, linear: [
+    { index: 0, coefficient: 1e16 }, { index: 1, coefficient: 1 }, { index: 2, coefficient: -1e16 },
+  ] };
+  const reportModel = { ...qubo, linear: [...qubo.linear].reverse() };
+  const bits = [1, 1, 1], solveId = 'solve_' + 'a'.repeat(32);
+  const saved = { schema: 'isingq-mcp-solve/v2', solve_id: solveId, status: 'succeeded', qubo,
+    matrix: { num_bits: qubo.num_bits, model_sha256: modelDigest(qubo).model_sha256 },
+    result: { bits, objective_value: 0 } };
+  let active = saved;
+  const service = new SolverService({ store: { get(id) { assert.equal(id, solveId); return active; } }, transport: {} });
+  const handle = createHandler(service, { tools_profile: 'technical' });
+  const deliveryFor = async objective => (await handle({ method: 'tools/call', params: { name: 'isingq_target_delivery_validate',
+    arguments: { solve_id: solveId, document: { qubo: reportModel, candidate_bits: bits, claimed_objective_value: objective } } } })).structuredContent;
+  const historic = await deliveryFor(0);
+  assert.equal(historic.ok, true, JSON.stringify(historic.error));
+  assert.equal(historic.data.summary.candidate_objective_value, 0);
+  assert.equal(validateDelivery({ qubo: reportModel, candidate_bits: bits }).candidate.objective_value, 1);
+
+  active = { ...saved, objective_energy_version: QUBO_OBJECTIVE_ENERGY_VERSION, result: { bits, objective_value: 1 } };
+  assert.equal((await deliveryFor(1)).data.summary.candidate_objective_value, 1);
+  assert.equal((await deliveryFor(0)).error.code, 'delivery_claim_mismatch');
 });

@@ -62,8 +62,7 @@ test('digest sorts terms, normalizes pair direction and ignores explicit zero co
     num_bits: 2, linear: [{ index: 0, coefficient: -0 }], quadratic: [{ i: 0, j: 1, coefficient: 0 }],
   }).model_sha256, GOLDEN_EMPTY_HASH);
   assert.equal(core.validateQubo({ num_bits: 2, linear: [{ index: 0, coefficient: 0 }] }).summary.linear_terms, 1);
-  assert.equal(core.modelDigest({ num_bits: 2, variables: [{ index: 0, name: 'x', meaning: 7 }] }).model_sha256,
-    core.modelDigest({ num_bits: 2, variables: [{ index: 0, name: 'x', meaning: '7' }] }).model_sha256);
+  assert.throws(() => core.modelDigest({ num_bits: 2, variables: [{ index: 0, name: 'x', meaning: 7 }] }), /variables\[0\]\.meaning/);
   assert.notEqual(core.modelDigest({ num_bits: 2, variables: [{ index: 0, name: 'x', meaning: '' }] }).model_sha256,
     core.modelDigest({ num_bits: 2, variables: [{ index: 0, name: 'x', meaning: null }] }).model_sha256);
   const reorderedPairs = {

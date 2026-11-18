@@ -9,7 +9,20 @@
 - 优先通过 Host 官方 MCP 设置或其明确公开的用户配置接入。
 - Host 自动生成的代理、缓存、会话配置和运行时端口不属于安装器写入目标。
 - 沙箱阻止用户目录写入时，请求用户授权；不允许换到项目目录保存 Key 或伪造“安装完成”。
-- 求解前由 Agent 展示模型摘要和矩阵 SHA-256 并取得用户确认；`isingq_solve_start` 被 Host 放行后立即提交，MCP 不再弹出额外的系统求解确认框。
+- 求解前由 Agent 展示模型、所选目标、数据去向与适用资源摘要并取得明确确认；矩阵/hash 细节按需提供。提交工具被 Host 放行后创建任务，MCP 不再弹出额外的系统求解确认框。
+
+## 工具数量与版本
+
+以 Host 实际加载的版本与入口为准，不能用仓库版本、旧截图或单独 CLI 探针判定接入完成。
+
+| 实际加载版本 | MCP 默认 `serve` | MCP `serve --technical` | DSH 原生 Plugin |
+| --- | ---: | ---: | ---: |
+| 0.9.x | 4 | 20 | 21 |
+| 0.8.2（兼容已发布旧版） | 10 | 不适用 | 12 |
+
+0.9.x 默认 MCP 的确切工具为 `isingq_api_key_setup`、`isingq_knowledge_get`、`isingq_modeling_guide_get`、`isingq_solve`。DSH 的 21 项来自 19 个共享 Core 工具及 2 个资源工具；不包含 MCP 统一求解门面。
+
+其他版本按对应发布文档和实际工具清单验证，不猜测数量。npm/npx 只安装已发布包；没有加载 0.9.x 时，不宣称本地目标接入已就绪，也不为凑数量重复安装或自动切换技术入口。API Key 配置仅用于云端，不能作为本地接入的前提。
 
 ## Codex Plugin
 
@@ -35,14 +48,14 @@
 
 - 优先使用 `@ising-tech/isingq-dsh-plugin` 原生包，不通过 `dsh-mcp-client` 启动 stdio 子进程。
 - 安装必须指定用户实际使用的 Profile，例如 `dsh plugin --profile web add @ising-tech/isingq-dsh-plugin`。
-- 重启后应看到 12 个 `isingq_*` 工具；工具名不带 `mcp__isingq__` 前缀。
+- 重启后按“工具数量与版本”表核对实际加载的 `isingq_*` 工具；工具名不带 `mcp__isingq__` 前缀。
 - 不得在同一 Profile 同时加载原生 Plugin 和旧 MCP Bridge，移除旧配置前需要用户同意。
 
 ## Codex MCP、Claude Code、Cursor、VS Code
 
 - 使用 `configure-host --name <host>` 只写入用户指定的目标 Host；不得使用“检测到就全部配置”的策略。
 - Codex 只有在未选择 Plugin 路径时才进入本节；不能让 Plugin 和独立 MCP 同时注册。
-- 配置写入成功不等于工具已加载；先重连 MCP，Host 不支持动态重载时再重启，并验证 10 个原生工具。
+- 配置写入成功不等于工具已加载；先重连 MCP，Host 不支持动态重载时再重启，并按“工具数量与版本”表核对原生工具。
 
 ## 其他 Host
 

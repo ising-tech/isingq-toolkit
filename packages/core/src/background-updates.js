@@ -1,4 +1,5 @@
 'use strict';
+const { runWithCleanupSync } = require('./run-with-cleanup');
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -60,15 +61,19 @@ function safePath(directory, name) {
 }
 function readJson(directory, name) {
   let fd;
-  try {
-    fd = fs.openSync(safePath(directory, name), fs.constants.O_RDONLY | NOFOLLOW);
-    const stat = fs.fstatSync(fd);
-    if (!stat.isFile() || !own(stat) || stat.size > 4096 || (process.platform !== 'win32' && (stat.mode & 0o077))) return null;
-    const buffer = Buffer.alloc(4097);
-    const length = fs.readSync(fd, buffer, 0, buffer.length, 0);
-    if (length > 4096) return null;
-    return { value: JSON.parse(buffer.toString('utf8', 0, length)), stat };
-  } catch { return null; } finally { if (fd !== undefined) fs.closeSync(fd); }
+  return runWithCleanupSync(() => {
+    try {
+      fd = fs.openSync(safePath(directory, name), fs.constants.O_RDONLY | NOFOLLOW);
+      const stat = fs.fstatSync(fd);
+      if (!stat.isFile() || !own(stat) || stat.size > 4096 || (process.platform !== 'win32' && (stat.mode & 0o077))) return null;
+      const buffer = Buffer.alloc(4097);
+      const length = fs.readSync(fd, buffer, 0, buffer.length, 0);
+      if (length > 4096) return null;
+      return { value: JSON.parse(buffer.toString('utf8', 0, length)), stat };
+    } catch { return null; }
+  }, () => {
+    if (fd !== undefined) fs.closeSync(fd);
+  });
 }
 function exactKeys(value, keys) {
   return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
@@ -93,22 +98,27 @@ function acquireLock(directory, name, now) {
   const token = crypto.randomBytes(32).toString('hex');
   for (let attempt = 0; attempt < 2; attempt++) {
     let fd;
-    try {
-      fd = fs.openSync(safePath(directory, name), fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | NOFOLLOW, 0o600);
-      fs.writeFileSync(fd, JSON.stringify({ token, created_at: now }));
-      return token;
-    } catch (error) {
-      if (error.code !== 'EEXIST' || attempt) return null;
-      const read = readJson(directory, name);
-      const stat = fs.lstatSync(safePath(directory, name));
-      const at = read && timestamp(read.value?.created_at) && read.value.created_at <= now ? read.value.created_at : Math.floor(stat.mtimeMs);
-      if (!timestamp(at) || at > now || now - at < LOCK_TTL_MS) return null;
-      // Only reclaim the same expired file observed above. A previous worker
-      // must still prove ownership before it can write or release this lock.
-      const current = fs.lstatSync(safePath(directory, name));
-      if (current.ino !== stat.ino || current.dev !== stat.dev) return null;
-      fs.unlinkSync(safePath(directory, name));
-    } finally { if (fd !== undefined) fs.closeSync(fd); }
+    const acquired = runWithCleanupSync(() => {
+      try {
+        fd = fs.openSync(safePath(directory, name), fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | NOFOLLOW, 0o600);
+        fs.writeFileSync(fd, JSON.stringify({ token, created_at: now }));
+        return token;
+      } catch (error) {
+        if (error.code !== 'EEXIST' || attempt) return null;
+        const read = readJson(directory, name);
+        const stat = fs.lstatSync(safePath(directory, name));
+        const at = read && timestamp(read.value?.created_at) && read.value.created_at <= now ? read.value.created_at : Math.floor(stat.mtimeMs);
+        if (!timestamp(at) || at > now || now - at < LOCK_TTL_MS) return null;
+        // Only reclaim the same expired file observed above. A previous worker
+        // must still prove ownership before it can write or release this lock.
+        const current = fs.lstatSync(safePath(directory, name));
+        if (current.ino !== stat.ino || current.dev !== stat.dev) return null;
+        fs.unlinkSync(safePath(directory, name));
+      }
+    }, () => {
+      if (fd !== undefined) fs.closeSync(fd);
+    });
+    if (acquired !== undefined) return acquired;
   }
   return null;
 }
@@ -116,16 +126,27 @@ function writeOwned(directory, name, value, lockName, token) {
   if (!ownsLock(directory, lockName, token)) return false;
   const temporary = `${name}.${token}.tmp`;
   let fd;
+  let created = false;
   try {
     fd = fs.openSync(safePath(directory, temporary), fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | NOFOLLOW, 0o600);
+    created = true;
     fs.writeFileSync(fd, JSON.stringify(value));
-    fs.closeSync(fd); fd = undefined;
+    const ownedFd = fd;
+    fd = undefined;
+    fs.closeSync(ownedFd);
     if (!ownsLock(directory, lockName, token)) return false;
     fs.renameSync(safePath(directory, temporary), safePath(directory, name));
+    created = false;
     return true;
   } finally {
-    if (fd !== undefined) fs.closeSync(fd);
-    try { fs.unlinkSync(safePath(directory, temporary)); } catch { /* Already renamed or no longer safe. */ }
+    if (fd !== undefined) {
+      const ownedFd = fd;
+      fd = undefined;
+      try { fs.closeSync(ownedFd); } catch { /* Preserve the write or close error. */ }
+    }
+    if (created) {
+      try { fs.unlinkSync(safePath(directory, temporary)); } catch { /* Preserve the write error and existing record. */ }
+    }
   }
 }
 async function performCheck(directory, token, check, now) {

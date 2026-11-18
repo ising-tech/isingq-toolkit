@@ -1,211 +1,55 @@
 # @ising-tech/isingq-dsh-plugin
 
-Native IsingQ integration for DeepSeek Harness. The Plugin registers twelve typed tools in the DSH process and reuses `@ising-tech/isingq-core` for QUBO guidance, validation, public knowledge, HTTPS solving, and local result records.
+IsingQ 的 DeepSeek Harness 原生 Plugin，支持 QUBO 建模、校验、云端及内网本地求解器接入，在 DSH 进程内复用 `@ising-tech/isingq-core`。
 
-[中文说明](#中文说明)
+简体中文 · [English](README.en.md)
 
-## Install
-
-Install into the Profile the desktop app actually runs. Use the CLI bundled with the app so the install targets the same runtime:
-
-Before installing, fully quit the desktop app and confirm that its bundled CLI is within the supported DSH version range.
-
-```bash
-"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
-  plugin --profile desktop add @ising-tech/isingq-dsh-plugin@0.8.2
-```
-
-Reopen the app after installation. Read the installed version back without printing any configuration:
-
-```bash
-node -e "console.log(require(process.env.HOME + '/.dsh/profiles/desktop/node_modules/@ising-tech/isingq-dsh-plugin/package.json').version)"
-```
-
-Do not edit the installed package in place. To recover, remove it and fully restart:
-
-```bash
-"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
-  plugin --profile desktop remove @ising-tech/isingq-dsh-plugin
-```
-
-After reopening, confirm that twelve `isingq_*` tools are available. Do not enable this native Plugin and an IsingQ MCP bridge in the same Profile.
-
-## Configure an API Key
-
-1. Sign in or register at [IsingQ Cloud](https://console.isingq.com/).
-2. Open **Settings → API → Create API** and create a personal API Key.
-3. Ask the Agent to call `isingq_api_key_setup`, then enter the Key in the operating system's private prompt.
-
-The API Key is stored in a private local file and used only for HTTPS authentication with the IsingQ API. It does not enter Agent chat, tool arguments, DSH Profile configuration, issues, or logs.
-
-A Headless deployment administrator may inject `ISINGQ_API_KEY` before the Agent process starts. The runtime does not persist it. The Agent must not inspect, set, copy, or echo this administrator-provided value.
-
-The private prompt starts only local operating-system components: `osascript` on macOS, PowerShell Forms on Windows, or `zenity`, `kdialog`, and `systemd-ask-password` on Linux. It does not download or execute remote scripts.
-
-## Solve safely
-
-Before `isingq_solve_start`, the Agent must show the variable mapping, objective, constraints, penalties, matrix summary, and SHA-256, then obtain your explicit confirmation.
-
-Once the DSH Host permits `isingq_solve_start`, the Plugin creates the remote task immediately. It does not open a second operating-system solve prompt; any additional confirmation is controlled by the Host's tool-permission policy.
-
-## Tools
-
-| Tool | Purpose | Network |
-| --- | --- | --- |
-| `isingq_update_check` | Explicit stable-version check; automatic notices use runtime background work | Version metadata only |
-| `isingq_api_key_setup` | Configure or replace the local API Key through a private OS prompt | No |
-| `isingq_knowledge_get` | Read versioned public IsingQ knowledge | No |
-| `isingq_modeling_guide_get` | Get QUBO modeling and constraint guidance | No |
-| `isingq_qubo_validate` | Validate a QUBO and produce a matrix summary | No |
-| `isingq_delivery_validate` | Validate supplied delivery artifacts and derive objective report facts; business correctness remains unverified | No |
-| `isingq_report_verify` | Verify declared finite integer models locally; consume computed reports and rank only provided feasible candidates | No |
-| `isingq_solve_start` | Submit a confirmed QUBO solve task | Yes |
-| `isingq_solve_poll` | Query task status once and save the result | Yes |
-| `isingq_solve_result_get` | Read a locally stored solve result | No |
-| `isingq_resource_list` | List local public knowledge resources | No |
-| `isingq_resource_read` | Read one local public knowledge resource | No |
-
-## Data boundary
-
-Modeling guidance, QUBO validation, public knowledge, and result records stay on the user's computer. A QUBO matrix is sent to IsingQ only after the confirmed solve tool is called.
-
-API requests use HTTPS. Matrix upload uses a short-lived signature and does not carry the personal API Key. The Key remains outside Agent-visible inputs and outputs.
-
-## Compatibility
-
-- Node.js 18.17 or later.
-- Minimum supported DeepSeek Harness baseline: `0.1.0-rc.7`.
-- `engines.dsh` and `@deepseek-ai/dsh-tools` peer range: `>=0.1.0-rc.7 <0.3.0-0`.
-- Current development validation version: `0.2.2-rc.1`.
-
-DSH 0.2 reads `engines.dsh` alone when it is declared and falls back to `@deepseek-ai/dsh-*` peers only when it is absent. This range covers the `0.1.x` and `0.2.x` runtime lines that share the `defineTool` / `ctx.tools` API the Plugin uses; newer minor lines still need a compatibility check before this range is widened.
-
-### Compatibility policy
-
-`engines.dsh` is the compatibility contract, not a per-release pin: a new patch or prerelease on a supported line installs without a Plugin release. This release was validated against DSH `0.2.2-rc.1` with the full-package acceptance script below. Repository unit tests pin `@deepseek-ai/dsh-tools@0.1.0-rc.8`; they do not exercise newer SDK builds, so widen the range only after rerunning full-package acceptance on the target host.
-
-## Verification
-
-`scripts/verify-dsh-plugin.js` runs the full acceptance on an isolated `DSH_HOME`: it installs the packed plugin and core tarballs, boots the real host, and checks 12 tools, 13 resources, the three local tool results, the resolved core path/version/digest, host stability across a grace window, and a separate shutdown snapshot.
-
-```bash
-node scripts/verify-dsh-plugin.js \
-  --host desktop --host-version 0.2.2-rc.1 \
-  --dsh "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
-  --plugin <plugin.tgz> --core <core.tgz> \
-  --out /tmp/isingq-verify-desktop
-```
-
-A copied `index.mjs` or a call that succeeds just before the host exits is not acceptance; the script fails when the host does not survive the grace window.
-
-## Troubleshooting
-
-- **Tools are missing:** verify that the package is present in the target Profile and reconciled into `dsh.profile.bundles`, remove any duplicate IsingQ MCP bridge, then restart the Profile only if it did not reload.
-- **API Key is missing:** call `isingq_api_key_setup`; never paste the Key into Agent chat.
-- **Installation reports a peer conflict:** confirm that DSH is within the documented `0.1` compatibility range.
-
----
-
-## 中文说明
-
-这是面向 DeepSeek Harness 的 IsingQ 原生 Plugin。它在 DSH 进程内注册 12 个 typed tools，并复用 `@ising-tech/isingq-core` 提供 QUBO 建模引导、校验、公开知识、HTTPS 求解和本地结果记录。
+本文对应 **0.9.x**，原生 Plugin 注册 **21 个工具**。安装包以 [npm](https://www.npmjs.com/package/@ising-tech/isingq-dsh-plugin) 实际发布为准；安装后核对实际加载版本，源码不代表已发布。
 
 ## 安装
 
-安装到桌面端实际使用的 Profile。使用应用自带的 CLI，确保安装目标与运行目标一致：
+### 界面安装
 
-安装前完全退出桌面应用（只关窗口不够），并确认自带 CLI 处于支持的 DSH 版本范围内。
+在 DeepSeek Harness 中点击 **插件 → 添加插件**，输入 `@ising-tech/isingq-dsh-plugin`，再点击 **安装**，按界面提示完成即可，无需使用终端。
 
-```bash
-"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
-  plugin --profile desktop add @ising-tech/isingq-dsh-plugin@0.8.2
-```
+### 命令行安装
 
-安装后重新打开应用。用以下命令回读安装版本，不打印任何配置：
+在实际使用的 Profile 中安装：
 
 ```bash
-node -e "console.log(require(process.env.HOME + '/.dsh/profiles/desktop/node_modules/@ising-tech/isingq-dsh-plugin/package.json').version)"
+dsh plugin --profile <profile> add @ising-tech/isingq-dsh-plugin
 ```
 
-不要直接修改已安装包。恢复方式：移除插件后完全重启：
+macOS 桌面端先完全退出应用，使用应用自带的 CLI `/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`，选择实际使用的 `desktop` Profile。其他入口使用各自的真实 Profile。
+
+重新打开后验证实际加载的 Plugin 版本及对应工具。npm 安装的是已发布版本，使用本文的本地设备接入能力前须确认已加载 0.9.x。不要在同一个 Profile 中同时启用原生 Plugin 和 IsingQ MCP Bridge。
+
+兼容范围：Node.js **18.17+**；DSH 与 `@deepseek-ai/dsh-tools` 均为 **`>=0.1.0-rc.7 <0.3.0-0`**。开发验证基线为 DSH `0.2.2-rc.1`。
+
+## 基本使用
+
+对 Agent 描述问题，先查看变量、目标函数、约束与矩阵摘要，在确认求解时选择目标并明确确认：
+
+- **云端**：查看公开机型与适配建议；实际提交前在[云平台](https://console.isingq.com/api-keys)创建个人 API Key，通过 `isingq_api_key_setup` 安全输入框配置，再选择算力券或账户余额。
+- **本地**：说“添加／管理本地求解器”，在配置页填写设备名称和服务地址、测试连接。支持多台设备，不要求云端 API Key，不使用云端算力券或余额。
+
+机型建议不阻塞用户选择；保存本地配置不提交求解。调用记录保留实际求解目标及当时的查阅位置，分别回到云平台或本地可访问地址。
+
+API Key 不进入对话、工具参数、Profile 配置或日志。云端任务提交矩阵到 IsingQ，内网本地任务发送到选定设备。
+
+## 更新、卸载与排查
+
+更新时保留原 Profile 和分发方式，按 DSH 的插件管理流程安装已发布版本，再重载并核对实际版本。Toolkit 内置版本检查只提供提醒。
+
+卸载：
 
 ```bash
-"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
-  plugin --profile desktop remove @ising-tech/isingq-dsh-plugin
+dsh plugin --profile <profile> remove @ising-tech/isingq-dsh-plugin
 ```
 
-重新打开后确认出现 12 个 `isingq_*` 工具。不要在同一个 Profile 中同时启用该原生 Plugin 和 IsingQ MCP Bridge。
+- **工具缺失**：确认选对 Profile、没有重复 MCP Bridge，先重载，必要时重启。
+- **版本冲突**：核对上面的 DSH 和 SDK 兼容范围。
+- **本地无法连接**：核对网络和服务地址，使用管理页测试连接。
+- **云端鉴权失败**：通过安全输入框更换 Key，不要粘贴到聊天中。
 
-## 配置 API Key
-
-1. 登录或注册[玉盘·伊辛云](https://console.isingq.com/)。
-2. 进入 **设置 → API → 创建API**，创建个人 API Key。
-3. 让 Agent 调用 `isingq_api_key_setup`，在操作系统私密输入框中填写 Key。
-
-API Key 保存在本机私有文件中，只用于 IsingQ API 的 HTTPS 鉴权。它不会进入 Agent 对话、工具参数、DSH Profile 配置、Issue 或日志。
-
-Headless 部署管理员可以在 Agent 进程启动前注入 `ISINGQ_API_KEY`，运行时不会持久化该变量。Agent 不得检查、设置、复制或回显管理员预置的值。
-
-私密输入框只启动本机系统组件：macOS 使用 `osascript`，Windows 使用 PowerShell Forms，Linux 使用 `zenity`、`kdialog` 或 `systemd-ask-password`。它不下载或执行远程脚本。
-
-## 安全求解
-
-调用 `isingq_solve_start` 前，Agent 必须展示变量映射、目标函数、约束、Penalty、矩阵摘要和 SHA-256，并取得你的明确确认。
-
-DSH Host 放行 `isingq_solve_start` 后，Plugin 会立即创建远端任务，不再弹出第二个操作系统求解确认框。是否增加确认由 Host 的工具权限策略决定。
-
-## 工具
-
-| 工具 | 作用 | 是否联网 |
-| --- | --- | --- |
-| `isingq_update_check` | 用户主动查询版本；自动提醒由后台完成 | 仅版本元数据 |
-| `isingq_api_key_setup` | 通过操作系统私密输入框配置或更换 API Key | 否 |
-| `isingq_knowledge_get` | 查询版本化的 IsingQ 公开知识 | 否 |
-| `isingq_modeling_guide_get` | 获取 QUBO 建模与约束引导 | 否 |
-| `isingq_qubo_validate` | 校验 QUBO 并生成矩阵摘要 | 否 |
-| `isingq_delivery_validate` | 本地校验交付契约并生成客观摘要；不证明业务正确性或测试真实性 | 否 |
-| `isingq_report_verify` | 本地复算数学规格、候选与基线，消费核验报告；仅排名供应可行候选 | 否 |
-| `isingq_solve_start` | 提交已经确认的 QUBO 求解任务 | 是 |
-| `isingq_solve_poll` | 查询一次任务状态并保存结果 | 是 |
-| `isingq_solve_result_get` | 读取本机保存的求解结果 | 否 |
-| `isingq_resource_list` | 列出本机公开知识资源 | 否 |
-| `isingq_resource_read` | 读取一项本机公开知识资源 | 否 |
-
-## 数据边界
-
-建模引导、QUBO 校验、公开知识和结果记录在用户电脑上完成。只有用户确认并调用求解工具后，QUBO 矩阵才会提交到 IsingQ。
-
-API 请求使用 HTTPS。矩阵上传使用短期签名，不携带个人 API Key；Key 不会进入 Agent 可见的输入或输出。
-
-## 兼容性
-
-- Node.js 18.17 或更高版本。
-- DeepSeek Harness 最低兼容基线：`0.1.0-rc.7`。
-- `engines.dsh` 与 `@deepseek-ai/dsh-tools` peer range：`>=0.1.0-rc.7 <0.3.0-0`。
-- 当前开发验证版本：`0.2.2-rc.1`。
-
-DSH 0.2 在声明了 `engines.dsh` 时只按该范围判断，未声明时才回退到 `@deepseek-ai/dsh-*` peer。该范围覆盖共用 `defineTool` / `ctx.tools` API 的 `0.1.x` 与 `0.2.x` 运行时；更新的次版本线仍需先做兼容性验证再放宽范围。
-
-### 兼容策略
-
-`engines.dsh` 是兼容契约，不是逐版本钉死：同一支持线内的补丁或预发布版本无需重新发布 Plugin。本次验证对应 DSH `0.2.2-rc.1`，使用下方完整包验收脚本。仓库单测固定 `@deepseek-ai/dsh-tools@0.1.0-rc.8`，不会自动覆盖更新的 SDK；放宽范围前必须在目标 Host 上重跑完整包验收。
-
-## 验证
-
-`scripts/verify-dsh-plugin.js` 在隔离 `DSH_HOME` 上完成完整包验收：安装候选插件与 core tarball，启动真实 Host，核对 12 个工具、13 个 Resources、三个本地工具字段、实际加载 core 的路径/版本/摘要、Host 在宽限期内的存活，以及独立的关闭快照。
-
-```bash
-node scripts/verify-dsh-plugin.js \
-  --host desktop --host-version 0.2.2-rc.1 \
-  --dsh "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
-  --plugin <plugin.tgz> --core <core.tgz> \
-  --out /tmp/isingq-verify-desktop
-```
-
-复制 `index.mjs` 或在 Host 退出前调用成功都不算验收；Host 未通过宽限期时脚本会失败。
-
-## 故障排查
-
-- **没有出现工具：**确认包已安装到目标 Profile 并进入 `dsh.profile.bundles`，移除重复的 IsingQ MCP Bridge；只有 Profile 未重新加载时才重启。
-- **缺少 API Key：**调用 `isingq_api_key_setup`，不要把 Key 粘贴到 Agent 对话。
-- **安装出现 peer 冲突：**确认 DSH 位于文档声明的 `0.1` 兼容范围内。
+[Toolkit 使用说明](https://github.com/ising-tech/isingq-toolkit#readme) · [接口与开发验收](https://github.com/ising-tech/isingq-toolkit/blob/main/docs/DEVELOPMENT.md) · [求解目标接口](https://github.com/ising-tech/isingq-toolkit/blob/main/docs/solver-targets.md) · [Apache-2.0](LICENSE)

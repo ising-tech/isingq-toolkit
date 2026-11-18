@@ -152,9 +152,51 @@ test('H07: corrupt and structurally incomplete records fail closed without expos
 test('H08: missing files and unsafe file types remain distinct read errors', t => {
   const f = fixture(t);
   const id = 'solve_' + 'e'.repeat(32);
-  assert.throws(() => f.store.get(id), { code: 'solve_record_io_error' });
+  assert.throws(() => f.store.get(id), error => {
+    assert.equal(error.code, 'solve_record_not_found');
+    assert.ok(error.message.includes(id));
+    assert.ok(!error.message.includes(f.home));
+    assert.match(error.message, /不要因此重新提交任务/);
+    return true;
+  });
   fs.mkdirSync(f.store.path(id));
   assert.throws(() => f.store.get(id), { code: 'solve_record_unsafe' });
+});
+
+test('H08b: permission failures remain IO errors rather than missing records', t => {
+  const f = fixture(t);
+  const file = f.store.path('solve_' + 'e'.repeat(32));
+  const lstat = fs.lstatSync;
+  fs.lstatSync = (...args) => {
+    if (args[0] === file) throw Object.assign(new Error('synthetic access denial'), { code: 'EACCES' });
+    return lstat(...args);
+  };
+  try {
+    assert.throws(() => f.store.get('solve_' + 'e'.repeat(32)), error => {
+      assert.equal(error.code, 'solve_record_io_error');
+      assert.match(error.message, /fs_code=EACCES/);
+      return true;
+    });
+  } finally { fs.lstatSync = lstat; }
+});
+
+test('H08c: a record disappearing during history lookup still blocks a new submission', async t => {
+  const f = fixture(t);
+  const started = await f.service.start(args);
+  const file = f.store.path(started.solve_id);
+  const original = fs.readFileSync(file);
+  const lstat = fs.lstatSync;
+  f.transport.prepareSubmission = () => { throw new Error('CREDENTIAL_READ_FORBIDDEN'); };
+  f.store.save = () => { throw new Error('NEW_RECORD_FORBIDDEN'); };
+  fs.lstatSync = (...args) => {
+    if (args[0] === file) throw Object.assign(new Error('synthetic lookup race'), { code: 'ENOENT' });
+    return lstat(...args);
+  };
+  try {
+    await assert.rejects(() => f.service.start({ ...args, idempotency_key: 'different-key' }), { code: 'solve_record_not_found' });
+  } finally { fs.lstatSync = lstat; }
+  assert.deepEqual(fs.readFileSync(file), original);
+  assert.deepEqual(f.calls, { submit: 1, poll: 0 });
 });
 
 test('H09: API key writer honors 64 KiB byte limit including newline without replacing prior key', t => {
@@ -224,7 +266,8 @@ test('H13: failed atomic write keeps prior occupancy and removes only its tempor
   assert.deepEqual(f.store.get(started.solve_id), before);
   assert.equal((await f.service.start(args)).solve_id, started.solve_id);
   assert.equal(f.calls.submit, 1);
-  assert.deepEqual(fs.readdirSync(f.store.directory), [path.basename(f.store.path(started.solve_id))]);
+  assert.deepEqual(fs.readdirSync(f.store.directory).filter(name => name !== '.target-locks'), [path.basename(f.store.path(started.solve_id))]);
+  assert.deepEqual(fs.readdirSync(path.join(f.store.directory, '.target-locks')), []);
 });
 
 test('H14: read enforces actual bytes when size metadata underreports the file', t => {
@@ -244,8 +287,14 @@ test('H15: MCP exposes specific storage errors and never submits on unreadable h
   const f = fixture(t);
   const id = 'solve_' + '2'.repeat(32);
   const handle = createHandler(f.service);
-  const missing = await handle({ method: 'tools/call', params: { name: 'isingq_solve_result_get', arguments: { solve_id: id } } });
-  assert.equal(missing.structuredContent.error.code, 'solve_record_io_error');
+  for (const name of ['isingq_solve_result_get', 'isingq_solve_poll']) {
+    const missing = await handle({ method: 'tools/call', params: { name, arguments: { solve_id: id } } });
+    assert.equal(missing.structuredContent.error.code, 'solve_record_not_found');
+    assert.equal(missing.isError, true);
+    assert.ok(!missing.structuredContent.error.message.includes(f.home));
+    assert.deepEqual(JSON.parse(missing.content[0].text), missing.structuredContent);
+  }
+  assert.deepEqual(f.calls, { submit: 0, poll: 0 });
   fs.writeFileSync(f.store.path(id), '{}');
   const invalid = await handle({ method: 'tools/call', params: { name: 'isingq_solve_start', arguments: args } });
   assert.equal(invalid.isError, true);
@@ -318,7 +367,7 @@ test('H18: HTTP exact byte boundary accepts split UTF-8 and declared oversize ca
   const split = Buffer.byteLength(prefix) + 1;
   http.fetch = async () => new Response(new ReadableStream({ start(c) { c.enqueue(payload.subarray(0, split)); c.enqueue(payload.subarray(split)); c.close(); } }));
   const transport = new IsingQTransport({ apiKey: () => 'synthetic-test-key' });
-  assert.equal((await transport.poll('test-task', 1)).status, 'running');
+  assert.equal((await transport.poll('test-task', 1)).status, 'queued');
   let cancelled = false;
   http.fetch = async () => new Response(new ReadableStream({ cancel() { cancelled = true; } }), { headers: { 'content-length': String(MiB + 1) } });
   await assert.rejects(() => transport.poll('test-task', 1), /响应过大/);

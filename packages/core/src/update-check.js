@@ -68,6 +68,8 @@ function createUpdateChecker({ currentVersion = CURRENT_VERSION, fetch = (...arg
   return async function checkUpdate(args = {}) {
     if (!args || typeof args !== 'object' || Array.isArray(args) || Object.keys(args).some(k => k !== 'refresh')
       || (Object.hasOwn(args, 'refresh') && typeof args.refresh !== 'boolean')) throw new Error('更新检查只接受可选 boolean refresh');
+    // refresh bypasses a completed cache; concurrent callers share the active
+    // request, including explicit refresh, rather than queueing extra requests.
     if (pending) return pending;
     if (!args.refresh && cache && now() < expiresAt) return present(cache, true);
     pending = request().then(value => {

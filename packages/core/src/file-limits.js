@@ -1,4 +1,5 @@
 'use strict';
+const { runWithCleanupSync } = require('./run-with-cleanup');
 
 // Shared source; the expert CLI carries an identical copy, checked by regression.
 const fs = require('node:fs');
@@ -43,7 +44,7 @@ function assertFileBytes(bytes, maxBytes, kind, file) {
 function readFileBounded(file, maxBytes, kind = 'localFile') {
   let descriptor;
   const stdin = file === 0;
-  try {
+  return runWithCleanupSync(() => {
     if (!stdin) {
       const entry = fs.lstatSync(file);
       if (!entry.isFile() || entry.isSymbolicLink()) throw new FileLimitError('file_type_invalid', `内容输入必须为普通文件，拒绝目录或符号链接（path=${file}）`);
@@ -64,9 +65,9 @@ function readFileBounded(file, maxBytes, kind = 'localFile') {
       chunks.push(Buffer.from(buffer.subarray(0, count)));
     }
     return Buffer.concat(chunks, bytes);
-  } finally {
+  }, () => {
     if (!stdin && descriptor !== undefined) fs.closeSync(descriptor);
-  }
+  });
 }
 
 module.exports = { FILE_LIMITS, MAX_CONFIGURABLE_BYTES, FileLimitError, fileLimit, fileLimitHint, assertFileBytes, readFileBounded };

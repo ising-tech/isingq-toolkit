@@ -11,7 +11,7 @@ const SECURITY_LAST_MODIFIED = '2026-08-25T00:00:00Z';
 const LOCAL_RESOURCE_CONTENT = {
   'isingq://modeling/qubo': `# QUBO 建模契约
 
-目标函数：offset + Σ linear[i]·x_i + Σ quadratic[i,j]·x_i·x_j，其中 x_i ∈ {0,1}；当前支持 1 至 2048 个二进制变量。
+目标函数：offset + Σ linear[i]·x_i + Σ quadratic[i,j]·x_i·x_j，其中 x_i ∈ {0,1}；legacy 校验支持 1 至 2048 个二进制变量；显式目标按当前目录能力或已核实本地合同及客户端容量核对。
 
 输入必填项：${MODELING_GUIDE.qubo_contract.input_schema.required.join(", ")}。linear/quadratic/variables省略为[]，offset省略或null为0；完整规范化输出不是必填清单。
 
@@ -22,7 +22,7 @@ ${MODELING_GUIDE.qubo_contract.transport_boundary.description}
 按当前入口选用步骤：
 ${MODELING_GUIDE.required_sequence.map((step) => '- ' + step).join('\n')}
 
-用户确认业务范围、目标约束、数据外发、付款选择与任务执行摘要；后台关联 model_sha256、求解参数和稳定幂等键。矩阵/hash/日志按需提供，无需用户读懂矩阵；专业技术交付要求完整满足。
+用户确认业务范围、目标约束、实际目标、数据去向及适用资源影响；云端展示适用参数与付款选择，本地包括设备占用，不主动列模式或内部后处理；Agent 在本轮上下文中关联校验返回的 model_sha256、求解参数和稳定幂等键。矩阵/hash/日志按需提供，无需用户读懂矩阵；专业技术交付要求完整满足。
 
 结果证据状态：
 ${Object.entries(MODELING_GUIDE.result_evidence.states).map(([state, evidence]) => '- ' + state + '：' + evidence).join('\n')}
@@ -37,13 +37,13 @@ isingq_solve_start 被 Host 放行后会立即创建远端任务。MCP 不弹出
   'isingq://security/data-flow': `# 数据流与安全边界
 
 - 交互环境默认从用户电脑的私有文件读取 IsingQ API Key；Headless 管理员可在 Agent 启动前注入 ISINGQ_API_KEY，运行时不持久化该变量。Agent 不得接收、设置或显示 Key。
-- 生产 API 固定为 https://api.isingq.com，不支持通过运行时环境变量替换目标域名。
+- legacy 云 API 固定为 https://api.isingq.com，不支持通过运行时环境变量替换目标域名；显式云目标绑定所选环境。
 - 企业知识、建模引导和 QUBO 校验完全在用户电脑执行。
-- 只有 isingq_solve_start 会将生成的 QUBO 矩阵经 HTTPS 和 IsingQ 提供的上传链路发送到 IsingQ；该工具被 Host 放行后会立即创建远端任务。
+- legacy isingq_solve_start 及 target.kind=cloud 的 isingq_target_solve_start 将矩阵经对应云端链路发送至 IsingQ；target.kind=local 的 isingq_target_solve_start 将矩阵发送至所选本地求解服务，不走云上传／创建，不携带云 Key 或付款参数。两类提交均须先取得本次设备执行的明确确认，Host 放行后创建所选目标的任务。
 - MCP 不为求解另开操作系统确认框。Agent 必须在调用前取得用户确认，Host 可以根据自身权限策略再次确认。
-- 当前 MCP 使用的云平台 API 求解只支持 2048 自旋能力，不向用户提供其他机型选择。
+- legacy 校验保留 2048 边界；显式目标展示所选环境的公开云目录及具名本地连接，执行规模按当前实际能力与客户端容量核对。
 - 本地记录保存模型、任务标识、矩阵摘要和结果，不保存 API Key。
-- 除 IsingQ 求解链路外，不会把模型数据发送到其他业务服务。
+- 知识／引导／本地校验不外发模型数据；提交的数据去向以本次明确选择的云端或本地目标为准，不自动换目标。
 - 提交结果不确定时会标记 submission_unknown，禁止自动重复创建任务。`,
 };
 

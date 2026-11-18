@@ -1,6 +1,6 @@
 {
   "name": "@ising-tech/isingq-core",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "Shared local runtime for IsingQ QUBO modeling, validation and solving adapters",
   "keywords": [
     "isingq",
@@ -28,14 +28,17 @@
     "LICENSE",
     "NOTICE",
     "README.md",
+    "README.en.md",
+    "API.md",
     "MODEL-DIGEST.md",
     "VERIFIED-REPORT.md",
+    "REVIEW-FILE.md",
     "knowledge/",
     "src/"
   ],
   "scripts": {
-    "check": "node --check src/index.js && node --check src/tools.js && node --check src/setup.js",
-    "prepublishOnly": "npm run check"
+    "check": "node ../../scripts/check-syntax.cjs src",
+    "prepublishOnly": "npm --prefix ../.. test && npm --prefix ../.. run check"
   },
   "publishConfig": {
     "access": "public",

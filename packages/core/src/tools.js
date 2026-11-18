@@ -2,6 +2,8 @@
 
 const { TOPICS } = require('./knowledge');
 const { QUBO_INPUT_SCHEMA } = require('./qubo');
+const { REPORT_LIMITS } = require('./verified-report');
+const { MAX_MATH_IDENTIFIER_LENGTH } = require('./math-model');
 
 const READ_ONLY_ANNOTATIONS = {
   readOnlyHint: true,
@@ -74,7 +76,7 @@ const TOOL_DEFINITIONS = [
           delivery_contract_version: { type: 'string', enum: ['isingq-delivery-v1'] },
           qubo: QUBO_INPUT_SCHEMA,
           candidate_bits: { type: 'array', items: { type: 'integer', enum: [0, 1] }, description: '可选，长度必须等于 num_bits' },
-          claimed_objective_value: { type: 'number', description: '可选，必须与包含 offset 的候选 QUBO 能量严格一致' },
+          claimed_objective_value: { type: 'number', description: '可选，必须与包含 offset 的候选 QUBO 能量严格一致；可先省略以获取 summary.candidate_objective_value，声明时使用返回原值，四舍五入仅用于展示' },
           mapping_completeness: { type: 'string', enum: ['partial', 'complete'], default: 'partial' },
           test_ledger: { type: 'array', items: {
             type: 'object', properties: {
@@ -118,9 +120,9 @@ const TOOL_DEFINITIONS = [
           report_contract_version: { type: 'string', enum: ['isingq-verified-report-v1'] },
           model: { type: 'object', description: '冻结的 math-model-v1 有限整数数学规格；由 core 严格校验' },
           data: { type: 'object', additionalProperties: { type: 'integer' }, description: '扁平参数到安全整数的映射' },
-          candidates: { type: 'array', items: {
+          candidates: { type: 'array', maxItems: REPORT_LIMITS.candidates, items: {
             type: 'object', properties: {
-              id: { type: 'string', minLength: 1 },
+              id: { type: 'string', minLength: 1, maxLength: MAX_MATH_IDENTIFIER_LENGTH },
               assignment: { type: 'object', additionalProperties: { type: 'integer' }, description: '全部变量 ID 到安全整数的精确赋值' },
             }, required: ['id', 'assignment'], additionalProperties: false,
           } },
@@ -135,7 +137,7 @@ const TOOL_DEFINITIONS = [
   {
     name: 'isingq_solve_start',
     title: '提交 IsingQ 组合优化求解',
-    description: '调用即会将 QUBO 转成矩阵，并使用本机个人 IsingQ API Key 创建远端求解任务。仅在用户明确授权当前云任务后调用；先展示业务范围、目标约束、数据外发、付款选择与任务执行摘要，后台绑定 model_sha256、求解参数和稳定幂等键。用户说“再次求解”或“重跑”只是新任务意图，不当作最终确认。即使模型、参数和付款均不变，也必须先展示本次摘要（沿用或变化、付款来源、再次消耗），再询问并等待用户后续明确确认；确认仅用于本次任务。poll/get 查询已有任务不需要新求解确认；受理不明时 poll/get 仅读本地记录，需控制台或平台支持核对远端，不重提。这是 Agent 与 Host 必须遵守的对话规范；实际强制拦截仍需 Host 权限策略配合，MCP 代码不能验证人类授权，不增加 confirmed 字段或确认 token。必须按用户明确选择传入 solver_options.use_credit=true/false；缺少付款选择先询问，不得自动切换付款或更换幂等键重提。矩阵/hash 详情按需提供，用户无需读懂矩阵；Host 可按权限策略再次确认。结果必须保留 execution_mode、billing.status 与 provenance.source：simulation 是模拟，不是真实云任务或真实扣费；unknown 不能按任务 ID/mock 前缀/路径猜测。live/unknown 且 billing.status=unverified 时无平台账单证据，不能声称已扣费或确认未扣费。付款参数 use_credit、calculate_count 和 succeeded 都不是扣费证据；当前工具不查询账单。' + RECOVERY_GUIDANCE + QUBO_GUIDANCE,
+    description: '调用即会将 QUBO 转成矩阵，并使用本机个人 IsingQ API Key 创建远端求解任务。仅在用户明确授权当前云任务后调用；先展示业务范围、目标约束、数据外发、付款选择与任务执行摘要，Agent 在本轮上下文中关联校验返回的 model_sha256、求解参数和稳定幂等键。用户说“再次求解”或“重跑”只是新任务意图，不当作最终确认。即使模型、参数和付款均不变，也必须先展示本次摘要（沿用或变化、付款来源、再次消耗），再询问并等待用户后续明确确认；确认仅用于本次任务。poll/get 查询已有任务不需要新求解确认；受理不明时 poll/get 仅读本地记录，需控制台或平台支持核对远端，不重提。这是 Agent 与 Host 必须遵守的对话规范；实际强制拦截仍需 Host 权限策略配合，MCP 代码不能验证人类授权，不增加 confirmed 字段或确认 token。必须按用户明确选择传入 solver_options.use_credit=true/false；缺少付款选择先询问，不得自动切换付款或更换幂等键重提。矩阵/hash 详情按需提供，用户无需读懂矩阵；Host 可按权限策略再次确认。结果必须保留 execution_mode、billing.status 与 provenance.source：simulation 是模拟，不是真实云任务或真实扣费；unknown 不能按任务 ID/mock 前缀/路径猜测。live/unknown 且 billing.status=unverified 时无平台账单证据，不能声称已扣费或确认未扣费。付款参数 use_credit、calculate_count 和 succeeded 都不是扣费证据；当前工具不查询账单。' + RECOVERY_GUIDANCE + QUBO_GUIDANCE,
     inputSchema: {
       type: 'object',
       properties: {
@@ -165,7 +167,7 @@ const TOOL_DEFINITIONS = [
   {
     name: 'isingq_solve_poll',
     title: '查询 IsingQ 求解进度',
-    description: '仅有 provider_task_id 且非终态时查询一次远端并更新本地记录；unknown、无远端ID及终态直接返回本地记录，不能称为远端查证；成功时返回 bit、变量映射、provider energy 和 QUBO 目标值。保留 execution_mode 与 billing.status：simulation 不是真实云任务；succeeded 不代表已扣费，unverified 表示没有账单证据，不查询账单。' + RECOVERY_GUIDANCE,
+    description: '仅有 provider_task_id 且非终态时查询一次远端并更新本地记录；unknown、无远端ID及终态直接返回本地记录，不能称为远端查证；成功时返回 bit、变量映射、provider energy 和 QUBO 目标值。保留 execution_mode 与 billing.status：simulation 不是真实云任务；succeeded 不代表已扣费，unverified 表示没有账单证据，不查询账单。本地记录缺失时返回 solve_record_not_found；请核对任务 ID 和记录来源，不要因此重新提交任务。' + RECOVERY_GUIDANCE,
     inputSchema: {
       type: 'object',
       properties: { solve_id: { type: 'string' } },
@@ -177,7 +179,7 @@ const TOOL_DEFINITIONS = [
   {
     name: 'isingq_solve_result_get',
     title: '读取本地 IsingQ 求解结果',
-    description: '读取本机保存的 QUBO-only 求解状态、结果、execution_mode、billing.status 与来源信息；不联网，不自动断言业务可行或全局最优。历史无执行标识为 unknown；simulation 不是真实云任务，unverified 不证明已扣费或未扣费，不从 ID 或路径猜测。' + RECOVERY_GUIDANCE,
+    description: '读取本机保存的 QUBO-only 求解状态、结果、execution_mode、billing.status 与来源信息；不联网，不自动断言业务可行或全局最优。历史无执行标识为 unknown；simulation 不是真实云任务，unverified 不证明已扣费或未扣费，不从 ID 或路径猜测。本地记录缺失时返回 solve_record_not_found；请核对任务 ID 和记录来源，不要因此重新提交任务。' + RECOVERY_GUIDANCE,
     inputSchema: {
       type: 'object',
       properties: { solve_id: { type: 'string' } },
@@ -189,9 +191,10 @@ const TOOL_DEFINITIONS = [
   {
     name: 'isingq_update_check', title: '检查 IsingQ 更新',
     description: '仅在用户主动询问版本或明确要求刷新时调用。自动提醒由运行时后台完成，普通任务不应主动调用本工具。只读查询官方npm稳定版本，不发送模型或凭据、不安装、不修改配置；unavailable表示未核实，不等于已是最新，不阻断其他功能。',
-    inputSchema: { type: 'object', properties: { refresh: { type: 'boolean', description: '忽略进程内缓存重新查询，默认 false' } }, additionalProperties: false },
+    inputSchema: { type: 'object', properties: { refresh: { type: 'boolean', description: '忽略进程内已完成缓存重新查询；有请求在途时合并为同一次查询，默认 false' } }, additionalProperties: false },
     annotations: { ...READ_ONLY_ANNOTATIONS, openWorldHint: true },
   },
 ];
 
+TOOL_DEFINITIONS.push(...require('./target-tools').TARGET_TOOL_DEFINITIONS);
 module.exports = { TOOL_DEFINITIONS, RECOVERY_GUIDANCE };

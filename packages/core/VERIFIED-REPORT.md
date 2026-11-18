@@ -20,11 +20,19 @@
 
 表达式仅有可选 `constant` 和必需 `terms`；term 仅有 `coefficient/variables`。变量及约束 ID 在各自空间唯一；候选是变量 ID 到安全整数的完整精确映射。缺项、多项、非整数是输入错误；域越界是不可行，但仍复算全部目标和约束。
 
-限制与冻结 Python 原型一致：256 个变量、1024 条约束、全模型 20000 项。所有乘法、累加、域宽、残差、改善及百分比分子逐步使用精确整数运算检查 ±(2^53−1) 边界；超界 `unsupported_numeric`，从不返回部分通过/部分不可行。错误另含 `input_error/unsupported/unsupported_size`。对象/数组必须为 JSON 数据形态，拒绝稀疏数组、自定义数组 prototype、额外字段、继承对象、accessor 和 symbol 字段；非法整数值的诊断只读取安全的类型描述，不调用对象或函数的转换 hook。JS 的 `1` 与 `1.0` 解析后同为安全整数；无法在对象 API 中区分原始 JSON 拼写。原始 JSON 重复键也须由载入层拦截，解析后对象不保留此信息。专家 CLI `report verify --file` 在进入 core 前拒绝所有层级的重复对象键，含 Unicode 转义解码后同名键，返回不回显原文的 `report_file_invalid`。MCP/DSH 的已解析对象接口无法恢复先前被覆盖的键，raw JSON 载入方必须承担该检查；旧 delivery 与 JSONRPC 解析语义不变。
+数学输入结构与冻结 Python 原型一致；原型的256变量、1024约束、20000项容量不再限制生产核验。变量、约束与表达式项按完整实际模型处理，资源容量独立采用 `isingq-verification-capacity-v1`：各核验入口的完整输入按紧凑UTF-8 JSON字节聚合，默认按4095满二次模型加余量计算为1 GiB，可由进程环境变量 `ISINGQ_MAX_VERIFICATION_INPUT_BYTES` 配置十进制整数字节。`verificationCapacity()` 返回有效容量与策略；配置错误为 `verification_capacity_invalid`，超限为 `unsupported_size at verification.input_bytes`，包含已观测字节下界、有效容量和设置名。检查不调用toJSON、getter或转换hook，也不为计量生成第二份完整JSON字符串。共享子对象按每次实际出现计量，不能通过拆数组绕过总容量；内部原位代入表达式不重复充当用户输入计量。聚合字节预算与单个JS字符串容量分开，超过单字符串的大表达式使用文件分块入口；预算不等于预分配内存或任意模型的性能承诺；不同稀疏度、标签长度、候选数和完整报告渲染的资源开销仍须实际评估，不宣称4095变量的任意密集模型都已测试。
+
+所有乘法、累加、域宽、残差、改善及百分比分子逐步使用精确整数运算检查 ±(2^53−1) 边界；超界 `unsupported_numeric`，从不返回部分通过/部分不可行。错误另含 `input_error/unsupported/unsupported_size`。对象/数组必须为 JSON 数据形态，拒绝稀疏数组、自定义数组 prototype、额外字段、继承对象、accessor 和 symbol 字段；非法整数值的诊断只读取安全的类型描述，不调用对象或函数的转换 hook。JS 的 `1` 与 `1.0` 解析后同为安全整数；无法在对象 API 中区分原始 JSON 拼写。原始 JSON 重复键也须由载入层拦截，解析后对象不保留此信息。专家 CLI `report verify --file` 在进入 core 前拒绝所有层级的重复对象键，含 Unicode 转义解码后同名键，返回不回显原文的 `report_file_invalid`。MCP/DSH 的已解析对象接口无法恢复先前被覆盖的键，raw JSON 载入方必须承担该检查；旧 delivery 与 JSONRPC 解析语义不变。
+
+`buildVerifiedReport(document,{render:false})` 返回与默认完整报告完全相同的核验、排名、输入摘要及visible_summary事实，省略report_markdown、visible_summary_markdown与report_artifact；普通MCP收尾使用此模式以节省不需要的长报告渲染。默认调用及文件字节核对仍保持完整渲染，数学输入版本、摘要算法和原六类冻结案例预期不变。
 
 `constraint_diagnostics` 每条记录均含 `id`、可选 `label`、`lhs/rhs/relation/slack/active/violation`。`le` 余量为 rhs−lhs；`ge` 为 lhs−rhs；`eq` 为 −|lhs−rhs|。`active` **只**表示 lhs=rhs；即便某约束取等，也不能由此推导边际价值、放宽效果或冗余。`objective_breakdown` 含常数、每项的系数/变量/变量值/分项值及总值。变量记录含声明域、上下界、实际值及 `within_domain`。
 
 ## 报告输入与输出
+
+同步内联报告在生成诊断、摘要和 Markdown 前统一检查资源预算：最多 1000 个候选、1000 万工作单位、10 万诊断行，以及包含 MCP 两种输出表示的 64 MiB 保守序列化上界。基线占用同一预算；`top_k` 和 `render:false` 不缩小核验范围或绕过预算。超限整单返回 `unsupported_size`，不截断模型、候选或报告。大型完整目标继续使用既有文件分块核验入口，其独立的 1 GiB 聚合输入预算不由内联报告预算替代。以上限额是资源边界，不是性能承诺。
+
+数学模型与候选 ID 最多 1024，label 最多 4096，按 JavaScript 字符串长度计；文件入口复用同一元数据校验。每份报告只解析一次模型，逐候选保留独立赋值和数值边界校验；公共 `evaluateMathCandidate` 仍始终验证输入。
 
 输入必须且仅能包含：
 
@@ -84,3 +92,11 @@ visible_summary_markdown在同一report生成过程中生成一次并原样嵌�
 visible_summary.best_candidates[*].recommendation_basis直接引用同次候选verification的objective_breakdown/constraint_diagnostics/status、实际ranking.rank与selection.feasible_count，并绑定assignment_sha256和input_document_sha256。摘要内的推荐依据只说明满足已声明模型约束、目标分项构成、在送检可行候选中的排名；同一次renderObjective/renderConstraints同时服务摘要和完整报告，未增加独立数值算法。renderer_version为isingq-report-markdown-v3。
 
 这些字段不包含变量频次、必要性、稳健性或敏感性结论；不能由当前候选的可行性/取等状态推导这些命题。新增量化解释须另有可复核数据来源与覆盖范围，不冒充既有recommendation_basis。包内补齐依据供给仍无法强制Host不在摘要后自由续写；file check只验证文件字节，不是聊天显示前门禁。无Host/hooks/全局配置变更。
+
+## 普通求解结果衔接
+
+`SolverService.guideSolve({action:'review',solve_id,review})` 复用上述核验算法；也可用原 `request_id`，两种关联互斥。本次赋值仅从所选原任务的保存位串导出，`review` 不接受 `candidates` 或自报赋值／结论。Host 提供原业务 `model/data` 及可选 `baseline/bindings`；编码映射也复用 `evaluateMathCandidate` 的精确整数表达式计算。无业务模型时仅核对位串解码与 QUBO 目标，不能声称业务可行。
+
+该动作不查询求解设备、不发起求解、不写回任务或模型文件；返回只包含同次核验事实的普通投影和可直接展示的业务回复，不增加第二套目标、约束或收益计算规则。详细输入、阶段及限制见[统一业务求解门面](https://github.com/ising-tech/isingq-toolkit/blob/main/docs/guided-solve.md#候选结果的业务收尾)。
+
+文件分块入口、满密度预算推导、原候选绑定及完整诊断产物见 [REVIEW-FILE.md](REVIEW-FILE.md)。

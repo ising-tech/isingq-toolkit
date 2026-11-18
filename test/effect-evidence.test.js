@@ -9,7 +9,9 @@ const os = require('node:os');
 const { spawnSync } = require('node:child_process');
 const core = require('../packages/core');
 const { IsingQTransport, IsingQError } = require('../src/isingq');
-const { createHandler } = require('../src/server');
+const { createHandler: createMcpHandler } = require('../src/server');
+const createHandler = (service, options = {}) => createMcpHandler(service, {...options,tools_profile:'technical'});
+const { executionEvidence } = require('../packages/core/src/effect-evidence');
 
 const ARGS = { qubo: { num_bits: 1 }, model_summary: 'execution evidence', idempotency_key: 'effect-test', solver_options: { use_credit: false } };
 function fixture(mode, taskId = 'plain-provider-task') {
@@ -29,6 +31,19 @@ test('effect evidence has a detectable shared contract and official transport de
   assert.equal(core.EFFECT_EVIDENCE_CONTRACT_VERSION, 'isingq-effect-evidence-v1');
   assert.equal(typeof core.normalizeSetupResult, 'function');
   assert.equal(new IsingQTransport({ apiKey: () => { throw new Error('must not read'); } }).execution_mode, 'live');
+});
+
+test('local cloud-platform billing applicability does not change execution evidence or legacy/cloud billing', () => {
+  for (const mode of ['live', 'unknown', 'simulation', undefined]) {
+    const local = executionEvidence(mode, { targetKind: 'local' });
+    const original = executionEvidence(mode);
+    assert.deepEqual(local.billing, { status: 'not_applicable', scope: 'cloud_platform', reason: 'local_target' });
+    assert.equal(local.execution_mode, original.execution_mode);
+    assert.equal(local.source, original.source);
+    for (const targetKind of ['cloud', undefined, 'local-looking-target']) {
+      assert.deepEqual(executionEvidence(mode, { targetKind }), original);
+    }
+  }
 });
 
 test('execution evidence survives start, cached hits, poll, storage and get without inferring from IDs', async () => {

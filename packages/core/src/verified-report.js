@@ -1,10 +1,47 @@
 'use strict';
 
 const crypto = require('node:crypto');
-const { MathModelError, validateMathModel, evaluateMathCandidate, fields, array, identifier, integer, compareEvaluations } = require('./math-model');
+const { MathModelError, createMathCandidateEvaluator, fields, array, identifier, integer, compareEvaluations, assertVerificationInput } = require('./math-model');
 const VERIFIED_REPORT_CONTRACT_VERSION = 'isingq-verified-report-v1';
 const VERIFIED_REPORT_ARTIFACT_CONTRACT_VERSION = 'isingq-report-artifact-v1';
 const REPORT_RENDERER_VERSION = 'isingq-report-markdown-v3';
+// Synchronous inline reports materialize complete diagnostics. Large objectives
+// use the existing streamed review-file entry point instead. These are resource
+// budgets, independent of the 1 GiB aggregate model-input budget.
+const REPORT_LIMITS = Object.freeze({ candidates: 1000, work_units: 10000000,
+  diagnostic_rows: 100000, output_bytes: 64 * 1024 * 1024 });
+function assertReportBudget(model, entries, hasBaseline) {
+  const evaluations = entries.length + Number(hasBaseline);
+  const bound = (key, amount) => {
+    if (amount > REPORT_LIMITS[key]) throw new VerifiedReportError('unsupported_size', `report.${key}`,
+      `estimated_${key}=${amount} exceeds max_${key}=${REPORT_LIMITS[key]}; preserve the complete model/candidates and use file verification for large models or reduce the requested report workload; top_k does not reduce verification`);
+  };
+  // Count integer multiplications/additions and per-variable/constraint checks;
+  // all constraints count, even when their diagnostics are not in top_k.
+  let work = model.variables.length + model.constraints.length;
+  const expressionWork = expression => { for (const term of expression.terms) work += 1 + term.variables.length; };
+  expressionWork(model.objective.expression);
+  for (const row of model.constraints) expressionWork(row.expression);
+  bound('work_units', work * evaluations);
+  bound('diagnostic_rows', (model.variables.length + model.constraints.length + model.objective.expression.terms.length) * evaluations);
+  // Upper bound for the whole returned report, including both MCP structured
+  // content and its text serialization. Diagnostic rows reserve 1024 bytes
+  // and objective terms reserve 960 bytes for safe
+  // integer spellings, field names, punctuation and fixed prose. Text reserves
+  // 32x UTF-8 bytes for JSON/Markdown/HTML escaping, full diagnostics plus worst
+  // case all-best ties, the visible summary and its two Markdown occurrences.
+  // The outer factor 3 covers structured JSON plus the text copy serialized
+  // inside its JSON string (at most twice the same serialized byte length).
+  const bytes = value => Buffer.byteLength(value, 'utf8');
+  const captionBytes = row => bytes(row.id) + (row.label === undefined ? 0 : bytes(row.label));
+  let perEvaluation = 8192;
+  for (const row of model.variables) perEvaluation += 1024 + 32 * captionBytes(row);
+  for (const row of model.constraints) perEvaluation += 1024 + 32 * captionBytes(row);
+  for (const term of model.objective.expression.terms) perEvaluation += 960 + 32 * term.variables.reduce((n, id) => n + bytes(id), 0);
+  const candidateBytes = entries.reduce((n, row) => n + 4096 + 32 * bytes(row.id), 0);
+  bound('output_bytes', 3 * (32768 + 32 * captionBytes(model) + candidateBytes + evaluations * perEvaluation));
+}
+
 
 class VerifiedReportError extends MathModelError {
   constructor(code, path, message) {
@@ -118,15 +155,16 @@ function renderDiagnostics(lines, result) {
   renderConstraints(lines, result);
 }
 
-function build(document) {
+function build(document, render) {
   fields(document, ['report_contract_version', 'model', 'data', 'candidates'], ['baseline', 'top_k'], 'document');
   if (document.report_contract_version !== VERIFIED_REPORT_CONTRACT_VERSION) throw new VerifiedReportError('unsupported', 'document.report_contract_version', `only ${VERIFIED_REPORT_CONTRACT_VERSION} is supported`);
+  assertVerificationInput(document, 'document');
   const { model, data } = document;
-  validateMathModel(model, data);
+  const evaluate = createMathCandidateEvaluator(model, data);
   const topK = Object.hasOwn(document, 'top_k') ? integer(document.top_k, 'document.top_k') : null;
   if (topK !== null && topK <= 0) throw new VerifiedReportError('input_error', 'document.top_k', `expected positive integer, received=${topK}`);
   const ids = new Set();
-  const entries = array(document.candidates, 'document.candidates', Number.MAX_SAFE_INTEGER);
+  const entries = array(document.candidates, 'document.candidates', REPORT_LIMITS.candidates);
   for (const [i, candidate] of entries.entries()) {
     const path = `document.candidates[${i}]`;
     fields(candidate, ['id', 'assignment'], [], path);
@@ -134,17 +172,18 @@ function build(document) {
     if (ids.has(id)) throw new VerifiedReportError('input_error', `${path}.id`, `duplicate candidate=${id}`);
     ids.add(id);
   }
+  assertReportBudget(model, entries, Object.hasOwn(document, 'baseline'));
   const modelDataDigest = digest({ model, data });
   const baseline = Object.hasOwn(document, 'baseline') ? {
     assignment_sha256: null,
     model_data_sha256: modelDataDigest,
-    verification: evaluateMathCandidate(model, data, document.baseline),
+    verification: evaluate(document.baseline),
   } : null;
   if (baseline) baseline.assignment_sha256 = digest(document.baseline);
   // Evaluate everything before rendering or exposing any ranking. One unsupported
   // numeric operation aborts the whole document, including out-of-domain plans.
   const candidates = entries.map(candidate => {
-    const verification = evaluateMathCandidate(model, data, candidate.assignment);
+    const verification = evaluate(candidate.assignment);
     return { id: candidate.id, assignment_sha256: digest(candidate.assignment), model_data_sha256: modelDataDigest, verification,
       baseline_comparison: baseline ? compareEvaluations(model.objective.sense, baseline.verification, verification) : null };
   });
@@ -174,6 +213,7 @@ function build(document) {
       returned_count: ranking.length, boundary_ties_included: topK !== null && ranking.length > topK },
   };
   report.visible_summary = visibleSummary(report, model);
+  if (!render) return report;
   report.visible_summary_markdown = renderVisibleSummary(report.visible_summary);
   const markdown = renderReport(report, model);
   return { ...report, report_markdown: markdown, report_artifact: {
@@ -183,8 +223,12 @@ function build(document) {
     size_bytes: Buffer.byteLength(markdown, 'utf8'), input_document_sha256: report.input_digests.document_sha256,
   } };
 }
-function buildVerifiedReport(document) {
-  try { return build(document); }
+function buildVerifiedReport(document, options = {}) {
+  try {
+    fields(options, [], ['render'], 'report.options');
+    if (Object.hasOwn(options, 'render') && typeof options.render !== 'boolean') throw new VerifiedReportError('input_error', 'report.options.render', 'expected boolean');
+    return build(document, options.render !== false);
+  }
   catch (error) {
     if (error instanceof VerifiedReportError) throw error;
     if (error instanceof MathModelError) {
@@ -206,4 +250,6 @@ function verifyReportArtifact(document, content) {
   return { ...report.report_artifact, input_digests: report.input_digests, match: true,
     scope: 'current_bytes_equal_canonical_report', arbitrary_prose_verified: false };
 }
-module.exports = { VERIFIED_REPORT_CONTRACT_VERSION, VERIFIED_REPORT_ARTIFACT_CONTRACT_VERSION, VerifiedReportError, buildVerifiedReport, verifyReportArtifact };
+module.exports = { VERIFIED_REPORT_CONTRACT_VERSION, VERIFIED_REPORT_ARTIFACT_CONTRACT_VERSION, VerifiedReportError, buildVerifiedReport, verifyReportArtifact,
+  // Shared input identity primitive; not a new public verifier.
+  REPORT_LIMITS, digest };

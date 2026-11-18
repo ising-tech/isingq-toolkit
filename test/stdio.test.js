@@ -3,13 +3,12 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
-const { TOOL_DEFINITIONS } = require('../packages/core');
 const test = require('node:test');
 
 test('serves newline-delimited MCP initialize and tools/list', async () => {
   const executable = path.resolve(__dirname, '..', 'bin', 'isingq-mcp.js');
   const child = spawn(process.execPath, [executable, 'serve'], {
-    env: { ...process.env, ISINGQ_API_KEY: 'must-not-leak' },
+    env: { ...process.env, ISINGQ_API_KEY: 'must-not-leak', ISINGQ_UPDATE_CHECK: 'off' },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
   const messages = [];
@@ -39,7 +38,8 @@ test('serves newline-delimited MCP initialize and tools/list', async () => {
   assert.equal(exitCode, 0);
   assert.equal(messages[0].result.serverInfo.name, 'isingq-mcp');
   assert.match(messages[0].result.serverInfo.title, /伊辛智能/);
-  assert.equal(messages[1].result.tools.length, TOOL_DEFINITIONS.length);
+  assert.deepEqual(messages[1].result.tools.map(tool => tool.name).sort(),
+    ['isingq_api_key_setup', 'isingq_knowledge_get', 'isingq_modeling_guide_get', 'isingq_solve']);
   assert.equal(messages[2].result.resources.length, 13);
   assert.equal(JSON.stringify(messages).includes('must-not-leak'), false);
   assert.equal(stderr.includes('must-not-leak'), false);

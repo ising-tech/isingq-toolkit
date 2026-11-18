@@ -2,23 +2,19 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { evaluate, sanitize } = require('../scripts/verify-dsh-plugin.js');
+const { evaluate, sanitize, verificationExpectations } = require('../scripts/verify-dsh-plugin.js');
 
-const EXPECTED = {
-  tools: 12,
-  coreVersion: '0.8.2',
-  coreSha256: 'a'.repeat(64),
-};
+const EXPECTED = verificationExpectations({}, { version:'0.8.2', sha256:'a'.repeat(64) });
 
 function goodSummary() {
   return {
     install: { plugin_exit: 0 },
     evidence: {
-      ready: { isingq_tools: Array.from({ length: 12 }, (_, index) => `isingq_tool_${index}`) },
+      ready: { isingq_tools: [...EXPECTED.toolNames] },
       verified: {
         passed: true,
         tools_match: true,
-        isingq_tools: Array.from({ length: 12 }, (_, index) => `isingq_tool_${index}`),
+        isingq_tools: [...EXPECTED.toolNames],
         artifacts: { core_version: '0.8.2', core_sha256: 'a'.repeat(64) },
       },
     },
@@ -72,4 +68,22 @@ test('redacts authorization, bearer, token, api key and secret values', () => {
   }
   assert.match(clean, /Authorization: <redacted>/);
   assert.match(clean, /token=<redacted>/);
+});
+
+test('default verifier and packaged inspector share the current fixed native tool contract', () => {
+  assert.equal(EXPECTED.tools, 21);
+  assert.deepEqual(EXPECTED.toolNames, require('../scripts/dsh-verify-inspector/expected-tools.cjs'));
+  assert.equal(verificationExpectations({'expect-tools':'22'}, {version:'v',sha256:'hash'}).tools, 22);
+});
+test('rejects extra and same-count renamed tools even if a snapshot claims tools_match', () => {
+  for (const kind of ['extra','renamed']) {
+    const summary = goodSummary();
+    for (const stage of ['ready','verified']) {
+      const names=summary.evidence[stage].isingq_tools;
+      if(kind === 'renamed') names.pop();
+      names.push('isingq_unexpected');
+    }
+    const result=evaluate(summary, EXPECTED);
+    assert.equal(result.passed,false); assert.equal(result.checks.ready_tools,false); assert.equal(result.checks.tools_match,false);
+  }
 });

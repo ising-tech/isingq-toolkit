@@ -9,6 +9,11 @@ const { spawnSync } = require('node:child_process');
 const input = process.argv[2];
 if (!input) throw new Error('缺少待验证的可执行文件路径（usage=node scripts/smoke-binary.js <binary>）');
 const binary = path.resolve(input);
+const profile = process.argv[3] === '--technical' ? 'technical' : 'normal';
+if (process.argv.length > 4 || (process.argv[3] && profile !== 'technical')) throw new Error('usage=node scripts/smoke-binary.js <binary-or-entry.js> [--technical]');
+const expectedTools = (profile === 'technical' ? [...TOOL_DEFINITIONS.map(tool => tool.name), 'isingq_solve']
+  : ['isingq_api_key_setup', 'isingq_knowledge_get', 'isingq_modeling_guide_get', 'isingq_solve']).sort();
+const sourceEntry = /\.(?:c?js|mjs)$/i.test(binary);
 const requests = [
   {
     jsonrpc: '2.0', id: 1, method: 'initialize',
@@ -18,7 +23,7 @@ const requests = [
   { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} },
   { jsonrpc: '2.0', id: 3, method: 'resources/list', params: {} },
 ];
-const result = spawnSync(binary, ['serve'], {
+const result = spawnSync(sourceEntry ? process.execPath : binary, [...(sourceEntry ? [binary] : []), 'serve', ...(profile === 'technical' ? ['--technical'] : [])], {
   input: `${requests.map((request) => JSON.stringify(request)).join('\n')}\n`,
   encoding: 'utf8',
   maxBuffer: 4 * 1024 * 1024,
@@ -31,7 +36,7 @@ const initialize = responses.find((response) => response.id === 1);
 const tools = responses.find((response) => response.id === 2);
 const resources = responses.find((response) => response.id === 3);
 assert.equal(initialize?.result?.serverInfo?.name, 'isingq-mcp');
-assert.equal(tools?.result?.tools?.length, TOOL_DEFINITIONS.length);
+assert.deepEqual(tools?.result?.tools?.map(tool => tool.name).sort(), expectedTools, `tool names differ for profile=${profile}`);
 assert.equal(resources?.result?.resources?.length, 13);
 for (const tool of tools.result.tools) assert.equal(tool.outputSchema?.type, 'object', `invalid outputSchema for ${tool.name}`);
-process.stdout.write(`Release smoke passed（binary=${binary}, tools=${TOOL_DEFINITIONS.length}, resources=13）\n`);
+process.stdout.write(`Release smoke passed（binary=${binary}, profile=${profile}, tools=${expectedTools.length}, resources=13）\n`);

@@ -9,41 +9,41 @@ const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('user READMEs explain where to create and how to protect an API key', () => {
-  const chinese = read('README.md');
-  const english = read('README.en.md');
-  for (const content of [chinese, english]) {
-    assert.match(content, /https:\/\/console\.isingq\.com\//);
-    assert.match(content, /Create API|创建API/);
-    assert.match(content, /Settings|设置/);
-    assert.match(content, /secure input|安全输入/);
+  for (const file of ['README.md','README.en.md','packages/mcp/README.md','packages/mcp/README.en.md','packages/dsh-plugin/README.md','packages/dsh-plugin/README.en.md']) {
+    const content=read(file);
+    assert.match(content, /https:\/\/console\.isingq\.com\/api-keys/,file);
+    assert.match(content, /create.*personal API Key|创建个人 API Key/i,file);
+    assert.match(content, /private|secure input|安全输入/i,file);
+    assert.match(content, /Never.*API Key|Keep API Keys out|API Key 不应|API Key 不进入/i,file);
   }
 });
 
-test('DSH package README is bilingual and documents its install and data boundaries', () => {
-  const content = read('packages/dsh-plugin/README.md');
-  assert.match(content, /^## Install$/m);
-  assert.match(content, /^## 中文说明$/m);
+test('DSH package publishes separate bilingual installation guides with current compatibility and data boundaries', () => {
+  const chinese=read('packages/dsh-plugin/README.md'),english=read('packages/dsh-plugin/README.en.md');
+  assert.match(chinese, /\[English\]\(README.en.md\)/);
+  assert.match(english, /\[简体中文\]\(README.md\)/);
+  assert.match(chinese,/插件 → 添加插件/);assert.match(english,/Plugins → Add plugin/);
+  for(const content of [chinese,english]) {
   assert.match(content, /Applications\/DeepSeek Harness\.app\/Contents\/Resources\/runtime\/cli\/bin\/dsh/);
-  assert.match(content, /plugin --profile desktop add @ising-tech\/isingq-dsh-plugin/);
+  assert.match(content, /plugin --profile <profile> add @ising-tech\/isingq-dsh-plugin/);
   assert.match(content, />=0\.1\.0-rc\.7 <0\.3\.0-0/);
-  assert.match(content, /HTTPS authentication|HTTPS 鉴权/);
-  assert.match(content, /twelve `isingq_\*` tools|12 个 `isingq_\*` 工具/);
-  assert.match(content, /plugin --profile desktop remove @ising-tech\/isingq-dsh-plugin/);
+  assert.match(content, /\*\*21 (?:tools|个工具)\*\*/);
+  assert.match(content, /plugin --profile <profile> remove @ising-tech\/isingq-dsh-plugin/);
   assert.match(content, /fully quit|完全退出/);
-  assert.match(content, /administrator|管理员/);
-  assert.match(content, /osascript/);
-  assert.match(content, /systemd-ask-password/);
-  assert.match(content, /does not download or execute remote scripts|不下载或执行远程脚本/);
+  assert.match(content,/Profile configuration, and logs|Profile 配置或日志/);
+  assert.match(content,/local tasks send it to the selected device|内网本地任务发送到选定设备/);
+  }
 });
 
-test('root READMEs expose the native DSH package and compatibility range', () => {
+test('root READMEs link the native DSH package while its own guides own the compatibility range', () => {
   for (const file of ['README.md', 'README.en.md']) {
     const content = read(file);
     assert.match(content, /https:\/\/www\.npmjs\.com\/package\/@ising-tech\/isingq-dsh-plugin/);
-    assert.match(content, />=0\.1\.0-rc\.7 <0\.3\.0-0/);
-    assert.match(content, /isingq_resource_list/);
-    assert.match(content, /isingq_resource_read/);
+    assert.match(content, /packages\/dsh-plugin#readme/);
   }
+  const pkg=JSON.parse(read('packages/dsh-plugin/package.json'));
+  for(const file of ['packages/dsh-plugin/README.md','packages/dsh-plugin/README.en.md']) assert.ok(read(file).includes(pkg.engines.dsh),file);
+  for(const resource of ['isingq_resource_list','isingq_resource_read']) assert.ok(read('docs/DEVELOPMENT.md').includes(resource));
 });
 
 test('developer material is separated from the user README', () => {
@@ -66,6 +66,20 @@ test('installation skills direct users without receiving their API key', () => {
     const content = read(file);
     assert.match(content, /https:\/\/console\.isingq\.com\//);
     assert.match(content, /Create API|创建API/);
+  }
+});
+
+test('installation skills defer solve behavior to runtime guidance and do not require cloud Key for local targets', () => {
+  for (const file of ['skills/install-isingq-mcp/SKILL.md', 'skills/install-isingq-mcp/SKILL.zh-CN.md']) {
+    const content = read(file);
+    assert.match(content, /isingq_modeling_guide_get/);
+    assert.match(content, /isingq:\/\/modeling\/qubo/);
+    assert.match(content, /target_guidance/);
+    assert.match(content, /solver_mode_policy/);
+    assert.match(content, /numeric_model_policy/);
+    assert.match(content, /Local solving does not require a cloud Key|本地求解不要求云Key/);
+    assert.match(content, /Skip them for local-only use|仅用本地时跳过/);
+    assert.doesNotMatch(content, /Agent must show the model summary and matrix SHA-256|Agent 调用前必须展示模型摘要和矩阵 SHA-256/);
   }
 });
 
@@ -100,23 +114,27 @@ test('source installer reports the shared acceptance schema without claiming rel
   }
 });
 
-test('README math blocks avoid raw HTML delimiters that break GitHub rendering', () => {
+test('concise READMEs link the shared mathematical contracts instead of duplicating full formula references', () => {
   for (const file of ['README.md', 'README.en.md']) {
-    const blocks = [...read(file).matchAll(/```math\n([\s\S]*?)\n```/g)].map((match) => match[1]);
-    assert.ok(blocks.length >= 2, `${file}: expected documented energy and objective formulas`);
-    for (const block of blocks) assert.doesNotMatch(block, /[<>]/, file);
+    assert.match(read(file),/packages\/core\/README.md/);
   }
+  for(const file of ['packages/core/README.md','packages/core/README.en.md']) {
+    assert.match(read(file),/\]\(MODEL-DIGEST.md\)/);
+    assert.match(read(file),/\]\(API.md\)/);
+  }
+  assert.match(read('packages/core/MODEL-DIGEST.md'),/QUBO_CONTRACT_VERSION/);
+  assert.match(read('packages/core/API.md'),/objectiveEnergy/);
 });
 
-test('public cloud size claims match MAX_BITS and the executable QUBO boundary', () => {
+test('legacy size claims match the executable boundary while explicit targets use declared capabilities', () => {
   const { validateQubo } = require('../packages/core/src/qubo');
   const source = read('packages/core/src/qubo.js');
   const maximum = source.match(/^const MAX_BITS = (\d+);$/m);
   assert.ok(maximum, 'MAX_BITS declaration must remain inspectable by the documentation contract test');
   const maxBits = Number(maximum[1]);
   for (const [file, pattern] of [
-    ['README.md', /云平台 API 当前支持最高 ([\d,]+) 个 QUBO 二进制变量/],
-    ['README.en.md', /current cloud API supports up to ([\d,]+) QUBO binary variables/],
+    ['packages/core/MODEL-DIGEST.md', /1 至 ([\d,]+) 的整数/],
+    ['docs/solver-targets.md', /legacy start保持原云契约与([\d,]+)本地边界/],
   ]) {
     const claim = read(file).match(pattern);
     assert.ok(claim, `${file}: missing explicit cloud size claim`);

@@ -5,6 +5,22 @@ const { spawnSync, spawn } = require('node:child_process');
 const { apiKey, saveApiKey } = require('./store');
 const { normalizeSetupResult } = require('./effect-evidence');
 
+const PROMPT_TIMEOUT_MS = 5 * 60 * 1000;
+const PROMPT_MAX_BYTES = 64 * 1024;
+
+function promptDeadline(timeoutMs) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 2147483647) {
+    throw new Error('安全输入 timeoutMs 必须是 1 到 2147483647 的整数毫秒数；请修正配置后重试');
+  }
+  return timeoutMs;
+}
+
+function promptFailure(command, kind, timeoutMs) {
+  if (kind === 'timeout') return new Error(`IsingQ API Key 安全输入超时（command=${command}, timeout_ms=${timeoutMs}）；请重新配置并及时完成输入`);
+  if (kind === 'size') return new Error(`IsingQ API Key 安全输入输出超过上限（command=${command}, max_bytes=${PROMPT_MAX_BYTES}）；请核对安全输入组件`);
+  return new Error(`IsingQ API Key 安全输入被取消或失败（command=${command}）；请重新配置或检查本机安全输入组件`);
+}
+
 const API_KEY_PROMPT_LINES = [
   '官方控制台：https://console.isingq.com/',
   '登录后打开 API Key 入口：https://console.isingq.com/api-keys',
@@ -74,16 +90,21 @@ function apiKeyPromptCommands(platform) {
 
 // 同步执行供标准 MCP 使用。
 
-function runPrompt(command, args, { environment, spawn = spawnSync, allowMissing = false }) {
-  const result = spawn(command, args, {
+function runPrompt(command, args, { environment, spawn = spawnSync, allowMissing = false, timeoutMs }) {
+  let result;
+  try { result = spawn(command, args, {
     encoding: 'utf8',
     env: environment,
-    maxBuffer: 64 * 1024,
+    maxBuffer: PROMPT_MAX_BYTES,
+    timeout: timeoutMs,
+    killSignal: 'SIGKILL',
     windowsHide: true,
-  });
+  }); } catch { throw promptFailure(command); }
   if (result.error?.code === 'ENOENT' && allowMissing) return null;
+  if (result.error?.code === 'ETIMEDOUT') throw promptFailure(command, 'timeout', timeoutMs);
+  if (result.error?.code === 'ENOBUFS') throw promptFailure(command, 'size', timeoutMs);
   if (result.error || result.status !== 0) {
-    throw new Error(`IsingQ API Key 安全输入被取消或失败（command=${command}）`);
+    throw promptFailure(command);
   }
   const value = String(result.stdout || '').trim();
   if (!value) throw new Error('IsingQ API Key 安全输入为空');
@@ -92,25 +113,53 @@ function runPrompt(command, args, { environment, spawn = spawnSync, allowMissing
 
 // 异步执行供原生 DSH Plugin 使用，避免阻塞 Host 事件循环。
 
-function runPromptAsync(command, args, { environment, allowMissing = false }) {
+function runPromptAsync(command, args, { environment, allowMissing = false, spawn: start = spawn, timeoutMs }) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { env: environment, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    let child;
+    try { child = start(command, args, { env: environment, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
+    catch { reject(promptFailure(command)); return; }
     let settled = false;
     let stdout = '';
+    let bytes = 0;
+    const finish = (error, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      stdout = '';
+      child.stdout.removeListener('data', receive);
+      child.stdout.resume();
+      if (error) reject(error); else resolve(value);
+    };
+    const stop = kind => {
+      if (settled) return;
+      // Reject independently of close: a failed kill or a faulty component must
+      // not leave the tool pending, and private output never enters diagnostics.
+      finish(promptFailure(command, kind, timeoutMs));
+      try { child.kill('SIGKILL'); } catch { /* The deadline error remains primary. */ }
+    };
+    const receive = chunk => {
+      if (settled) return;
+      bytes += Buffer.byteLength(chunk, 'utf8');
+      if (bytes > PROMPT_MAX_BYTES) stop('size');
+      else stdout += chunk;
+    };
+    const timer = setTimeout(() => stop('timeout'), timeoutMs);
     child.stdout.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stdout.on('data', receive);
+    child.stdout.on('error', () => stop('failed'));
+    child.stderr.on('error', () => stop('failed'));
     child.stderr.resume();
-    const fail = (message) => { if (!settled) { settled = true; reject(new Error(message)); } };
     child.on('error', (error) => {
-      if (error.code === 'ENOENT' && allowMissing) { if (!settled) { settled = true; resolve(null); } }
-      else fail(`IsingQ API Key 安全输入被取消或失败（command=${command}）`);
+      if (error.code === 'ENOENT' && allowMissing) finish(null, null);
+      else finish(promptFailure(command));
     });
     child.on('close', (status) => {
-      if (status !== 0) fail(`IsingQ API Key 安全输入被取消或失败（command=${command}）`);
+      if (settled) return;
+      if (status !== 0) finish(promptFailure(command));
       else {
         const value = stdout.trim();
-        if (!value) fail('IsingQ API Key 安全输入为空');
-        else if (!settled) { settled = true; resolve(value); }
+        if (!value) finish(new Error('IsingQ API Key 安全输入为空'));
+        else finish(null, value);
       }
     });
   });
@@ -120,21 +169,24 @@ function promptApiKey({
   platform = process.platform,
   environment = process.env,
   spawn = spawnSync,
+  timeoutMs = PROMPT_TIMEOUT_MS,
 } = {}) {
+  promptDeadline(timeoutMs);
   const commands = apiKeyPromptCommands(platform);
   if (!commands) throw new Error(`不支持的 API Key 安全输入平台（platform=${platform}）`);
   for (const { command, args, allowMissing } of commands) {
-    const value = runPrompt(command, args, { environment, spawn, allowMissing });
+    const value = runPrompt(command, args, { environment, spawn, allowMissing, timeoutMs });
     if (value !== null) return value;
   }
   throw new Error('未找到 Linux 安全输入组件（需要 zenity、kdialog 或 systemd-ask-password）');
 }
 
-async function promptApiKeyAsync({ platform = process.platform, environment = process.env } = {}) {
+async function promptApiKeyAsync({ platform = process.platform, environment = process.env, spawn: start = spawn, timeoutMs = PROMPT_TIMEOUT_MS } = {}) {
+  promptDeadline(timeoutMs);
   const commands = apiKeyPromptCommands(platform);
   if (!commands) throw new Error(`不支持的 API Key 安全输入平台（platform=${platform}）`);
   for (const { command, args, allowMissing } of commands) {
-    const value = await runPromptAsync(command, args, { environment, allowMissing });
+    const value = await runPromptAsync(command, args, { environment, allowMissing, spawn: start, timeoutMs });
     if (value !== null) return value;
   }
   throw new Error('未找到 Linux 安全输入组件（需要 zenity、kdialog 或 systemd-ask-password）');
@@ -147,7 +199,8 @@ function localSetupResult(status) {
 function configureApiKey({
   force = false,
   environment = process.env,
-  prompt = () => promptApiKey({ environment }),
+  timeoutMs = PROMPT_TIMEOUT_MS,
+  prompt = () => promptApiKey({ environment, timeoutMs }),
 } = {}) {
   if (!force) {
     try {
@@ -165,7 +218,8 @@ function configureApiKey({
 async function configureApiKeyAsync({
   force = false,
   environment = process.env,
-  prompt = () => promptApiKeyAsync({ environment }),
+  timeoutMs = PROMPT_TIMEOUT_MS,
+  prompt = () => promptApiKeyAsync({ environment, timeoutMs }),
 } = {}) {
   if (!force) {
     try {

@@ -98,6 +98,15 @@ export function apply(ctx, { backgroundUpdates } = {}) {
     isingq_solve_start: (args) => getService().start(args),
     isingq_solve_poll: (args) => getService().poll(args.solve_id),
     isingq_solve_result_get: (args) => getService().get(args.solve_id),
+    isingq_solver_targets_list: (args) => getService().listTargets(args),
+    isingq_target_solve_prepare: (args) => getService().prepareTarget(args),
+    isingq_target_solve_start: (args) => getService().startTarget(args),
+    isingq_solver_profiles_list: () => ({ profiles: getService().profileList() }),
+    isingq_solver_profiles_save: (args) => getService().profileSave(args.profile),
+    isingq_solver_profiles_delete: (args) => getService().profileDelete(args.profile_id),
+    isingq_solver_config_open: () => getService().openTargetConfig(),
+    isingq_solve_records_list: (args) => getService().listRuns(args),
+    isingq_target_delivery_validate: (args) => getService().validateTargetDelivery(args),
   };
   for (const definition of TOOL_DEFINITIONS) {
     ctx.tools.register(defineTool({

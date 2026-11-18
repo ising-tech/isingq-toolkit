@@ -33,15 +33,17 @@ npm workspaces 包含三个发布单元：
 | `.codex-plugin/plugin.json` + `.mcp.json` | npm/source Codex Plugin；随 `@ising-tech/isingq-mcp` 打包 | 仓库或 npm 包内的 `bin/isingq-mcp.js` |
 | `.agents/plugins/marketplace.json` | Codex Repo Marketplace 目录，只声明可安装项与策略 | 指向 `plugins/isingq-mcp/` |
 | `plugins/isingq-mcp/` | Repo Marketplace 的轻量包装和展示素材 | `npx -y @ising-tech/isingq-mcp serve` |
-| `lhm.plugin.json` | LobeHub Marketplace 的工具、Resource 与展示快照 | 发布前由本地源码 MCP 重新生成并人工核对 |
+| `lhm.plugin.json` | LobeHub Marketplace 的完整技术能力与Resource展示快照，不替代普通MCP菜单 | `node scripts/generate-lhm-manifest.js` 生成，`--check` 校验；人工核对差异 |
 | `server.json` | Official MCP Registry 元数据 | npm stdio 包 |
 | `glama.json` | Glama 作者认领声明 | 不定义运行入口 |
 
-外层和内层 `.codex-plugin` 不得互相引用资源文件。更新 Plugin 名称、描述、默认 Prompt 或 Logo 时应同步核对两份 manifest；更新 MCP 工具或 Resources 后应重新生成并检查 `lhm.plugin.json`。
+外层和内层 `.codex-plugin` 不得互相引用资源文件。更新 Plugin 名称、描述、默认 Prompt 或 Logo 时应同步核对两份 manifest；更新 MCP 工具或 Resources 后应重新生成并检查 `lhm.plugin.json`。 快照跟随显式技术模式的完整公开能力，保留兼容工具及统一求解入口；普通 `serve` 仍按普通发现配置提供4个工具。生成与校验不读凭据、不查询设备或云，也不构成发布。
 
 ## MCP 与 Resources
 
-标准 MCP 暴露 10 个工具；DSH 原生 Plugin 额外提供 `isingq_resource_list` 和 `isingq_resource_read`。13 个本地 Resources 覆盖公司、产品、技术、云平台、方案、案例、FAQ、术语、来源、QUBO 建模与数据流。
+0.9.x 标准 MCP 默认 `serve` 提供 4 个工具：`isingq_api_key_setup`、`isingq_knowledge_get`、`isingq_modeling_guide_get` 和 `isingq_solve`。显式 `serve --technical` 提供 20 个工具。DSH 原生 Plugin 提供 21 个工具（19 个共享 Core 工具及 `isingq_resource_list`、`isingq_resource_read`），不包含 MCP 的统一求解门面。13 个本地 Resources 覆盖公司、产品、技术、云平台、方案、案例、FAQ、术语、来源、QUBO 建模与数据流。
+
+核对实际加载版本和入口，不用旧版数量判定新版本。共享 SDK 的完整 API 与数据约定见 [Core API](../packages/core/API.md)。
 
 Resources 是版本化的本地公开知识，不在读取时访问远程网站。是否自动加入上下文由 Host 决定，关键行为必须由工具 schema 和运行时门禁保证。
 
@@ -145,6 +147,23 @@ Transport 的同步 `prepareSubmission()` 返回仅供本次 `submit(matrix, opt
 
 `solve_start` 遇到无法恢复的失败或 `submission_unknown` 时，core 抛出包含公开求解记录的错误，MCP 返回 `ok: false`、`isError: true`，DSH 原生入口同样得到失败。`solve_poll` 和 `solve_result_get` 保持“调用是否成功”与“任务是否成功”分离：成功读取 `failed` 记录仍表示读取操作成功。
 
+## 从源码运行本地候选
+
+开发检查使用 ESLint 10；开发环境需 Node.js 20.19+、22.13+ 或 24+，不改变发行包的 Node.js 运行时声明。`npm run check` 遍历源码、测试与脚本进行语法检查，并执行 `npm run lint`（零警告）。根包、Core、DSH 的独立 `prepublishOnly` 均要求完整仓库的测试与共享检查。
+
+ESLint 的 `quality/release-before-close` 拦截 close 后才清空 fd 所有权的重复缺陷；`quality/owned-lock-cleanup` 要求共享锁所有者统一核对本次 inode 再删除；`quality/no-throwing-fs-cleanup-in-finally` 通过实际 fs/owned-file 绑定及 FileHandle 的 open 来源，拦截 finally 中未保护的同步文件清理与异步 FileHandle.close；`no-unsafe-finally` 继续阻止显式控制流覆盖。规则不推断任意 callback 或 session.close 不会抛错。共享清理封装保存主错优先级（包括 throw undefined），逐项完成清理，无主错时报告首个清理失败。规则的非法/合法样例由 `test/lint-rules.test.js` 执行，实际 I/O 错误由对应故障注入回归验证。重复问题以可执行规则与用例控制，不以维护文字问题清单代替门禁。
+
+MCP stdio 继续串行执行，输入按实际 UTF-8 字节在解析前限制，沿用 `ISINGQ_MAX_LOCAL_FILE_BYTES`（默认 128 MiB）；读取与输出写入均接受背压。文件分块核验仍走专用入口和独立预算。协议错误只影响当前消息；缺少 id 的通知不调用请求工具。
+
+在官方源码目录中安装依赖，并生成指向当前检出的 stdio 配置：
+
+```bash
+npm ci
+node bin/isingq-mcp.js config --json
+```
+
+将输出导入唯一目标 Host 的 MCP 设置，重连并核对实际加载版本与工具。该配置使用当前检出的绝对入口，不指向 npm 上的旧版本。仅本地求解无需运行 `setup` 或采集云端 API Key；云端凭据按 README 的安全输入流程按需配置。源码安装不会发布 npm 包。
+
 ## 本地验证
 
 ```bash
@@ -175,9 +194,35 @@ npm run build:binaries -- --target node22-win-x64
 
 产物位于 `dist/`，包含平台程序、`manifest.json` 和 `SHA256SUMS`。
 
+### DSH 完整包验收
+
+以下为维护者命令，在仓库根目录运行；验收脚本不随独立 DSH npm 包分发：
+
+```bash
+node scripts/verify-dsh-plugin.js \
+  --host desktop --host-version 0.2.2-rc.1 \
+  --dsh "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  --plugin <plugin.tgz> --core <core.tgz> \
+  --out /tmp/isingq-verify-desktop
+```
+
+脚本在隔离的 `DSH_HOME` 中安装打包后的 Plugin 与 Core，核对 21 个工具、13 个 Resources、本地冒烟结果、Core 来源与版本、宽限期内的 Host 存活及独立关闭快照。复制单个入口文件或 Host 退出前短暂调用成功不能替代完整包验收。兼容范围扩展前应在目标 Host 上重新执行此验收。
+
+### MCP npm 包说明
+
+仓库首页保留产品总览；MCP npm 包使用 `packages/mcp/README.md` 和 `README.en.md`，由独立打包入口带入归档根目录：
+
+```bash
+npm run pack:mcp
+```
+
+该命令按根包 `files` 清单在临时目录组装运行文件，只替换归档中的中英文 README，输出 `dist/ising-tech-isingq-mcp-<version>.tgz`。它不改写仓库首页，也不发布。可追加 `-- --pack-destination <目录>` 指定输出位置。
+
+正式发布 MCP 时使用该命令生成的 `.tgz` 归档；直接从仓库根目录运行 `npm pack` 或 `npm publish` 仍会采用仓库首页。Core 与 DSH 继续使用各自包目录的 README 和原打包方式。
+
 ## GitHub Actions 与 Release
 
-`.github/workflows/release.yml` 在 GitHub 官方原生 Runner 上分别构建五个平台，并使用打包后的程序验证 MCP `initialize`、10 个工具和 13 个 Resources。
+`.github/workflows/release.yml` 在 GitHub 官方原生 Runner 上分别构建五个平台，并使用打包后的程序验证MCP initialize、普通入口4个工具的确切名称及13个Resources。显式technical入口为20工具，原生DSH为21项；不同入口按各自契约检查，不复用旧数量。
 
 - `main` 和 Pull Request：运行测试、构建和 smoke test，只生成 Workflow Artifacts。
 - `dsh-latest`（建议性，`main` push 和手动触发）：用 `@deepseek-ai/dsh-tools@next` 在隔离目录运行 `scripts/smoke-dsh-plugin.js`，失败只告警，用于发现上游兼容性漂移。
@@ -191,7 +236,7 @@ npm run build:binaries -- --target node22-win-x64
 3. 推送代码并确认 `main` Workflow 通过。
 4. 创建并推送对应 `v*` tag。
 5. 确认五个平台产物、`manifest.json` 和 `SHA256SUMS` 已附加到 Release。
-6. Release 验证通过后，再依次发布 core、MCP 和 DSH npm 包。
+6. Release 验证通过后，再依次发布 Core、MCP 和 DSH npm 包；MCP 使用 `npm run pack:mcp` 生成的 `.tgz` 归档。
 
 ## 发布边界
 
@@ -201,12 +246,12 @@ npm run build:binaries -- --target node22-win-x64
 - 本仓库使用 Apache-2.0；许可证不授予公司或产品商标权。
 
 
-## 后台更新提醒发布边界
+## 后台版本检查与发布版本
 
-0.8.1整合后台版本提醒、显式update-check，以及大历史兼容、可选容量覆盖和文件读写保护；求解transport增加HTTP响应流式容量检查，原有求解默认参数与提交状态语义保留。不包含设备清单/推荐/强制选择，设备扩展留在独立开发分支。
+后台版本提醒和显式 `update-check` 自 0.8.1 引入；当前 0.9.x 还包含求解目标接入与统一 MCP 门面。Toolkit 的检查本身不安装版本；专家托管工具的自动维护由专家兼容策略负责，不能与独立 MCP 的版本提醒混为一谈。
 
 MCP serve和DSH apply启动inline后台管理器；专家普通validate/guide/knowledge由运行时启动detached worker。主任务不等待网络，成功结果仅从缓存消费可行动的update_notice；diagnose/setup/manualcheck不触发专家自动worker。worker最多5秒且环境白名单不继承API Key、npm令牌或NODE_OPTIONS；正常HTTP最多2秒/64KiB。
 
 缓存位于用户缓存目录isingq-mcp/updates，成功24小时、失败5分钟，token锁防并发覆盖，通知按当前/最新版本对24小时去重。TTL不是自动轮询周期，长寿命服务需要显式手动刷新或在下次启动时检查。缓存异常不影响业务；off开关用于严格离线环境。Core纯数学函数不发请求。
 
-正式发布需GitHub和npm同步，先按既定流程核对该提交CI及五平台Release，再依次发布core、MCP、DSH0.8.1；专家1.3.1公开上传前必须确认固定npm运行时可获取。当前审查候选不能冒称已发布。
+发布前核对根包、Core、DSH 的 `package.json`、锁文件和 `server.json`；三个 Toolkit 包同步版本，当前源码为 0.9.0。按既定流程核对该提交 CI 及五平台 Release，再依次发布 Core、MCP、DSH。专家包使用自身版本和兼容工具约定，发布前确认所需 npm 运行时可获取。源码、安装包版本与 Host 实际加载版本分别核验，不能由源码候选推断已发布或已升级。

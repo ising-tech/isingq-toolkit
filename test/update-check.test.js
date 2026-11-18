@@ -54,3 +54,21 @@ test('an in-flight update check does not gate local model validation', async () 
   const result=await pending;
   assert.equal(aborts,1);assert.equal(result.status,'unavailable');assert.equal(result.notification.show,false);
 });
+
+test('explicit refresh bypasses completed cache while coalescing an in-flight request', async () => {
+  let calls = 0, finish;
+  const checker = createUpdateChecker({ fetch: () => {
+    calls++;
+    return new Promise(resolve => { finish = resolve; });
+  } });
+  const first = checker();
+  const refreshed = checker({ refresh: true });
+  assert.equal(calls, 1);
+  finish(payload('0.9.0'));
+  assert.deepEqual(await first, await refreshed);
+  assert.equal((await checker()).cached, true);
+  const next = checker({ refresh: true });
+  assert.equal(calls, 2);
+  finish(payload('0.10.0'));
+  assert.equal((await next).latest_version, '0.10.0');
+});

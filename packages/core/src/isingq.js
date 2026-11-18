@@ -128,7 +128,7 @@ async function failureMessage(response, secrets) {
   }
 }
 
-async function checkedFetch(url, options, phase, timeoutSeconds, secrets = []) {
+async function checkedFetch(url, options, phase, timeoutSeconds, secrets = [], bodyReader = response => boundedJson(response, phase)) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
   try {
@@ -145,7 +145,9 @@ async function checkedFetch(url, options, phase, timeoutSeconds, secrets = []) {
         providerMessage,
       });
     }
-    return response;
+    // Consume the successful body while the same deadline and AbortSignal
+    // are still active. Returning a Response would end the deadline at headers.
+    return await bodyReader(response);
   } catch (error) {
     if (error instanceof IsingQError) throw error;
     throw new IsingQError(`IsingQ 网络请求失败（phase=${phase}）`, {
@@ -249,13 +251,13 @@ class IsingQTransport {
     credentials ??= this.prepareSubmission();
     let phase = 'upload_signature';
     try {
-      const signatureResponse = await checkedFetch(
+      const signaturePayload = await checkedFetch(
         endpoint(this.baseUrl, '/files/getPostSignatureForOssUpload'),
         { method: 'GET', headers: credentials },
         'upload_signature',
         this.timeoutSeconds,
       );
-      const signature = uploadSignature(await boundedJson(signatureResponse, 'upload_signature'));
+      const signature = uploadSignature(signaturePayload);
       const secrets = [credentials.Authorization, signature.policy, signature.signature, signature.x_oss_credential, signature.security_token];
       phase = 'upload';
       const objectKey = `${crypto.randomUUID().slice(0, 8)}/isingq-mcp-qubo.csv`;
@@ -275,6 +277,7 @@ class IsingQTransport {
         'upload',
         this.timeoutSeconds,
         secrets,
+        async response => { await response.body?.cancel(); },
       );
       phase = 'create_task';
       const created = await checkedFetch(
@@ -299,7 +302,7 @@ class IsingQTransport {
         this.timeoutSeconds,
         secrets,
       );
-      return { task_id: taskId(await boundedJson(created, 'create_task')), options: normalized };
+      return { task_id: taskId(created), options: normalized };
     } catch (error) {
       // Only the transport knows whether task creation may have started. This
       // boundary includes response-body reads and local parsing, not just fetch.
@@ -320,27 +323,36 @@ class IsingQTransport {
     if (typeof providerTaskId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(providerTaskId)) {
       throw new Error('provider task_id 格式无效');
     }
-    const response = await checkedFetch(
+    const body = await checkedFetch(
       endpoint(this.baseUrl, `/tasks/${encodeURIComponent(providerTaskId)}`),
       { method: 'GET', headers: this.headers() },
       'poll',
       this.timeoutSeconds,
     );
-    const body = await boundedJson(response, 'poll');
-    const payload = body?.data && typeof body.data === 'object' ? body.data : body;
-    const status = Number(payload.status);
-    if (![1, 2, 3].includes(status)) return { status: 'running' };
-    if (!payload.result || typeof payload.result !== 'object') return { status: 'failed' };
-    const raw = Array.isArray(payload.result.bits) ? payload.result.bits : payload.result.spin_config;
-    if (!Array.isArray(raw) || raw.length !== numBits) throw new IsingQError('IsingQ 解向量维度无效', { phase: 'poll' });
-    let bits;
-    if (raw.every((value) => Number.isInteger(value) && [0, 1].includes(value))) bits = raw;
-    else if (raw.every((value) => Number.isInteger(value) && [-1, 1].includes(value))) bits = raw.map((value) => (value + 1) / 2);
-    else throw new IsingQError('IsingQ 解向量取值无效', { phase: 'poll' });
-    const energy = payload.result.energy == null ? null : Number(payload.result.energy);
-    if (energy !== null && !Number.isFinite(energy)) throw new IsingQError('IsingQ energy 无效', { phase: 'poll' });
-    return { status: 'succeeded', bits, energy };
+    return normalizeCloudPoll(body, numBits);
   }
 }
 
-module.exports = { CLOUD_SUBMISSION_CONTRACT_VERSION, IsingQError, IsingQTransport, options, validateCloudSubmissionOptions };
+function normalizeCloudPoll(body, numBits, includeProviderStatus = false) {
+  const payload = body?.data && typeof body.data === 'object' ? body.data : body;
+  const status = payload?.status;
+  const extra = includeProviderStatus ? { provider_status: status } : {};
+  if (status === 0) return { status: 'queued', ...extra };
+  if (status === 1) return { status: 'running', ...extra };
+  if (status === 3) return { status: 'failed', ...extra };
+  if (status !== 2) throw new IsingQError(`IsingQ 任务状态未知（status=${typeof status === 'number' && Number.isFinite(status) ? status : typeof status}, expected=0/1/2/3）；请继续核查原任务`, { phase: 'poll' });
+  if (payload.result == null) return { status: 'result_pending', ...extra };
+  const result = payload.result;
+  const raw = Array.isArray(result.bits) ? result.bits : result.spin_config;
+  if (!Array.isArray(raw) || raw.length !== numBits) return { status: 'result_invalid', ...extra, reason: '解向量维度无效' };
+  let bits;
+  if (raw.every(value => Number.isInteger(value) && [0, 1].includes(value))) bits = raw;
+  else if (raw.every(value => Number.isInteger(value) && [-1, 1].includes(value))) bits = raw.map(value => (value + 1) / 2);
+  else return { status: 'result_invalid', ...extra, reason: '解向量取值无效' };
+  const energy = result.energy == null ? null : result.energy;
+  if (energy !== null && (typeof energy !== 'number' || !Number.isFinite(energy))) return { status: 'result_invalid', ...extra, reason: 'energy 无效' };
+  return { status: 'succeeded', bits, energy, ...extra };
+}
+
+module.exports = { CLOUD_SUBMISSION_CONTRACT_VERSION, IsingQError, IsingQTransport, options, validateCloudSubmissionOptions,
+  boundedJson, safeProviderMessage, normalizeCloudPoll };

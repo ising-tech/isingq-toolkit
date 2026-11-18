@@ -6,20 +6,7 @@ import { dirname, join, relative, sep } from 'node:path';
 export const name = 'dsh-verify-inspector';
 export const inject = ['tools'];
 
-const EXPECTED_TOOLS = [
-  'isingq_api_key_setup',
-  'isingq_delivery_validate',
-  'isingq_knowledge_get',
-  'isingq_modeling_guide_get',
-  'isingq_qubo_validate',
-  'isingq_report_verify',
-  'isingq_resource_list',
-  'isingq_resource_read',
-  'isingq_solve_poll',
-  'isingq_solve_result_get',
-  'isingq_solve_start',
-  'isingq_update_check',
-].sort();
+const EXPECTED_TOOLS = createRequire(import.meta.url)('./expected-tools.cjs');
 const EXPECTED_RESOURCES = 13;
 
 function packageRoot(entry) {

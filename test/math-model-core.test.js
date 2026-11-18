@@ -68,10 +68,10 @@ test('candidate input completeness, numeric boundaries and no partial overflow r
   const residual=fixture();residual.constraints[0].rhs=-Number.MAX_SAFE_INTEGER;
   assert.throws(()=>evaluateMathCandidate(residual,{}, {x:0,q:2}),e=>e.code==='unsupported_numeric');
 });
-test('finite integer size limits do not enumerate assignments and reject malformed arrays', () => {
+test('finite integer validation accepts the former count boundaries and still rejects malformed arrays', () => {
   const m=fixture();m.variables[1].upper=1000000;assert.equal(evaluateMathCandidate(m,{}, {x:1,q:2}).status,'feasible');
-  for(const mutate of [m=>m.variables=Array.from({length:257},(_,i)=>({id:`v${i}`,domain:'binary'})),m=>m.constraints=Array(1025).fill(m.constraints[0]),m=>m.objective.expression.terms=Array(20001).fill(m.objective.expression.terms[0])]) {
-    const copy=fixture();mutate(copy);assert.throws(()=>validateMathModel(copy,{}),e=>e.code==='unsupported_size');
+  for(const mutate of [m=>m.variables.push(...Array.from({length:255},(_,i)=>({id:`v${i}`,domain:'binary'}))),m=>m.constraints=Array.from({length:1025},(_,i)=>({...m.constraints[0],id:'c'+i})),m=>m.objective.expression.terms=Array(20001).fill(m.objective.expression.terms[0])]) {
+    const copy=fixture();mutate(copy);assert.doesNotThrow(()=>validateMathModel(copy,{}));
   }
   const sparse=fixture();sparse.variables=new Array(1);assert.throws(()=>validateMathModel(sparse,{}));
 });

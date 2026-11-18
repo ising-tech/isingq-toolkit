@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 'use strict';
 
+if (['__target-config-serve', '--config-sidecar'].includes(process.argv[2])) {
+  require('../packages/core/src/target-config-page').serveTargetConfigSidecar(process.argv.slice(3));
+} else {
+
 const { apiKey, roots, saveApiKey } = require('../src/store');
 const { configureHosts, detectHosts } = require('../src/hosts');
 const { VERSION, serve } = require('../src/server');
@@ -32,7 +36,7 @@ function usage() {
 
 Usage:
   isingq-mcp update-check [--refresh]  Check official stable release (no installation)
-  isingq-mcp serve
+  isingq-mcp serve [--technical]
   isingq-mcp onboard
   isingq-mcp setup
   isingq-mcp setup --stdin
@@ -144,8 +148,8 @@ function configureNamedHost(name, command = mcpCommand()) {
 }
 
 async function main(argv = process.argv.slice(2)) {
-  if (argv.length === 0 || (argv.length === 1 && argv[0] === 'serve')) {
-    await serve();
+  if (argv.length === 0 || (argv[0] === 'serve' && (argv.length === 1 || (argv.length === 2 && argv[1] === '--technical')))) {
+    await serve(undefined, { tools_profile: argv.includes('--technical') ? 'technical' : 'normal' });
     return 0;
   }
   if (argv.length === 1 && ['-h', '--help', 'help'].includes(argv[0])) {
@@ -229,3 +233,4 @@ module.exports = {
   readSecretFromStdin,
   readTerminal,
 };
+}

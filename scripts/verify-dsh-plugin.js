@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+const { runWithCleanupSync, runWithCleanup } = require('../packages/core/src/run-with-cleanup');
 
 // Full-package acceptance for the native DSH adapter, on an isolated DSH_HOME.
 // Installs the packed plugin tarball (not a copied index.mjs), loads it in the
@@ -25,6 +26,7 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const inspectorSource = path.join(root, 'scripts/dsh-verify-inspector');
+const EXPECTED_TOOLS = require('./dsh-verify-inspector/expected-tools.cjs');
 
 function parseArgs(argv) {
   const values = {};
@@ -89,7 +91,7 @@ function coreSourceDigest(root) {
 
 function coreExpectation(coreTarball) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'isingq-core-expect-'));
-  try {
+  return runWithCleanupSync(() => {
     const tar = spawnSync('tar', ['-xzf', coreTarball, '-C', directory], { encoding: 'utf8' });
     if (tar.status !== 0) throw new Error(`core tarball extract failed (exit=${tar.status})`);
     const root = path.join(directory, 'package');
@@ -97,21 +99,32 @@ function coreExpectation(coreTarball) {
       version: JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version,
       sha256: coreSourceDigest(root),
     };
-  } finally {
+  }, () => {
     fs.rmSync(directory, { recursive: true, force: true });
-  }
+  });
+}
+
+function verificationExpectations(values, derived) {
+  return {
+    tools: Number(values['expect-tools'] || EXPECTED_TOOLS.length),
+    toolNames: EXPECTED_TOOLS,
+    coreVersion: values['expect-core-version'] || derived.version,
+    coreSha256: values['expect-core-sha256'] || derived.sha256,
+  };
 }
 
 function evaluate(summary, expected) {
   const ready = summary.evidence?.ready;
   const verified = summary.evidence?.verified;
+  const matchesTools = names => names?.length === expected.tools && (!expected.toolNames
+    || JSON.stringify([...names].sort()) === JSON.stringify(expected.toolNames));
   const checks = {
     install_plugin_exit_zero: summary.install?.plugin_exit === 0,
     ready_snapshot: Boolean(ready),
-    ready_tools: ready?.isingq_tools?.length === expected.tools,
+    ready_tools: matchesTools(ready?.isingq_tools),
     verified_snapshot: Boolean(verified),
     plugin_passed: verified?.passed === true,
-    tools_match: verified?.tools_match === true && verified?.isingq_tools?.length === expected.tools,
+    tools_match: verified?.tools_match === true && matchesTools(verified?.isingq_tools),
     core_version: verified?.artifacts?.core_version === expected.coreVersion,
     core_sha256: verified?.artifacts?.core_sha256 === expected.coreSha256,
     host_alive_after_grace: summary.host_run?.alive_after_grace === true,
@@ -183,18 +196,14 @@ async function main() {
   };
   const [command, ...prefix] = commandFor(dsh);
   const derived = coreExpectation(core);
-  const expected = {
-    tools: Number(values['expect-tools'] || 12),
-    coreVersion: values['expect-core-version'] || derived.version,
-    coreSha256: values['expect-core-sha256'] || derived.sha256,
-  };
+  const expected = verificationExpectations(values, derived);
   const summary = {
     host, host_version: hostVersion, dsh, plugin, core,
     plugin_sha256: sha256(plugin), core_sha256_tarball: sha256(core),
     expectations: expected, install: {}, evidence: {}, host_run: {},
   };
 
-  try {
+  await runWithCleanup(async () => {
     const init = run(command, [...prefix, 'plugin', '--profile', 'verify', 'add'], env);
     summary.install.profile_init_exit = init.status;
     if (!fs.existsSync(path.join(profile, 'package.json'))) throw new Error('profile initialization did not create package.json');
@@ -277,12 +286,12 @@ async function main() {
       summary: summaryFile,
     }));
     if (!result.passed) process.exitCode = 1;
-  } finally {
+  }, async () => {
     if (!keep) fs.rmSync(home, { recursive: true, force: true });
-  }
+  });
 }
 
-module.exports = { sanitize, evaluate, coreExpectation, coreSourceDigest };
+module.exports = { sanitize, evaluate, coreExpectation, coreSourceDigest, verificationExpectations };
 
 if (require.main === module) {
   main().catch((error) => {

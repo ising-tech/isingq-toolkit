@@ -7,7 +7,7 @@ const { TOOL_DEFINITIONS } = require('../packages/core');
 const { createHandler } = require('../src/server');
 
 test('MCP advertises a strict local verified report document contract', async () => {
-  const handle = createHandler(new Proxy({}, { get() { throw Error('SOLVER_FORBIDDEN'); } }));
+  const handle = createHandler(new Proxy({}, { get() { throw Error('SOLVER_FORBIDDEN'); } }), { tools_profile: 'technical' });
   const tools = (await handle({ method: 'tools/list' })).tools;
   const definition = tools.find(tool => tool.name === 'isingq_report_verify');
   assert.ok(definition, 'local report verification must be discoverable');
@@ -43,7 +43,7 @@ test('MCP and DSH report adapters reuse core data and typed errors offline witho
     require(${JSON.stringify(require.resolve('undici'))}).fetch=()=>{throw Error('NETWORK_FORBIDDEN')};
     for(const p of ['node:http','node:https']){const m=require(p);m.request=m.get=()=>{throw Error('NETWORK_FORBIDDEN')}}
     (async()=>{
-      const handle=require(${JSON.stringify(path.join(root, 'src/server'))}).createHandler(undefined,{configureApiKey(){throw Error('CREDENTIAL_FORBIDDEN')}});
+      const handle=require(${JSON.stringify(path.join(root, 'src/server'))}).createHandler(undefined,{tools_profile:'technical',configureApiKey(){throw Error('CREDENTIAL_FORBIDDEN')}});
       const tools=[];
       const dsh=await import(${JSON.stringify(require('node:url').pathToFileURL(path.join(root, 'packages/dsh-plugin/index.mjs')).href)});
       dsh.apply({tools:{register(tool){tools.push(tool)}}});

@@ -1,4 +1,5 @@
 'use strict';
+const { runWithCleanupSync } = require('../packages/core/src/run-with-cleanup');
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -15,7 +16,7 @@ test('selects one native release target for a matrix runner', () => {
 
 test('writes deterministic release checksums for selected artifacts', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'isingq-release-test-'));
-  try {
+  runWithCleanupSync(() => {
     const target = TARGETS[0];
     fs.writeFileSync(path.join(directory, target.name), 'binary');
     const files = writeReleaseMetadata(directory, [target], '1.2.3');
@@ -23,7 +24,7 @@ test('writes deterministic release checksums for selected artifacts', () => {
     assert.equal(manifest.version, '1.2.3');
     assert.deepEqual(manifest.files, files);
     assert.match(fs.readFileSync(path.join(directory, 'SHA256SUMS'), 'utf8'), new RegExp(`  ${target.name}\\n$`));
-  } finally {
+  }, () => {
     fs.rmSync(directory, { recursive: true, force: true });
-  }
+  });
 });

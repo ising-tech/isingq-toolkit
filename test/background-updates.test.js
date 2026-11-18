@@ -10,13 +10,16 @@ const { performance } = require('node:perf_hooks');
 const { createBackgroundUpdates, runUpdateWorker } = require('../packages/core/src/background-updates');
 const { createUpdateChecker } = require('../packages/core/src/update-check');
 const CURRENT = require('../packages/core/package.json').version;
+const parts=CURRENT.split('.').map(Number);
+const NEXT=`${parts[0]}.${parts[1]}.${parts[2]+1}`;
+const LATER=`${parts[0]}.${parts[1]}.${parts[2]+2}`;
 const MODULE = path.resolve(__dirname, '../packages/core/src/background-updates.js');
 const WORKER = path.resolve(__dirname, '../packages/core/src/update-worker.js');
 const UNDICI = require.resolve('undici');
 const DAY = 86400000;
 const FAILURE = 300000;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const result = (latest = '0.9.0', status = 'update_available') => ({ current_version: CURRENT, latest_version: latest, status });
+const result = (latest = NEXT, status = 'update_available') => ({ current_version: CURRENT, latest_version: latest, status });
 
 function fixture(t) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'isingq-background-updates-'));
@@ -35,7 +38,7 @@ async function until(predicate, timeout = 6000) {
   while (Date.now() < deadline) { if (predicate()) return; await delay(20); }
   assert.fail('background state did not settle before timeout');
 }
-function cache(at, latest = '0.9.0', status = 'update_available') {
+function cache(at, latest = NEXT, status = 'update_available') {
   return { schema: 'isingq-background-updates-v1', current_version: CURRENT, latest_version: latest, status, checked_at: at };
 }
 function child(program, options = {}) {
@@ -82,8 +85,8 @@ test('completed cache yields a canonical notice only once per current/latest pai
   manager.start(); await manager.waitForIdle();
   const notice = manager.takeNotice();
   assert.equal(notice.current_version, CURRENT);
-  assert.equal(notice.latest_version, '0.9.0');
-  assert.match(notice.text, /0\.9\.0.*手动升级/);
+  assert.equal(notice.latest_version, NEXT);
+  assert.ok(notice.text.includes(NEXT));assert.match(notice.text,/手动升级/);
   assert.equal(notice.requires_response, false);
   assert.equal(notice.automatic_install, false);
   assert.equal(notice.announce_check, false);
@@ -105,11 +108,11 @@ test('completed cache yields a canonical notice only once per current/latest pai
 test('a version cannot be announced twice within 24 hours even after another latest version', t => {
   const f = fixture(t); const now = Date.now();
   const manager = createBackgroundUpdates({ environment: f.environment, now: () => now });
-  write(f.directory, 'cache.json', cache(now, '0.9.0'));
-  assert.equal(manager.takeNotice().latest_version, '0.9.0');
-  write(f.directory, 'cache.json', cache(now, '0.10.0'));
-  assert.equal(manager.takeNotice().latest_version, '0.10.0');
-  write(f.directory, 'cache.json', cache(now, '0.9.0'));
+  write(f.directory, 'cache.json', cache(now, NEXT));
+  assert.equal(manager.takeNotice().latest_version, NEXT);
+  write(f.directory, 'cache.json', cache(now, LATER));
+  assert.equal(manager.takeNotice().latest_version, LATER);
+  write(f.directory, 'cache.json', cache(now, NEXT));
   assert.equal(manager.takeNotice(), null);
 });
 
@@ -219,6 +222,59 @@ test('symbolic links, unsafe cache paths, read/write and spawn failures remain s
   assert.equal(fs.existsSync(path.join(broken.directory, 'check.lock')), false);
 });
 
+test('owned cache writes close once and preserve the previous cache on write, close, rename, or cleanup failure', async t => {
+  for (const failure of ['close', 'write-close', 'rename', 'cleanup']) {
+    const f = fixture(t);
+    const old = cache(Date.now() - DAY - 1, LATER);
+    write(f.directory, 'cache.json', old);
+    const oldText = fs.readFileSync(path.join(f.directory, 'cache.json'), 'utf8');
+    const descriptors = new Set();
+    const tempPaths = new Set();
+    const originals = { openSync: fs.openSync, closeSync: fs.closeSync, writeFileSync: fs.writeFileSync,
+      renameSync: fs.renameSync, unlinkSync: fs.unlinkSync };
+    let injectedCloseCalls = 0;
+    fs.openSync = function(filename, ...args) {
+      const fd = originals.openSync.call(this, filename, ...args);
+      if (String(filename).includes('.tmp')) { descriptors.add(fd); tempPaths.add(String(filename)); }
+      return fd;
+    };
+    fs.closeSync = function(fd) {
+      if (descriptors.has(fd)) {
+        descriptors.delete(fd);
+        injectedCloseCalls += 1;
+        originals.closeSync.call(this, fd);
+        if (failure === 'close' || failure === 'write-close') { const error = Error('synthetic close failure'); error.code = 'EIO'; throw error; }
+      }
+      return originals.closeSync.call(this, fd);
+    };
+    if (failure === 'write-close') fs.writeFileSync = function(target, ...args) {
+      if (descriptors.has(target)) { const error = Error('synthetic write failure'); error.code = 'ENOSPC'; throw error; }
+      return originals.writeFileSync.call(this, target, ...args);
+    };
+    if (failure === 'rename') fs.renameSync = function(from, to) {
+      if (to === path.join(f.directory, 'cache.json')) { const error = Error('synthetic rename failure'); error.code = 'EACCES'; throw error; }
+      return originals.renameSync.call(this, from, to);
+    };
+    if (failure === 'cleanup') fs.unlinkSync = function(filename, ...args) {
+      if (tempPaths.has(String(filename))) { const error = Error('synthetic cleanup failure'); error.code = 'EPERM'; throw error; }
+      return originals.unlinkSync.call(this, filename, ...args);
+    };
+    const manager = createBackgroundUpdates({ environment: f.environment, check: async () => result() });
+    try { manager.start(); await manager.waitForIdle(); }
+    finally {
+      fs.openSync = originals.openSync; fs.closeSync = originals.closeSync; fs.writeFileSync = originals.writeFileSync;
+      fs.renameSync = originals.renameSync; fs.unlinkSync = originals.unlinkSync;
+    }
+    assert.equal(fs.readFileSync(path.join(f.directory, 'cache.json'), 'utf8'), oldText);
+    if (failure === 'close' || failure === 'write-close') assert.equal(injectedCloseCalls, 1);
+    if (failure === 'cleanup') {
+      const leftovers = fs.readdirSync(f.directory).filter(name => name.endsWith('.tmp'));
+      assert.equal(leftovers.length, 1);
+      fs.unlinkSync(path.join(f.directory, leftovers[0]));
+    } else assert.deepEqual(fs.readdirSync(f.directory).filter(name => name.endsWith('.tmp')), []);
+  }
+});
+
 test('detached environment is a strict allowlist, no business secrets or runtime injection', t => {
   const f = fixture(t); let invocation;
   const environment = { ...f.environment, USERPROFILE: f.home, LOCALAPPDATA: f.home, SystemRoot: 'C:\\Windows',
@@ -249,7 +305,7 @@ test('real detached parent exits promptly; worker writes later and subsequent pr
     require('node:net').Socket.prototype.connect=()=>{throw Error('REAL_NETWORK_FORBIDDEN')};
     for(const name of ['ISINGQ_API_KEY','NODE_OPTIONS','NPM_TOKEN','AWS_SECRET_ACCESS_KEY']) if(process.env[name]) throw Error('SECRET_ENV_INHERITED');
     const http=require(${JSON.stringify(UNDICI)});
-    http.fetch=async()=>{await new Promise(r=>setTimeout(r,1500));return new http.Response(JSON.stringify({name:'@ising-tech/isingq-mcp',version:'0.9.0'}));};
+    http.fetch=async()=>{await new Promise(r=>setTimeout(r,1500));return new http.Response(JSON.stringify({name:'@ising-tech/isingq-mcp',version:${JSON.stringify(NEXT)}}));};
   `);
   const program = `
     const {createBackgroundUpdates}=require(${JSON.stringify(MODULE)});
@@ -268,7 +324,7 @@ test('real detached parent exits promptly; worker writes later and subsequent pr
   const noticeProgram = `const m=require(${JSON.stringify(MODULE)}).createBackgroundUpdates({environment:${JSON.stringify(f.environment)}});process.stdout.write(JSON.stringify(m.takeNotice()));`;
   const notices = await Promise.all([child(noticeProgram), child(noticeProgram)]);
   for (const value of notices) { assert.equal(value.code, 0, value.stderr); assert.equal(value.stderr, ''); }
-  assert.equal(notices.filter(value => JSON.parse(value.stdout)?.latest_version === '0.9.0').length, 1);
+  assert.equal(notices.filter(value => JSON.parse(value.stdout)?.latest_version === NEXT).length, 1);
   assert.equal(createBackgroundUpdates({ environment: f.environment }).takeNotice(), null);
 });
 

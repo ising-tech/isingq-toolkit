@@ -156,20 +156,20 @@
       "audience": "public",
       "source_ids": ["official.news.cloud_upgrade_20260710"],
       "last_verified": "2026-08-18",
-      "caveat": "该条目只说明公开存在过该类机型；当前云平台 API 不提供 S1601 选择，也不提供 computer_type_id 映射。"
+      "caveat": "该条目只说明公开存在过该类机型，不提供 computer_type_id 映射。显式目标入口需从当前环境公开目录取得实际ID及能力，不能根据名称推断可选性或实际执行硬件。"
     },
     {
       "id": "machine.model.s2048",
       "topic": "ising_machine",
       "subject": "光电伊辛机 S2048",
       "predicate": "官方公开机型 S2048",
-      "value": "支持 2048 个全连接自旋，2026 年 7 月官方宣布上线玉盘·伊辛云平台；当前云平台 API 求解只支持 2048 自旋能力",
+      "value": "支持 2048 个全连接自旋，2026 年 7 月官方宣布上线玉盘·伊辛云平台",
       "scope": "public-machine-announcement-2026-07-10",
       "status": "verified",
       "audience": "public",
       "source_ids": ["official.news.cloud_upgrade_20260710", "official.ising_cloud"],
       "last_verified": "2026-08-18",
-      "caveat": "2048 既是该公开机型的全连接自旋数，也是当前云 API 的求解规模；不代表所有硬件的最大规模。"
+      "caveat": "2048为该公开机型的全连接自旋数，不代表所有硬件最大规模；当前可提交矩阵维度按实际目录executionCapabilities核对，不用展示规格代替。"
     },
     {
       "id": "machine.first_generation.4096",
@@ -228,14 +228,14 @@
       "id": "cloud.api_solver_capacity",
       "topic": "ising_cloud",
       "subject": "玉盘·伊辛云 API",
-      "predicate": "当前求解规模",
-      "value": "当前云平台 API 求解只支持 2048 自旋能力",
-      "scope": "public-cloud-api-current",
+      "predicate": "既有API规模记录",
+      "value": "2026-08-18资料核对时记录云API为2048自旋能力；新显式目标入口需按当前环境实际返回能力核实，不沿用此历史值作为统一上限",
+      "scope": "public-cloud-api-as-of-2026-08-18",
       "status": "verified",
       "audience": "public",
       "source_ids": ["official.ising_cloud", "local.mcp_contract"],
       "last_verified": "2026-08-18",
-      "caveat": "产品知识中存在其他机型或设备指标，不代表当前云平台 API 可以选择这些机型。"
+      "caveat": "产品知识或目录接口设计不证明端点已部署、账户有资格或指定硬件已执行。机型与能力取实际目录；目录不可读时不以历史固定名单继续提交。"
     },
     {
       "id": "solutions.finance",
@@ -294,12 +294,12 @@
       "topic": "faq",
       "subject": "isingq-mcp",
       "predicate": "求解数据流",
-      "value": "建模引导与 QUBO 校验工具在本机执行；调用求解提交工具会将矩阵发送至 IsingQ。确认当前任务是 Agent/Host 的流程义务",
+      "value": "建模引导与 QUBO 校验工具在本机执行；提交时按所选目标将矩阵发送至云端 IsingQ 或本地求解服务。确认当前任务是 Agent/Host 的流程义务",
       "scope": "local-mcp",
       "status": "verified",
       "audience": "public",
       "source_ids": ["local.mcp_contract"],
-      "last_verified": "2026-11-03",
+      "last_verified": "2026-11-12",
       "caveat": "知识查询工具完全本地，不上传问题、矩阵或求解结果；LLM 宿主的数据处理另计。Host 放行后工具执行提交，MCP 不验证不可伪造的人工授权记录或其与模型、参数的强绑定。"
     },
     {
@@ -312,8 +312,8 @@
       "status": "verified",
       "audience": "public",
       "source_ids": ["local.mcp_contract"],
-      "last_verified": "2026-08-17",
-      "caveat": "知识查询不读取 API Key；只有远端求解需要使用个人 API Key。"
+      "last_verified": "2026-11-12",
+      "caveat": "知识查询不读取 API Key；云端求解使用个人 IsingQ API Key，本地求解不索取云 Key，必要的本地认证按所选部署单独处理。"
     },
     {
       "id": "glossary.isingq",
