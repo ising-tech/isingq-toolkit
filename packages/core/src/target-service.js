@@ -199,8 +199,10 @@ class TargetEngine {
       snapshot = { ...reference, name: profile.name, api_base_url: profile.api_base_url, web_base_url: profile.web_base_url || null,
         revision: profile.revision, contract: structuredClone(profile.contract || null) };
       const probe = await this.transport(snapshot).probe();
-      snapshot.device_capabilities = { deviceName: probe.config.deviceName, version: probe.config.version,
-        maxScale: probe.config.maxScale, maxPrecision: probe.config.maxPrecision };
+      const { deviceName, version, maxScale, maxPrecision } = probe.config;
+      snapshot.device_capabilities = {
+        deviceName, version, maxScale, ...(maxPrecision === undefined ? {} : { maxPrecision }),
+      };
       // A profile may change while the asynchronous network check is pending.
       if (digest(profile) !== digest(this.profileStore().get(reference.profile_id))) fail('target_changed', '检查期间连接配置发生变化；请刷新本次摘要并重新确认');
       try {

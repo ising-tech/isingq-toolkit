@@ -61,7 +61,8 @@ async function boundedJson(response, phase) {
     throw new IsingQError(`IsingQ 响应超过 1 MiB（phase=${phase}）`, { phase });
   }
   try {
-    const payload = JSON.parse(text);
+    // A provider's -0 is numerically zero and must survive a JSON round trip.
+    const payload = JSON.parse(text, (_key, value) => value === 0 ? 0 : value);
     if (!payload || Array.isArray(payload) || typeof payload !== 'object') throw new Error();
     return payload;
   } catch (_) {

@@ -9,6 +9,22 @@ export const inject = ['tools'];
 const EXPECTED_TOOLS = createRequire(import.meta.url)('./expected-tools.cjs');
 const EXPECTED_RESOURCES = 13;
 
+export async function executeTool(tools, name, args, callId, signal) {
+  let result;
+  if (typeof tools.setExecutor === 'function') {
+    // Newer desktop runtimes accept the same call batch as the agent loop.
+    const batch = await tools.execute({
+      calls: [{ type: 'tool-call', id: callId, name, arguments: JSON.stringify(args) }], signal,
+    });
+    result = batch.results.find(entry => entry.callId === callId)?.result;
+  } else {
+    result = await tools.execute({ name, arguments: args, callId, signal });
+  }
+  if (!result) throw new Error(`DSH did not return a result for ${name}`);
+  if (result.isError) throw Object.assign(new Error(result.error?.message || 'DSH execution failed'), { code: result.error?.info?.code });
+  return result.value;
+}
+
 function packageRoot(entry) {
   let current = dirname(entry);
   while (!existsSync(join(current, 'package.json'))) {
@@ -75,6 +91,7 @@ export function apply(ctx) {
   const execution = {};
   const errors = [];
   let verified = false;
+  let callSequence = 0;
 
   const tools = () => [...ctx.tools.view().visible.keys()].sort();
   const isingq = () => tools().filter((tool) => tool.startsWith('isingq_'));
@@ -99,7 +116,8 @@ export function apply(ctx) {
     try {
       const tool = ctx.tools.view().visible.get(toolName);
       if (!tool) throw new Error(`missing tool ${toolName}`);
-      const value = await tool.execute(args);
+      const value = await executeTool(ctx.tools, toolName, args,
+        `verify-${bootId}-${++callSequence}`, AbortSignal.timeout(10000));
       const checks = check(value);
       const passed = Object.values(checks).every((entry) => entry === true);
       execution[label] = { called: true, passed, checks, error: null };

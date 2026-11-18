@@ -75,6 +75,18 @@ test('default verifier and packaged inspector share the current fixed native too
   assert.deepEqual(EXPECTED.toolNames, require('../scripts/dsh-verify-inspector/expected-tools.cjs'));
   assert.equal(verificationExpectations({'expect-tools':'22'}, {version:'v',sha256:'hash'}).tools, 22);
 });
+
+test('desktop inspector dispatches a native batch and matches its returned call identity', async () => {
+  const { executeTool } = await import('../scripts/dsh-verify-inspector/index.mjs');
+  const signal = new AbortController().signal;
+  const tools = { setExecutor() {}, async execute(input) {
+    assert.deepEqual(input, { calls: [{ type: 'tool-call', id: 'one', name: 'verify', arguments: '{"x":1}' }], signal });
+    return { results: [{ callId: 'one', result: { isError: false, value: { x: 1 } } }] };
+  } };
+  assert.deepEqual(await executeTool(tools, 'verify', { x: 1 }, 'one', signal), { x: 1 });
+  tools.execute = async () => ({ results: [] });
+  await assert.rejects(executeTool(tools, 'verify', { x: 1 }, 'one', signal), /did not return a result/);
+});
 test('rejects extra and same-count renamed tools even if a snapshot claims tools_match', () => {
   for (const kind of ['extra','renamed']) {
     const summary = goodSummary();

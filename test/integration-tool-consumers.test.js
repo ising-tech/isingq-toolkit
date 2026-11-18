@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { loadNativeDsh } = require('../test-support/native-dsh');
 const root = path.resolve(__dirname, '..');
 const NORMAL = ['isingq_api_key_setup', 'isingq_knowledge_get', 'isingq_modeling_guide_get', 'isingq_solve'];
 const NATIVE = ['isingq_api_key_setup', 'isingq_delivery_validate', 'isingq_knowledge_get', 'isingq_modeling_guide_get', 'isingq_qubo_validate', 'isingq_report_verify', 'isingq_resource_list', 'isingq_resource_read', 'isingq_solve_poll', 'isingq_solve_result_get', 'isingq_solve_start', 'isingq_update_check', 'isingq_solver_targets_list', 'isingq_target_solve_prepare', 'isingq_target_solve_start', 'isingq_solver_profiles_list', 'isingq_solver_profiles_save', 'isingq_solver_profiles_delete', 'isingq_solver_config_open', 'isingq_solve_records_list', 'isingq_target_delivery_validate'].sort();
@@ -37,12 +38,18 @@ test('release smoke rejects wrong names even when tool count matches the selecte
 });
 test('actual native adapter reaches inspector ready and verified only for exact current names', async t => {
   const dir = temporary(t);
-  const previous = Object.fromEntries(['VERIFY_OUT','VERIFY_BOOT_ID','VERIFY_PLUGIN_DIR','XDG_CONFIG_HOME','XDG_DATA_HOME'].map(k => [k, process.env[k]]));
-  Object.assign(process.env, { XDG_CONFIG_HOME: path.join(dir, 'config'), XDG_DATA_HOME: path.join(dir, 'data'), VERIFY_PLUGIN_DIR: path.join(root, 'packages/dsh-plugin') });
+  const overrides = {
+    XDG_CONFIG_HOME: path.join(dir, 'config'),
+    XDG_DATA_HOME: path.join(dir, 'data'),
+    LOCALAPPDATA: path.join(dir, 'appdata'),
+    VERIFY_PLUGIN_DIR: path.join(root, 'packages/dsh-plugin'),
+  };
+  const previous = Object.fromEntries([...Object.keys(overrides), 'VERIFY_OUT', 'VERIFY_BOOT_ID'].map(k => [k, process.env[k]]));
+  Object.assign(process.env, overrides);
   t.after(() => { for (const [k,v] of Object.entries(previous)) { if(v === undefined) delete process.env[k]; else process.env[k]=v; } });
-  const adapter = await import('../packages/dsh-plugin/index.mjs');
   const inspector = await import('../scripts/dsh-verify-inspector/index.mjs');
-  const registered = new Map(); adapter.apply({ tools: { register: tool => registered.set(tool.name,tool) } }, { backgroundUpdates: null });
+  const runtime = await loadNativeDsh(t);
+  const registered = runtime.view().visible;
   assert.deepEqual([...registered.keys()].sort(), NATIVE);
   for (const mutation of ['exact','missing','extra','renamed']) {
     const out = path.join(dir, mutation); Object.assign(process.env, { VERIFY_OUT: out, VERIFY_BOOT_ID: mutation });
@@ -50,7 +57,10 @@ test('actual native adapter reaches inspector ready and verified only for exact 
     if (mutation === 'missing' || mutation === 'renamed') visible.delete('isingq_target_solve_prepare');
     if (mutation === 'extra' || mutation === 'renamed') visible.set('isingq_unexpected', {});
     const events = new Map(), before = process.listeners('exit');
-    inspector.apply({ tools: { view: () => ({visible}) }, on: (name,fn) => events.set(name,fn), effect: () => {} });
+    inspector.apply({
+      tools: { view: () => ({ visible }), execute: input => runtime.execute(input) },
+      on: (name,fn) => events.set(name,fn), effect: () => {},
+    });
     events.get('ready')();
     for (let i=0;i<10 && !fs.existsSync(path.join(out,`snapshot-verified-${mutation}.json`));i++) await new Promise(setImmediate);
     events.get('dispose')();

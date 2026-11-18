@@ -83,6 +83,7 @@ function prepareLocalTarget(matrix, profile, probe, options, { environment = pro
   if (size_bytes > clientMaxBytes) throw error('local_client_file_too_large', `CSV超过客户端容量（bytes=${size_bytes}, client_max_file_bytes=${clientMaxBytes}）；请核对当前Toolkit容量配置，不代表设备上传上限`);
   if (c.max_file_bytes != null && size_bytes > c.max_file_bytes) throw error('local_file_too_large', `CSV超过已核实文件限制（bytes=${size_bytes}, max_file_bytes=${c.max_file_bytes}）`);
   const declared_constraints = declaredConstraints(c);
+  const result_domain = resultDomain(c);
   return { adapter_version: LOCAL_ADAPTER_VERSION, effective_contract: structuredClone(c), declared_constraints,
     precision: { reported_max_precision: probe.config.maxPrecision ?? null, responsibility: 'provider_managed',
       integer_coefficients: declared_constraints.integer_coefficients, coefficient_step: declared_constraints.coefficient_step,
@@ -90,7 +91,11 @@ function prepareLocalTarget(matrix, profile, probe, options, { environment = pro
     client_capacity: { scope: 'client_runtime', max_file_bytes: clientMaxBytes, source: 'Toolkit localFile capacity' },
     file: { content, format: 'csv', filename: 'matrix.csv', sha256: crypto.createHash('sha256').update(content).digest('hex'), size_bytes }, solver_options,
     capabilities: { config: structuredClone(probe.config), runtime: structuredClone(probe.runtime), status: structuredClone(probe.status), contract: structuredClone(c) },
-    encoding: { matrix_mode: c.matrix_mode, result_domain: resultDomain(c), csv_layout: c.csv_layout, spin_to_bit: c.spin_to_bit, offset: validated.offset, provider_energy_is_qubo: false }, advice: [] };
+    encoding: {
+      matrix_mode: c.matrix_mode, result_domain, csv_layout: c.csv_layout,
+      ...(result_domain === 'spin' ? { spin_to_bit: c.spin_to_bit } : {}),
+      offset: validated.offset, provider_energy_is_qubo: false,
+    }, advice: [] };
 }
 async function readJson(response, phase) {
   const chunks = []; let size = 0;
@@ -99,7 +104,10 @@ async function readJson(response, phase) {
     const reader = response.body.getReader();
     try { while (true) { const r = await reader.read(); if (r.done) break; size += r.value.byteLength; if (size > MAX_RESPONSE_BYTES) { await reader.cancel(); throw error('local_response_too_large', `设备响应超过上限（phase=${phase}, max_bytes=${MAX_RESPONSE_BYTES}）`, { phase }); } chunks.push(Buffer.from(r.value)); } } finally { reader.releaseLock(); }
   } else { const text = await response.text(); size = Buffer.byteLength(text); if (size > MAX_RESPONSE_BYTES) throw error('local_response_too_large', `设备响应超过上限（phase=${phase}）`, { phase }); chunks.push(Buffer.from(text)); }
-  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch (_) { throw error('local_response_invalid', `设备未返回有效JSON（phase=${phase}）；请核对服务地址和反代路径`, { phase }); }
+  try {
+    // Provider -0 denotes the same bit, energy or timing value as 0.
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'), (_key, value) => value === 0 ? 0 : value);
+  } catch (_) { throw error('local_response_invalid', `设备未返回有效JSON（phase=${phase}）；请核对服务地址和反代路径`, { phase }); }
 }
 class LocalSolverTransport {
   constructor({ profile, timeoutSeconds = 30, fetch = http.fetch, credentialProvider, environment = process.env } = {}) {
